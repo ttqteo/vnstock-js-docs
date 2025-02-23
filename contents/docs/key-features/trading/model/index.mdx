@@ -1,0 +1,83 @@
+---
+title: Cấu Trúc Dữ Liệu
+description: Phần này miêu tả dữ liệu đầu ra.
+---
+
+`IPriceBoard` là một interface trong TypeScript mô tả thông tin chi tiết về giá và giao dịch của một mã chứng khoán, gồm:
+- **`listingInfo`**: Thông tin niêm yết như mã chứng khoán, giá trần/sàn, tổ chức phát hành.
+- **`bidAsk`**: Thông tin về giá đặt mua/bán và khối lượng tương ứng.
+- **`matchPrice`**: Dữ liệu khớp lệnh như giá khớp, tổng khối lượng và giá trị giao dịch.
+
+Interface này giúp xây dựng các ứng dụng tài chính theo dõi dữ liệu chứng khoán theo thời gian thực. 🚀
+
+## 1. Thông tin niêm yết `listingInfo`
+| Thuộc tính           | Kiểu dữ liệu | Giải thích |
+|----------------------|-------------|------------|
+| `code`              | `string`    | Mã chứng khoán |
+| `symbol`            | `string`    | Ký hiệu chứng khoán |
+| `ceiling`           | `number`    | Giá trần |
+| `floor`             | `number`    | Giá sàn |
+| `refPrice`          | `number`    | Giá tham chiếu |
+| `stockType`         | `string`    | Loại cổ phiếu (VD: cổ phiếu, chứng chỉ quỹ, trái phiếu) |
+| `board`             | `string`    | Sàn giao dịch (HOSE, HNX, UPCoM) |
+| `exercisePrice`     | `number`    | Giá thực hiện quyền (nếu là chứng quyền) |
+| `exerciseRatio`     | `string`    | Tỷ lệ thực hiện quyền (nếu có) |
+| `maturityDate`      | `string`    | Ngày đáo hạn (đối với chứng quyền, trái phiếu) |
+| `lastTradingDate`   | `string`    | Ngày giao dịch cuối cùng |
+| `underlyingSymbol`  | `string`    | Mã chứng khoán cơ sở (đối với chứng quyền) |
+| `issuerName`        | `string`    | Tên tổ chức phát hành |
+| `listedShare`       | `number`    | Số lượng cổ phiếu đang niêm yết |
+| `receivedTime`      | `string`    | Thời gian nhận dữ liệu |
+| `messageType`       | `string`    | Loại thông điệp dữ liệu |
+| `type`              | `string`    | Loại tài sản (VD: cổ phiếu, chứng chỉ quỹ, chứng quyền) |
+| `id`               | `number`    | ID của chứng khoán |
+| `enOrganName`      | `string`    | Tên tổ chức phát hành bằng tiếng Anh |
+| `enOrganShortName` | `string`    | Tên viết tắt tổ chức phát hành bằng tiếng Anh |
+| `organName`        | `string`    | Tên tổ chức phát hành bằng tiếng Việt |
+| `organShortName`   | `string`    | Tên viết tắt tổ chức phát hành bằng tiếng Việt |
+| `ticker`           | `string`    | Mã giao dịch của chứng khoán |
+| `priorClosePrice`  | `number`    | Giá đóng cửa phiên trước |
+| `benefit`          | `string`    | Lợi ích hoặc thông tin liên quan đến quyền lợi của cổ đông |
+
+---
+
+## 2. Thông tin đặt lệnh `bidAsk`
+| Thuộc tính      | Kiểu dữ liệu | Giải thích |
+|-----------------|-------------|------------|
+| `code`         | `string`    | Mã chứng khoán |
+| `symbol`       | `string`    | Ký hiệu chứng khoán |
+| `session`      | `string`    | Phiên giao dịch (ATO, ATC, liên tục) |
+| `bidPrices`    | `Array<{ price: number; volume: number; }>` | Danh sách giá và khối lượng đặt mua (3 mức) |
+| `askPrices`    | `Array<{ price: number; volume: number; }>` | Danh sách giá và khối lượng đặt bán (3 mức) |
+| `receivedTime` | `string`    | Thời gian nhận dữ liệu |
+| `messageType`  | `string`    | Loại thông điệp dữ liệu |
+| `time`         | `string`    | Thời gian cập nhật dữ liệu |
+
+---
+
+## 3. Thông tin khớp lệnh `matchPrice`
+| Thuộc tính               | Kiểu dữ liệu | Giải thích |
+|--------------------------|-------------|------------|
+| `code`                  | `string`    | Mã chứng khoán |
+| `symbol`                | `string`    | Ký hiệu chứng khoán |
+| `matchPrice`            | `number`    | Giá khớp lệnh gần nhất |
+| `matchVol`              | `number`    | Khối lượng khớp lệnh gần nhất |
+| `receivedTime`          | `string`    | Thời gian nhận dữ liệu |
+| `messageType`           | `string`    | Loại thông điệp dữ liệu |
+| `accumulatedVolume`     | `number`    | Tổng khối lượng khớp lệnh trong phiên |
+| `accumulatedValue`      | `number`    | Tổng giá trị giao dịch trong phiên |
+| `avgMatchPrice`         | `number`    | Giá khớp lệnh trung bình |
+| `highest`               | `number`    | Giá cao nhất trong phiên |
+| `lowest`                | `number`    | Giá thấp nhất trong phiên |
+| `time`                  | `string`    | Thời gian cập nhật dữ liệu |
+| `session`               | `string`    | Phiên giao dịch (ATO, ATC, liên tục) |
+| `matchType`             | `string`    | Loại giao dịch khớp lệnh |
+| `foreignSellVolume`     | `number`    | Khối lượng bán của nhà đầu tư nước ngoài |
+| `foreignBuyVolume`      | `number`    | Khối lượng mua của nhà đầu tư nước ngoài |
+| `currentRoom`           | `number`    | Số lượng cổ phiếu nước ngoài còn có thể mua |
+| `totalRoom`            | `number`    | Tổng số lượng cổ phiếu nước ngoài có thể sở hữu |
+| `totalAccumulatedValue` | `number`    | Tổng giá trị giao dịch tích lũy |
+| `totalAccumulatedVolume`| `number`    | Tổng khối lượng giao dịch tích lũy |
+| `referencePrice`        | `number`    | Giá tham chiếu |
+
+---

@@ -1,0 +1,18 @@
+---
+title: Giao Dịch - Trading
+description: Giao Dịch - Trading
+---
+
+Cách sử dụng nhanh:
+
+```typescript
+import { Vnstock } from "vnstock-js";
+
+const { stock } = new Vnstock();
+
+const result = await stock.trading.priceBoard(["VCB"]);
+
+console.log(result);
+```
+
+Dữ liệu đầu ra là `IPriceBoard`, chi tiết xem ở mục Cấu Trúc.
