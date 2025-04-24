@@ -14,6 +14,7 @@ export const ROUTES: EachRoute[] = [
     noLink: true,
     items: [
       { title: "Giới Thiệu", href: "/introduction" },
+      { title: "Danh Sách Hàm (*)", href: "/api-references" },
       { title: "Cài Đặt", href: "/installation" },
       { title: "Kiến Trúc", href: "/architecture" },
       { title: "Hướng Dẫn Sử Dụng Nhanh", href: "/quick-start-guide" },
