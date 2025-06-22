@@ -3,36 +3,52 @@ title: Danh Sách Hàm
 description: 
 ---
 
-## So sánh tính năng giữa `vnstock3` và file test `vnstock-js`
+# Hàm đang có và đang phát triển `vnstock-js`
 
-| **Danh mục**              | **Tính năng**                         | **`vnstock3`**                                                      | **`vnstock-js`** |
-|---------------------------|----------------------------------------|--------------------------------------------------------------------------------|-------------------------------|
-| **Khởi tạo**              | Tạo đối tượng làm việc                 | `stock = Vnstock().stock(symbol='ACB', source='VCI')`                          | ❌                            |
-| **Thông tin niêm yết**    | Danh sách công ty                      | `stock.listing.all_symbols()`                                                 | ✅ `listing.allSymbols()`     |
-|                           | Danh sách các mã chỉ số                | Chưa bổ sung                                                                   | ❌                            |
-|                           | Mã CP theo sàn                         | `stock.listing.symbols_by_exchange()`                                         | ✅ `listing.symbolsByExchange()` |
-|                           | Mã CP theo ngành icb                   | `stock.listing.symbols_by_industries()`                                       | ✅ `listing.symbolsByIndustries()` |
-|                           | Mã CP theo nhóm                        | `stock.listing.symbols_by_group('VN30')`                                      | ✅ `listing.symbolsByGroup()` |
-|                           | Danh sách ngành icb                    | `stock.listing.industries_icb()`                                              | ✅ `listing.industriesIcb()`  |
-| **Thông tin công ty**     | Tạo đối tượng                          | `company = Company(symbol='TCB')`                                             | ❌                            |
-|                           | Tổng quan                              | `company.overview()`                                                          | ❌                            |
-|                           | Hồ sơ                                  | `company.profile()`                                                           | ❌                            |
-|                           | Cổ đông                                | `company.shareholders()`                                                     | ❌                            |
-|                           | Giao dịch nội bộ                       | `company.insider_deals()`                                                    | ❌                            |
-|                           | Công ty con                            | `company.subsidiaries()`                                                     | ❌                            |
-|                           | Lãnh đạo                               | `company.officers()`                                                         | ❌                            |
-|                           | Sự kiện                                | `company.events()`                                                           | ❌                            |
-|                           | Tin tức                                | `company.news()`                                                             | ❌                            |
-|                           | Cổ tức                                 | `company.dividends()`                                                        | ❌                            |
-| **Báo cáo tài chính**     | Khởi tạo                               | `report = Finance(symbol='ACB', period='year')`                              | ❌                            |
-|                           | Chỉ số tài chính                       | `report.ratio(lang='vi')`                                                    | ❌                            |
-|                           | Bảng CĐKT                              | `report.balance_sheet(lang='vi')`                                            | ✅ `financials.balanceSheet()` |
-|                           | Báo cáo kinh doanh                     | `report.income_statement(lang='vi')`                                         | ❌                            |
-|                           | Lưu chuyển tiền tệ                     | `report.cash_flow(lang='vi')`                                                | ❌                            |
-| **Giá**                   | Bảng giá                               | `stock.trading.price_board(['ACB'])`                                          | ✅ `trading.priceBoard()`     |
-|                           | Giá lịch sử (điều chỉnh)               | `stock.quote.history(start='2020-01-01', end='2024-12-31')`                   | ✅ `quote.history()`          |
-|                           | Lịch sử khớp lệnh (intraday)           | `stock.quote.intraday(symbol='ACB')`                                          | ❌                            |
-|                           | Giá vs khối lượng khớp                 | `stock.quote.price_depth('ACB')`                                              | ❌                            |
-| **Thị trường quốc tế**    | FX (nến)                                | `fx.quote.history(start='2024-02-28', end='2024-05-10', interval='1D')`       | ❌                            |
-|                           | Crypto (nến)                           | `crypto.quote.history(start='2023-01-01', end='2024-12-31', interval='1D')`   | ❌                            |
-|                           | Chỉ số (nến)                           | `index.quote.history(start='2023-01-01', end='2024-12-31', interval='1D')`    | ❌                            |
+## Khởi tạo đối tượng
+
+Chúng ta có 2 cách khởi tạo đối tượng
+
+1. Cơ bản
+
+Hàm đã được tạo sẵn để sử dụng một số tính năng cơ bản
+
+```ts
+import { stock, commodity } from 'vnstock-js';
+```
+
+2. Nâng cao
+
+Hàm này sẽ sử dụng đầy đủ tính năng từ vnstock-js, nhưng cách dùng sẽ phức tạp hơn so với cơ bản
+
+```ts
+import vnstock from 'vnstock-js';
+```
+
+## Chứng khoáng
+
+TBD
+
+## Hàng Hoá
+
+Hiện tại đang có vàng, từ 3 nguồn: BTMC (Bảo Tín Minh Châu), giavang.net, và SJC
+
+1. Cơ bản
+
+```ts
+import { commodity} from 'vnstock-js';
+
+const goldBTMC = await commodity.gold.priceBTMC();
+const goldGiaVangNet = await commodity.gold.priceGiaVangNet();
+const goldSJC = await commodity.gold.priceSJC();
+```
+
+2. Nâng cao
+
+```ts
+import vnstock from 'vnstock-js';
+
+const goldBTMC = await vnstock.commodity.goldPriceBTMC();
+const goldGiaVangNet = await vnstock.commodity.goldPriceGiaVangNet();
+const goldSJC = await vnstock.commodity.goldPriceSJC();
+```

@@ -3,4 +3,27 @@ title: Hướng Dẫn Sử Dụng Nhanh
 description: 
 ---
 
-TBD
+# Cơ bản
+
+```ts
+import { stock, commodity } from 'vnstock-js';
+
+// Dữ liệu mã cổ phiếu VCI ngày 01-01/2024
+const prices = await stock.price('VCI', '2024-01-01');
+
+// Dữ liệu vàng từ SJC
+const goldPrices = await commodity.gold.priceSJC();
+```
+
+# Nâng cao (đầy đủ tính năng)
+
+```ts
+import vnstock from 'vnstock-js';
+
+// Truy cập trực tiếp
+const prices = await vnstock.stock.quote.history({
+  symbols: ['VCI'],
+  start: '2024-01-01',
+  timeFrame: '1D'
+});
+```
