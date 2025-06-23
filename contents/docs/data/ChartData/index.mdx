@@ -1,0 +1,27 @@
+---
+title: ChartData
+description: 
+---
+
+## Các hàm sử dụng
+Cơ bản:
+1. stock.index
+2. stock.price
+
+Nâng cao:
+1. vnstock.stock.quote.history
+
+## 🔍 Dữ liệu biểu đồ chỉ số/cổ phiếu
+
+| Trường              | Kiểu dữ liệu | Mô tả                                                                      |
+| ------------------- | ------------ | -------------------------------------------------------------------------- |
+| `symbol`            | `string`     | Mã chứng khoán hoặc chỉ số, ví dụ `"VNINDEX"`, `"FPT"`                     |
+| `o`                 | `number[]`   | **Open** – Giá mở cửa tại mỗi thời điểm                                    |
+| `h`                 | `number[]`   | **High** – Giá cao nhất tại mỗi thời điểm                                  |
+| `l`                 | `number[]`   | **Low** – Giá thấp nhất tại mỗi thời điểm                                  |
+| `c`                 | `number[]`   | **Close** – Giá đóng cửa tại mỗi thời điểm                                 |
+| `v`                 | `number[]`   | **Volume** – Khối lượng giao dịch tương ứng                                |
+| `t`                 | `number[]`   | **Timestamp (epoch)** – Mốc thời gian tính theo giây (UNIX timestamp)      |
+| `accumulatedVolume` | `number[]`   | Tổng khối lượng tích lũy tính đến thời điểm `t[i]`                         |
+| `accumulatedValue`  | `number[]`   | Tổng giá trị giao dịch tích lũy (tính bằng VND) đến thời điểm `t[i]`       |
+| `minBatchTruncTime` | `number`     | Thời gian nhỏ nhất chia lô (để đồng bộ time series); thường là đơn vị giây |

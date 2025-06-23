@@ -1,0 +1,46 @@
+---
+title: Hướng dẫn sử dụng hàm cơ bản
+description: 
+---
+
+```ts
+import { stock, commodity } from 'vnstock-js';
+```
+
+## Dữ liệu chỉ số VNINDEX ngày 01-01-2024
+```ts
+const indexPrices = await stock.index('VNINDEX', '2024-01-01');
+```
+
+## Dữ liệu mã cổ phiếu VCI ngày 01-01-2024
+```ts
+const tickerPrices = await stock.price('VCI', '2024-01-01');
+```
+
+## Dữ liệu tổng quan công ty VCI
+```ts
+const companyInfos = await stock.company('VCI');
+```
+
+## Báo cáo tài chính công ty VCI
+```ts
+const companyFinancialInfos = await stock.financials('VCI', 'quarter');
+```
+
+## Dữ liệu vàng từ SJC
+```ts
+const goldPriceSJC = await commodity.gold.priceSJC();
+```
+
+## Đang cập nhật
+
+Một số hàm do ChatGPT gợi ý nên có
+
+| Hàm                   | Mục đích                         |
+| --------------------- | -------------------------------- |
+| `getQuote(symbol)`    | Giá hiện tại, % thay đổi, volume |
+| `getProfile(symbol)`  | Tên công ty, CEO, ngành nghề     |
+| `getHistoricalData()` | Dữ liệu giá theo ngày/tháng/năm  |
+| `getTopGainers()`     | Top tăng mạnh nhất               |
+| `getTopLosers()`      | Top giảm mạnh nhất               |
+| `getPutThrough()`     | Dữ liệu thỏa thuận               |

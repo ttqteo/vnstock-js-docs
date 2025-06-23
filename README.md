@@ -1,100 +1,138 @@
-## AriaDocs - Documentation Template
+# 📈 vnstock-js Documentation
 
-This feature-packed documentation template, built with Next.js, offers a sleek and responsive design, perfect for all your project documentation needs.
+Official documentation site for [vnstock-js](https://www.npmjs.com/package/vnstock-js) - A lightweight NPM package for fetching Vietnam stock market data from VCI.
 
-<img src="./public/public-og.png" />
+![vnstock-js docs preview](./public/public-og.png)
 
-<br/>
+## 🚀 Live Site
 
-Here are all versions of the AriaDocs template, each crafted for specific use cases:
+Visit the live documentation at: **[vnstock-js-docs.vercel.app](https://vnstock-js-docs.vercel.app/)**
 
+## 📖 About vnstock-js
 
-- **Advanced Docs:** A comprehensive template offering extensive features for in-depth documentation needs. Perfect for larger projects that require detailed explanations and advanced configurations.  
-  [Explore the Advanced Docs](https://github.com/nisabmohd/Aria-Docs/tree/master)
+**vnstock-js** is a lightweight NPM package that provides easy access to Vietnam stock market data through VCI's API. It's designed for JavaScript/TypeScript developers who want to integrate Vietnamese stock market data into their applications.
 
-- **Lite Version:** A streamlined, no-frills template perfect for straightforward documentation needs.  
-  [Explore the Lite Version](https://github.com/nisabmohd/Aria-Docs/tree/minimal-docs)
+### Key Features
 
-- **Version with Versioning:** A powerful option for projects that require historical documentation tracking. Manage multiple versions of your docs effortlessly.  
-  [Check out the Versioning Feature](https://github.com/nisabmohd/Aria-Docs/tree/version_docs)
+- **Stock Market Data**: Real-time and historical stock prices
+- **Commodity Data**: Gold prices from SJC and other commodities
+- **Trading Information**: Market trading data and statistics
+- **Financial Data**: Company financial information
+- **Listing Data**: Stock listing and market information
+- **TypeScript Support**: Full TypeScript definitions included
 
-- **i18n Support Version (WIP):** Designed for international audiences, this version will offer comprehensive multilingual support.  
-  [Preview the i18n Support](https://github.com/nisabmohd/Aria-Docs/tree/i18n-support)
+## 🛠️ Quick Start
 
-### Quick Start
+### Installation
 
-You can create a new Ariadocs project using the command:
-
-```plaintext
-npx create-aria-doc <project-directory>
+```bash
+npm install vnstock-js@latest
 ```
 
-### Expected Output
+### Basic Usage
 
-When you run the CLI, you can expect an output similar to this:
+```typescript
+import { stock, commodity } from 'vnstock-js';
 
-```
-Creating a new Ariadocs project in /path/to/your/project from the master branch...
-Cloning Master (Full Documentation)...
-Ariadocs project successfully created in /path/to/your/project!
+// Get stock prices
+const prices = await stock.price('VCI', '2025-01-01');
 
-Next steps:
-1. Navigate to your project directory:
-   cd <project-directory>
-2. Install dependencies:
-   // To support React 19, package maintainers will need to test and update their packages to include React 19 as a peer dependency. This is already in progress.
-   npm install --force 
-3. Start the development server:
-   npm run dev
+// Get gold prices from SJC
+const goldPrices = await commodity.gold.priceSJC();
 ```
 
-## Getting Started
+### Advanced Usage
 
-First, run the development server:
+```typescript
+import vnstock from 'vnstock-js';
 
-```plaintext
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+// Access comprehensive data
+const prices = await vnstock.stock.quote.history({
+  symbols: ['VCI'],
+  start: '2025-01-01',
+  timeFrame: '1D'
+});
 ```
 
+## 🏗️ Development
 
-## Deploy on Vercel
+This documentation site is built with:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Next.js 15** - React framework
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **MDX** - Content authoring
+- **AriaDocs Template** - Documentation framework
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+### Getting Started
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/nisabmohd/Aria-Docs)
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd vnstock-js-docs
+   ```
 
-## Key Features
+2. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
 
-| **Feature**                   | **Description**                                          |
-|-------------------------------|----------------------------------------------------------|
-| MDX Support                   | Write interactive documentation with MDX.                |
-| Nested Pages                  | Organize content in a nested, hierarchical structure.    |
-| Blog Section                  | Include a dedicated blog section.                        |
-| Table of Contents             | Auto-generated TOC for easy navigation.                  |
-| Pagination                    | Split content across multiple pages.                     |
-| Syntax Highlighting           | Highlight code for better readability.                   |
-| Code Line Highlighting & Titles | Highlight specific lines with descriptive titles.      |
-| Interactive Code Blocks       | Language-specific and interactive code display.          |
-| Custom Components             | Embed custom, reusable components in your docs.          |
-| Light & Dark Mode             | Toggle between light and dark themes.                    |
-| Search Functionality          | Quickly find content with a built-in search.             |
-| Code Switcher                 | Switch between code languages or variations.             |
-| Code Copy                     | Copy code blocks with a single click.                    |
-| TOC Observer Highlight        | Highlight active sections in the TOC as you scroll.      |
-| Static Site Generation        | Generate a static, high-performance site.                |
-| SEO-Optimized                 | Structured for optimal search engine indexing.           |
+3. **Start development server**
+   ```bash
+   pnpm dev
+   ```
 
+4. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-## Additional Themes
+### Build for Production
 
-<img src="./public/halloween.png" alt="halloween" />
-<img src="./public/nebula.png" alt="halloween" />
-<img src="./public/ocean.png" alt="halloween" />
+```bash
+pnpm build
+pnpm start
+```
+
+## 📁 Project Structure
+
+```
+vnstock-js-docs/
+├── app/                    # Next.js app directory
+├── components/             # React components
+├── contents/              # Documentation content (MDX)
+│   ├── docs/             # API documentation
+│   └── blogs/            # Blog posts
+├── lib/                   # Utility functions
+└── public/               # Static assets
+```
+
+## 🤝 Contributing
+
+We welcome contributions to improve the documentation! Here's how you can help:
+
+1. **Report Issues**: Found a typo or incorrect information? Open an issue
+2. **Suggest Improvements**: Have ideas for better documentation? Let us know
+3. **Submit PRs**: Want to fix something directly? Submit a pull request
+
+## 📚 Documentation Sections
+
+- **Getting Started**: Installation and quick start guides
+- **API References**: Complete API documentation
+- **Key Features**: Detailed feature explanations
+- **Examples**: Code examples and use cases
+- **Blog**: Updates and announcements
+
+## 🔗 Related Links
+
+- **NPM Package**: [vnstock-js](https://www.npmjs.com/package/vnstock-js)
+- **GitHub Repository**: [ttqteo/vnstock-js](https://github.com/ttqteo/vnstock-js)
+- **Inspired by**: [thinh-vu/vnstock](https://github.com/thinh-vu/vnstock)
+
+## 📄 License
+
+This documentation site is licensed under the [Apache 2.0 License](LICENSE).
+
+---
+
+**Made with ❤️ by [ttqteo](https://github.com/ttqteo)**
+
+For questions or support, contact: [ttqwork@gmail.com](mailto:ttqwork@gmail.com)

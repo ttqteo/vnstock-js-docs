@@ -26,14 +26,33 @@ export const ROUTES: EachRoute[] = [
     noLink: true,
     items: [
       {
-        title: "Giao Dịch - Trading",
-        href: "/trading",
-        items: [{ title: "Cấu Trúc", href: "/model" }],
+        title: "Cơ Bản",
+        href: "/basic",
       },
-
-      { title: "Báo Giá - Quote", href: "/quote" },
-      { title: "Niêm Yết - Listing", href: "/listing" },
-      { title: "Tài Chính - Financials", href: "/financials" },
+      {
+        title: "Nâng Cao",
+        href: "/advanced",
+        items: [
+          {
+            title: "Giao Dịch - Trading",
+            href: "/trading",
+          },
+          { title: "Báo Giá - Quote", href: "/quote" },
+          { title: "Niêm Yết - Listing", href: "/listing" },
+          { title: "Tài Chính - Financials", href: "/financials" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Dữ Liệu",
+    href: "/data",
+    noLink: true,
+    items: [
+      {
+        title: "ChartData",
+        href: "/ChartData",
+      },
     ],
   },
 ];
