@@ -1,23 +1,42 @@
 import { GoldPriceDataTable } from "@/components/stock-widget/gold-price-datatable";
 import { IndexPriceCard } from "@/components/stock-widget/index-price-card";
+import { StickerRealtimeCard } from "@/components/stock-widget/sticker-realtime-card";
 import { Metadata } from "next";
-import { commodity, stock, types } from "vnstock-js";
+import { commodity, stock, VnstockTypes } from "vnstock-js";
 
 export const metadata: Metadata = {
   title: "Ví Dụ",
 };
 
-// const symbol = "FPT";
-
 export default async function BlogIndexPage() {
   const goldPrice =
-    (await commodity.gold.priceGiaVangNet()) as types.GoldPriceGiaVangNet[];
+    (await commodity.gold.priceGiaVangNet()) as VnstockTypes.GoldPriceGiaVangNet[];
 
   // const companyProfile = await stock.company(symbol);
 
-  const indexPrices = await stock.index("VNINDEX", "2025-06-22");
-  const indexPrices2 = await stock.index("HNXIndex", "2025-06-22");
-  const indexPrices3 = await stock.index("HNXUpcomIndex", "2025-06-22");
+  const indexPrices = await stock.index({
+    index: "VNINDEX",
+    start: "2025-06-22",
+  });
+  const indexPrices2 = await stock.index({
+    index: "HNXIndex",
+    start: "2025-06-22",
+  });
+  const indexPrices3 = await stock.index({
+    index: "HNXUpcomIndex",
+    start: "2025-06-22",
+  });
+
+  const defaultSymbols = ["LPB"];
+  const priceboardArr = await stock.priceBoard({
+    ticker: defaultSymbols.join(","),
+  });
+  const initialPriceboard: Record<string, VnstockTypes.PriceBoard> = {};
+  if (priceboardArr.length > 0) {
+    priceboardArr.forEach((item) => {
+      initialPriceboard[item?.listingInfo?.symbol] = item;
+    });
+  }
 
   return (
     <div className="w-full mx-auto flex flex-col gap-1 sm:min-h-[91vh] min-h-[88vh] pt-2">
@@ -37,6 +56,12 @@ export default async function BlogIndexPage() {
           <IndexPriceCard data={indexPrices} />
           <IndexPriceCard data={indexPrices2} />
           <IndexPriceCard data={indexPrices3} />
+        </div>
+        <div className="grid grid-cols-1 gap-4">
+          <StickerRealtimeCard
+            initialSymbols={defaultSymbols}
+            initialPriceboard={initialPriceboard}
+          />
         </div>
         {/* <StockQuoteCard data={companyProfile} /> */}
         {/* <CompanyProfileCard data={companyProfile} /> */}

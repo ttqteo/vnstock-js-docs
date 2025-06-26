@@ -25,7 +25,7 @@ import {
 } from "@tanstack/react-table";
 import { Clock, TrendingDown, TrendingUp } from "lucide-react";
 import { useState } from "react";
-import { types } from "vnstock-js";
+import { VnstockTypes } from "vnstock-js";
 
 const GOLD_TYPE_MAP: Record<string, string> = {
   BTSJC: "BTMC SJC",
@@ -72,7 +72,7 @@ const formatDateTime = (timestamp: number) => {
   return `${hours}:${minutes} ${day}/${month}/${year}`;
 };
 
-const columns: ColumnDef<types.GoldPriceGiaVangNet>[] = [
+const columns: ColumnDef<VnstockTypes.GoldPriceGiaVangNet>[] = [
   {
     accessorKey: "type_code",
     cell: ({ row }) => {
@@ -176,7 +176,7 @@ const columns: ColumnDef<types.GoldPriceGiaVangNet>[] = [
       }-${yesterday.getDate()}`;
 
       const grouped = histories.reduce<
-        Record<string, types.GoldPriceGiaVangNet[]>
+        Record<string, VnstockTypes.GoldPriceGiaVangNet[]>
       >((acc, h) => {
         const key = `${h.create_year}-${h.create_month}-${h.create_day}`;
         if (!acc[key]) acc[key] = [];
@@ -254,10 +254,10 @@ const columns: ColumnDef<types.GoldPriceGiaVangNet>[] = [
 export function GoldPriceDataTable({
   goldPrice,
 }: {
-  goldPrice: types.GoldPriceGiaVangNet[];
+  goldPrice: VnstockTypes.GoldPriceGiaVangNet[];
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [data] = useState<types.GoldPriceGiaVangNet[]>(goldPrice);
+  const [data] = useState<VnstockTypes.GoldPriceGiaVangNet[]>(goldPrice);
 
   const table = useReactTable({
     data,

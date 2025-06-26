@@ -1,9 +1,13 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { types } from "vnstock-js";
+import { VnstockTypes } from "vnstock-js";
 
-export function CompanyProfileCard({ data }: { data: types.CompanyOverview }) {
+export function CompanyProfileCard({
+  data,
+}: {
+  data: VnstockTypes.CompanyOverview;
+}) {
   if (!data) return <div>Loading profile...</div>;
 
   const { CompanyListingInfo } = data;

@@ -1,9 +1,9 @@
 "use client";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { types } from "vnstock-js";
+import { VnstockTypes } from "vnstock-js";
 
-export function IndexPriceCard({ data }: { data: types.ChartData[] }) {
+export function IndexPriceCard({ data }: { data: VnstockTypes.ChartData[] }) {
   if (!data || data.length === 0) return <div>Loading index...</div>;
 
   const chartData = data[0];

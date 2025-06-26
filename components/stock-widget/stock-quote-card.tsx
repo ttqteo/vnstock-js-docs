@@ -1,9 +1,13 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { types } from "vnstock-js";
+import { VnstockTypes } from "vnstock-js";
 
-export function StockQuoteCard({ data }: { data: types.CompanyOverview }) {
+export function StockQuoteCard({
+  data,
+}: {
+  data: VnstockTypes.CompanyOverview;
+}) {
   if (!data) return <div>Loading...</div>;
 
   const { TickerPriceInfo } = data;
