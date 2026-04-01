@@ -1,0 +1,72 @@
+---
+title: Sàng Lọc - Screening
+description: Lọc cổ phiếu theo tiêu chí tài chính
+---
+
+## Sử dụng
+
+```typescript
+import vnstock from 'vnstock-js';
+
+const results = await vnstock.stock.screening.screen({
+  exchange: 'HOSE',
+  filters: [
+    { field: 'pe', operator: '<', value: 15 },
+    { field: 'roe', operator: '>', value: 0.15 },
+    { field: 'marketCap', operator: '>', value: 50000 },
+  ],
+  sortBy: 'roe',
+  order: 'desc',
+  limit: 20,
+});
+```
+
+### Params
+
+| Param | Type | Mô tả |
+|-------|------|--------|
+| `exchange` | string? | Lọc theo sàn (HOSE/HNX/UPCOM) |
+| `filters` | ScreenFilter[] | Danh sách điều kiện lọc |
+| `sortBy` | string? | Sắp xếp theo field |
+| `order` | "asc" \| "desc" | Thứ tự (mặc định: desc) |
+| `limit` | number? | Giới hạn kết quả |
+
+### Filter operators
+
+| Operator | Mô tả |
+|----------|--------|
+| `<` | Nhỏ hơn |
+| `>` | Lớn hơn |
+| `<=` | Nhỏ hơn hoặc bằng |
+| `>=` | Lớn hơn hoặc bằng |
+| `=` | Bằng |
+
+### Filterable fields
+
+| Field | Mô tả |
+|-------|--------|
+| `pe` | Price/Earnings |
+| `pb` | Price/Book |
+| `eps` | Earnings Per Share |
+| `roe` | Return on Equity |
+| `roa` | Return on Assets |
+| `marketCap` | Vốn hóa |
+| `price` | Giá hiện tại |
+| `volume` | Khối lượng |
+| `debtToEquity` | Nợ/Vốn chủ |
+
+### Output: `ScreenResult[]`
+
+```typescript
+[{
+  symbol: "FPT",
+  companyName: "CTCP FPT",
+  industry: "Công nghệ",
+  exchange: "HOSE",
+  pe: 12.3,
+  roe: 0.22,
+  marketCap: 95000,
+  price: 120,
+  // ...
+}]
+```

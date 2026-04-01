@@ -14,7 +14,7 @@ export const ROUTES: EachRoute[] = [
     noLink: true,
     items: [
       { title: "Giới Thiệu", href: "/introduction" },
-      { title: "Danh Sách Hàm (*)", href: "/api-references" },
+      { title: "Danh Sách Hàm", href: "/api-references" },
       { title: "Cài Đặt", href: "/installation" },
       { title: "Kiến Trúc", href: "/architecture" },
       { title: "Hướng Dẫn Sử Dụng Nhanh", href: "/quick-start-guide" },
@@ -40,6 +40,8 @@ export const ROUTES: EachRoute[] = [
           { title: "Báo Giá - Quote", href: "/quote" },
           { title: "Niêm Yết - Listing", href: "/listing" },
           { title: "Tài Chính - Financials", href: "/financials" },
+          { title: "Chỉ Báo - Indicators", href: "/indicators" },
+          { title: "Sàng Lọc - Screening", href: "/screening" },
         ],
       },
     ],
@@ -50,7 +52,7 @@ export const ROUTES: EachRoute[] = [
     noLink: true,
     items: [
       {
-        title: "ChartData",
+        title: "QuoteHistory",
         href: "/ChartData",
       },
     ],

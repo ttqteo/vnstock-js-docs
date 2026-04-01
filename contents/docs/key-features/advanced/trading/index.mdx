@@ -1,18 +1,47 @@
 ---
 title: Giao Dịch - Trading
-description: Giao Dịch - Trading
+description: API giao dịch - bảng giá, top tăng/giảm
 ---
 
-Cách sử dụng nhanh:
+## Bảng giá
 
 ```typescript
-import { Vnstock } from "vnstock-js";
+import vnstock from 'vnstock-js';
 
-const { stock } = new Vnstock();
-
-const result = await stock.trading.priceBoard(["VCB"]);
-
-console.log(result);
+const priceBoard = await vnstock.stock.trading.priceBoard(['VCI', 'FPT']);
 ```
 
-Dữ liệu đầu ra là `IPriceBoard`, chi tiết xem ở mục Cấu Trúc.
+Output: `PriceBoardItem[]`
+
+| Field | Type | Mô tả |
+|-------|------|--------|
+| `symbol` | string | Mã cổ phiếu |
+| `companyName` | string | Tên công ty |
+| `exchange` | string | Sàn (HOSE/HNX/UPCOM) |
+| `price` | number | Giá khớp (nghìn VND) |
+| `ceilingPrice` | number | Giá trần |
+| `floorPrice` | number | Giá sàn |
+| `referencePrice` | number | Giá tham chiếu |
+| `totalVolume` | number | Tổng khối lượng |
+| `totalValue` | number | Tổng giá trị |
+| `bidPrices` | array | 3 mức giá mua [{price, volume}] |
+| `askPrices` | array | 3 mức giá bán [{price, volume}] |
+
+## Top tăng mạnh
+
+```typescript
+const gainers = await vnstock.stock.trading.topGainers();
+const losers = await vnstock.stock.trading.topLosers();
+```
+
+Output: `TopStock[]`
+
+| Field | Type | Mô tả |
+|-------|------|--------|
+| `symbol` | string | Mã cổ phiếu |
+| `exchange` | string | Sàn |
+| `marketCap` | number | Vốn hóa |
+| `price1DayAgo` | number | Giá 1 ngày trước (nghìn VND) |
+| `price5DaysAgo` | number | Giá 5 ngày trước |
+| `price20DaysAgo` | number | Giá 20 ngày trước |
+| `vn30` | boolean | Thuộc VN30 |

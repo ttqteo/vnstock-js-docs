@@ -1,54 +1,97 @@
 ---
 title: Danh Sách Hàm
-description: 
+description: Tất cả API của vnstock-js v1.0
 ---
 
-# Hàm đang có và đang phát triển `vnstock-js`
+## Khởi tạo
 
-## Khởi tạo đối tượng
-
-Chúng ta có 2 cách khởi tạo đối tượng
-
-1. Cơ bản
-
-Hàm đã được tạo sẵn để sử dụng một số tính năng cơ bản
+### Cơ bản
 
 ```ts
 import { stock, commodity } from 'vnstock-js';
 ```
 
-2. Nâng cao
-
-Hàm này sẽ sử dụng đầy đủ tính năng từ vnstock-js, nhưng cách dùng sẽ phức tạp hơn so với cơ bản
+### Nâng cao
 
 ```ts
 import vnstock from 'vnstock-js';
 ```
 
-## Chứng khoán
+## Chứng khoán - Stock
 
-TBD
+### Báo giá
 
-## Hàng Hoá
+| Hàm | Mô tả | Params |
+|-----|--------|--------|
+| `stock.quote()` | Giá lịch sử OHLCV | `{ ticker, start, end? }` |
+| `stock.index()` | Dữ liệu chỉ số | `{ index, start, end? }` |
 
-Hiện tại đang có vàng, từ 3 nguồn: BTMC (Bảo Tín Minh Châu), giavang.net, và SJC
+### Giao dịch
 
-1. Cơ bản
+| Hàm | Mô tả | Params |
+|-----|--------|--------|
+| `stock.priceBoard()` | Bảng giá hiện tại | `{ ticker }` |
+| `stock.topGainers()` | Top tăng mạnh | — |
+| `stock.topLosers()` | Top giảm mạnh | — |
 
-```ts
-import { commodity} from 'vnstock-js';
+### Công ty
 
-const goldBTMC = await commodity.gold.priceBTMC();
-const goldGiaVangNet = await commodity.gold.priceGiaVangNet();
-const goldSJC = await commodity.gold.priceSJC();
-```
+| Hàm | Mô tả | Params |
+|-----|--------|--------|
+| `stock.company()` | Tạo Company instance | `{ ticker }` |
+| `company.profile()` | Thông tin công ty | — |
+| `company.shareholders()` | Cổ đông | — |
+| `company.officers()` | Ban lãnh đạo | — |
+| `company.events()` | Sự kiện | — |
+| `company.news()` | Tin tức | — |
+| `company.dividends()` | Cổ tức | — |
+| `company.insiderDeals()` | Giao dịch nội bộ | — |
+| `company.subsidiaries()` | Công ty con | — |
+| `company.affiliates()` | Công ty liên kết | — |
 
-2. Nâng cao
+### Tài chính
 
-```ts
-import vnstock from 'vnstock-js';
+| Hàm | Mô tả | Params |
+|-----|--------|--------|
+| `stock.financials()` | Bảng cân đối kế toán | `{ ticker, period? }` |
 
-const goldBTMC = await vnstock.commodity.goldPriceBTMC();
-const goldGiaVangNet = await vnstock.commodity.goldPriceGiaVangNet();
-const goldSJC = await vnstock.commodity.goldPriceSJC();
-```
+Nâng cao:
+
+| Hàm | Mô tả | Params |
+|-----|--------|--------|
+| `vnstock.stock.financials.balanceSheet()` | CĐKT | `{ symbol, period?, lang? }` |
+| `vnstock.stock.financials.incomeStatement()` | KQKD | `{ symbol, period?, lang? }` |
+| `vnstock.stock.financials.cashFlow()` | LCTT | `{ symbol, period?, lang? }` |
+
+### Niêm yết
+
+| Hàm | Mô tả | Params |
+|-----|--------|--------|
+| `vnstock.stock.listing.allSymbols()` | Tất cả mã | — |
+| `vnstock.stock.listing.symbolsByExchange()` | Theo sàn | — |
+| `vnstock.stock.listing.symbolsByIndustries()` | Theo ngành | — |
+| `vnstock.stock.listing.industriesIcb()` | Mã ngành ICB | — |
+| `vnstock.stock.listing.symbolsByGroup()` | Theo nhóm | `group?` |
+
+### Sàng lọc
+
+| Hàm | Mô tả | Params |
+|-----|--------|--------|
+| `stock.screening()` | Lọc cổ phiếu | `{ exchange?, filters?, sortBy?, order?, limit? }` |
+
+### Chỉ báo kỹ thuật
+
+| Hàm | Mô tả | Params |
+|-----|--------|--------|
+| `sma()` | Simple Moving Average | `data, { period, field? }` |
+| `ema()` | Exponential Moving Average | `data, { period, field? }` |
+| `rsi()` | Relative Strength Index | `data, { period?, field? }` |
+
+## Hàng Hoá - Commodity
+
+| Hàm | Mô tả |
+|-----|--------|
+| `commodity.gold.priceBTMC()` | Giá vàng BTMC |
+| `commodity.gold.priceGiaVangNet()` | Giá vàng GiaVang.net |
+| `commodity.gold.priceSJC()` | Giá vàng SJC |
+| `commodity.exchange()` | Tỷ giá VCB |

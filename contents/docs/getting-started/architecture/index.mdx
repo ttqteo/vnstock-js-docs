@@ -1,6 +1,95 @@
 ---
 title: Kiến Trúc
-description: 
+description: Kiến trúc Pipeline của vnstock-js v1.0
 ---
 
-TBD
+## Tổng Quan
+
+vnstock-js v1.0 sử dụng **Pipeline Architecture** - mọi request đi qua 2 giai đoạn xử lý:
+
+```
+Request Pipeline → Transform Pipeline → Output (Array of Objects)
+```
+
+## Request Pipeline
+
+```
+API Call
+  │
+  ▼
+┌──────────┐
+│  Fetch   │  ← HTTP client (axios), GET/POST/GraphQL
+└────┬─────┘
+     ▼
+┌──────────┐
+│  Retry   │  ← 2 lần retry, exponential backoff (5xx, timeout)
+└────┬─────┘
+     ▼
+Raw Response
+```
+
+## Transform Pipeline
+
+Dữ liệu thô từ API đi qua 5 bước chuẩn hóa:
+
+```
+Raw Response
+  │
+  ▼
+┌──────────┐
+│ 1. Parse │  ← Xử lý JSON, edge cases (empty, malformed)
+└────┬─────┘
+     ▼
+┌──────────┐
+│ 2. Clean │  ← Loại bỏ null/undefined, fields thừa
+└────┬─────┘
+     ▼
+┌──────────┐
+│ 3.Rename │  ← Map field names → camelCase tiếng Anh
+└────┬─────┘
+     ▼
+┌───────────┐
+│ 4.Normalize│ ← Chuẩn hóa nghiệp vụ VN
+│  (VN Biz) │    - Giá ÷ 1000 (đơn vị: nghìn VND)
+│           │    - Timestamp → "2024-01-15"
+│           │    - Percentage → decimal (0.15)
+└────┬──────┘
+     ▼
+┌──────────┐
+│ 5. Shape │  ← Chuyển thành Array of Objects
+└────┬─────┘
+     ▼
+QuoteHistory[] | PriceBoardItem[] | ...
+```
+
+## Cấu trúc thư mục
+
+```
+src/
+├── core/               # Business logic
+│   ├── stock/          # Quote, Trading, Company, Financial, Listing, Screening
+│   ├── commodity/      # Gold, Exchange rates
+│   └── realtime.ts     # WebSocket
+├── indicators/         # SMA, EMA, RSI (pure functions)
+├── pipeline/           # Request + Transform pipeline
+│   ├── fetch.ts        # HTTP client with retry
+│   ├── transform.ts    # applyTransform()
+│   └── transform/configs/  # Per-module transform rules
+├── models/             # TypeScript interfaces
+├── shared/             # Constants, utilities
+├── simple.ts           # Simplified API wrapper
+├── runtime.ts          # Vnstock class
+└── index.ts            # Main exports
+```
+
+## Nguồn dữ liệu
+
+| Loại dữ liệu | Nguồn | Giao thức |
+|---------------|-------|-----------|
+| Giá lịch sử | VietCap | REST |
+| Bảng giá | VietCap | REST |
+| Công ty, Tài chính | VietCap | GraphQL |
+| Niêm yết | VietCap | REST + GraphQL |
+| Realtime | SSI | WebSocket |
+| Vàng | BTMC, SJC, GiaVang.net | REST |
+| Tỷ giá | Vietcombank | REST + Excel |

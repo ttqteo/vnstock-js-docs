@@ -1,6 +1,51 @@
 ---
 title: Niêm Yết - Listing
-description: Niêm Yết - Listing
+description: API niêm yết - danh sách mã, sàn, ngành
 ---
 
-TBD
+## Tất cả mã cổ phiếu
+
+```typescript
+import vnstock from 'vnstock-js';
+
+const allSymbols = await vnstock.stock.listing.allSymbols();
+// → [{ symbol: "VCI", companyName: "CTCP Chứng khoán Bản Việt" }, ...]
+```
+
+## Theo sàn
+
+```typescript
+const symbols = await vnstock.stock.listing.symbolsByExchange();
+// → [{ symbol: "VCI", exchange: "HOSE", companyName: "...", companyNameEn: "..." }, ...]
+```
+
+Output: `ListedSymbol[]`
+
+| Field | Type | Mô tả |
+|-------|------|--------|
+| `symbol` | string | Mã |
+| `exchange` | string | Sàn (HOSE/HNX/UPCOM) |
+| `companyName` | string | Tên công ty |
+| `companyNameEn` | string | Tên tiếng Anh |
+
+## Theo ngành
+
+```typescript
+const industries = await vnstock.stock.listing.symbolsByIndustries();
+// → [{ symbol: "VCI", industry: "Chứng khoán", sector: "Tài chính", ... }, ...]
+```
+
+## Mã ngành ICB
+
+```typescript
+const icb = await vnstock.stock.listing.industriesIcb();
+// → [{ code: "8000", name: "Tài chính", nameEn: "Financials", level: "1" }, ...]
+```
+
+## Theo nhóm
+
+```typescript
+const vn30 = await vnstock.stock.listing.symbolsByGroup('VN30');
+```
+
+Nhóm hỗ trợ: `HOSE`, `VN30`, `VNMidCap`, `VNSmallCap`, `VNAllShare`, `VN100`, `ETF`, `HNX`, `HNX30`, `UPCOM`, `BOND`, `CW`, `FU_INDEX`, `FU_BOND`

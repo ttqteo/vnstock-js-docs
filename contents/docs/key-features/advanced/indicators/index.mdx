@@ -1,0 +1,44 @@
+---
+title: Chỉ Báo Kỹ Thuật - Indicators
+description: SMA, EMA, RSI
+---
+
+Các chỉ báo kỹ thuật là pure functions, nhận `QuoteHistory[]` và trả kết quả.
+
+```typescript
+import { sma, ema, rsi } from 'vnstock-js';
+```
+
+## SMA - Simple Moving Average
+
+```typescript
+const history = await vnstock.stock.quote.history({
+  symbols: ['FPT'], start: '2024-01-01', timeFrame: '1D'
+});
+
+const sma20 = sma(history, { period: 20 });
+// → [{ date: "2024-01-15", sma: null }, ..., { date: "2024-02-15", sma: 25.6 }, ...]
+
+// SMA theo volume
+const volumeSma = sma(history, { period: 10, field: 'volume' });
+```
+
+## EMA - Exponential Moving Average
+
+```typescript
+const ema12 = ema(history, { period: 12 });
+// → [{ date: "...", ema: null }, ..., { date: "...", ema: 25.8 }, ...]
+```
+
+## RSI - Relative Strength Index
+
+```typescript
+const rsi14 = rsi(history); // period mặc định = 14
+// → [{ date: "...", rsi: null }, ..., { date: "...", rsi: 65.3 }, ...]
+
+const rsi7 = rsi(history, { period: 7 });
+```
+
+<Note type="note">
+Giá trị `null` ở đầu mảng là do chưa đủ dữ liệu để tính. Ví dụ SMA(20) cần tối thiểu 20 điểm dữ liệu.
+</Note>

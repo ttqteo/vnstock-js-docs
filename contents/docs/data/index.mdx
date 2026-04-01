@@ -1,5 +1,15 @@
 ---
-title: Dữ liệu
-description: Chi tiết về các dữ liệu trả về
+title: Dữ Liệu
+description: Cấu trúc dữ liệu trong vnstock-js
 ---
 
+Tất cả dữ liệu trả về đều là **Array of Objects** đã chuẩn hóa:
+
+- Tên field: camelCase tiếng Anh
+- Giá: chia 1000 (đơn vị nghìn VND)
+- Ngày: ISO string "yyyy-MM-dd"
+- Phần trăm: decimal (0.15 thay vì 15%)
+
+Xem chi tiết:
+
+- [QuoteHistory](/docs/data/ChartData) — Dữ liệu giá lịch sử

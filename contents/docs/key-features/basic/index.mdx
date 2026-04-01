@@ -1,46 +1,85 @@
 ---
 title: Hướng dẫn sử dụng hàm cơ bản
-description: 
+description: Các hàm cơ bản của vnstock-js
 ---
 
 ```ts
 import { stock, commodity } from 'vnstock-js';
 ```
 
-## Dữ liệu chỉ số VNINDEX ngày 01-01-2024
+## Dữ liệu chỉ số VNINDEX
+
 ```ts
-const indexPrices = await stock.index('VNINDEX', '2024-01-01');
+const indexPrices = await stock.index({ index: 'VNINDEX', start: '2024-01-01' });
+// → [{ date: "2024-01-02", open: 1.18, high: 1.19, low: 1.17, close: 1.185, volume: 500000000 }, ...]
 ```
 
-## Dữ liệu mã cổ phiếu VCI ngày 01-01-2024
+## Dữ liệu giá cổ phiếu VCI
+
 ```ts
-const tickerPrices = await stock.price('VCI', '2024-01-01');
+const tickerPrices = await stock.quote({ ticker: 'VCI', start: '2024-01-01' });
+// → [{ date: "2024-01-02", open: 25.5, high: 26.0, low: 25.0, close: 25.8, volume: 1000000 }, ...]
 ```
 
-## Dữ liệu tổng quan công ty VCI
+## Bảng giá
+
 ```ts
-const companyInfos = await stock.company('VCI');
+const priceBoard = await stock.priceBoard({ ticker: 'VCI' });
+// → [{ symbol: "VCI", price: 25.8, totalVolume: 500000, ceilingPrice: 27.5, ... }]
 ```
 
-## Báo cáo tài chính công ty VCI
+## Top tăng/giảm
+
 ```ts
-const companyFinancialInfos = await stock.financials('VCI', 'quarter');
+const gainers = await stock.topGainers();
+const losers = await stock.topLosers();
+// → [{ symbol: "FPT", exchange: "HOSE", marketCap: 95000, ... }]
 ```
 
-## Dữ liệu vàng từ SJC
+## Thông tin công ty VCI
+
 ```ts
-const goldPriceSJC = await commodity.gold.priceSJC();
+const company = stock.company({ ticker: 'VCI' });
+const profile = await company.profile();
+// → { industry: "Chứng khoán", issuedShares: 500000000, ... }
+
+const shareholders = await company.shareholders();
+// → [{ name: "...", percentage: 0.15, ... }]
 ```
 
-## Đang cập nhật
+## Báo cáo tài chính
 
-Một số hàm do ChatGPT gợi ý nên có
+```ts
+const financials = await stock.financials({ ticker: 'VCI', period: 'quarter' });
+// → { data: { symbol: "VCI", year: 2024, quarter: 4, roe: 0.22, ... }, mapping: { ... } }
+```
 
-| Hàm                   | Mục đích                         |
-| --------------------- | -------------------------------- |
-| `getQuote(symbol)`    | Giá hiện tại, % thay đổi, volume |
-| `getProfile(symbol)`  | Tên công ty, CEO, ngành nghề     |
-| `getHistoricalData()` | Dữ liệu giá theo ngày/tháng/năm  |
-| `getTopGainers()`     | Top tăng mạnh nhất               |
-| `getTopLosers()`      | Top giảm mạnh nhất               |
-| `getPutThrough()`     | Dữ liệu thỏa thuận               |
+## Sàng lọc cổ phiếu
+
+```ts
+const screened = await stock.screening({
+  exchange: 'HOSE',
+  filters: [{ field: 'pe', operator: '<', value: 15 }],
+  sortBy: 'roe',
+  order: 'desc',
+  limit: 10,
+});
+// → [{ symbol: "FPT", pe: 12, roe: 0.22, marketCap: 95000, ... }]
+```
+
+## Dữ liệu vàng
+
+```ts
+const goldSJC = await commodity.gold.priceSJC();
+// → [{ type: "SJC 1L", buyPrice: 92000000, sellPrice: 94000000, ... }]
+
+const goldBTMC = await commodity.gold.priceBTMC();
+const goldGVN = await commodity.gold.priceGiaVangNet();
+```
+
+## Tỷ giá ngoại tệ
+
+```ts
+const rates = await commodity.exchange();
+// → [{ currencyCode: "USD", currencyName: "US Dollar", buyCash: "25100", sell: "25450" }]
+```

@@ -1,6 +1,77 @@
 ---
 title: Tài Chính - Financials
-description: Tài Chính - Financials
+description: API tài chính - báo cáo tài chính doanh nghiệp
 ---
 
-TBD
+## Bảng cân đối kế toán
+
+```typescript
+import vnstock from 'vnstock-js';
+
+const bs = await vnstock.stock.financials.balanceSheet({
+  symbol: 'VCI',
+  period: 'quarter', // hoặc 'year'
+  lang: 'en',        // hoặc 'vi'
+});
+```
+
+## Kết quả kinh doanh
+
+```typescript
+const is = await vnstock.stock.financials.incomeStatement({
+  symbol: 'VCI',
+  period: 'year',
+});
+```
+
+## Lưu chuyển tiền tệ
+
+```typescript
+const cf = await vnstock.stock.financials.cashFlow({
+  symbol: 'VCI',
+  period: 'quarter',
+});
+```
+
+## Cấu trúc output
+
+Mỗi hàm trả về:
+
+```typescript
+{
+  data: {
+    symbol: "VCI",
+    year: 2024,
+    quarter: 4,
+    revenue: 1500,
+    netProfit: 300,
+    roe: 0.22,
+    roa: 0.08,
+    pe: 12,
+    pb: 1.5,
+    eps: 3500,
+    debtToEquity: 0.8,
+    // ... nhiều chỉ số khác
+  },
+  mapping: {
+    ratio: { type: "...", fields: [...] },
+    unit: { BILLION: "billion", PERCENT: "%" }
+  }
+}
+```
+
+### Các chỉ số chính
+
+| Field | Mô tả |
+|-------|--------|
+| `revenue` | Doanh thu |
+| `netProfit` | Lợi nhuận ròng |
+| `roe` | Tỷ suất sinh lời trên vốn chủ |
+| `roa` | Tỷ suất sinh lời trên tài sản |
+| `pe` | Price/Earnings |
+| `pb` | Price/Book |
+| `eps` | Lợi nhuận trên cổ phiếu |
+| `debtToEquity` | Nợ/Vốn chủ |
+| `currentRatio` | Tỷ số thanh toán hiện hành |
+| `grossMargin` | Biên lợi nhuận gộp |
+| `netProfitMargin` | Biên lợi nhuận ròng |

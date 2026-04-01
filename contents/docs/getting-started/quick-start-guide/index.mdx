@@ -1,29 +1,59 @@
 ---
 title: Hướng Dẫn Sử Dụng Nhanh
-description: 
+description: Bắt đầu nhanh với vnstock-js
 ---
 
-# Cơ bản
+## Cơ bản
 
 ```ts
 import { stock, commodity } from 'vnstock-js';
 
-// Dữ liệu mã cổ phiếu VCI ngày 01-01/2024
-const prices = await stock.price('VCI', '2024-01-01');
+// Dữ liệu giá cổ phiếu VCI từ 01-01-2024
+const prices = await stock.quote({ ticker: 'VCI', start: '2024-01-01' });
+// → [{ date: "2024-01-02", open: 25.5, high: 26.0, low: 25.0, close: 25.8, volume: 1000000 }, ...]
 
-// Dữ liệu vàng từ SJC
+// Dữ liệu chỉ số VNINDEX
+const index = await stock.index({ index: 'VNINDEX', start: '2024-01-01' });
+
+// Top tăng/giảm
+const gainers = await stock.topGainers();
+const losers = await stock.topLosers();
+
+// Thông tin công ty
+const company = stock.company({ ticker: 'VCI' });
+const profile = await company.profile();
+const shareholders = await company.shareholders();
+
+// Dữ liệu vàng
 const goldPrices = await commodity.gold.priceSJC();
 ```
 
-# Nâng cao (đầy đủ tính năng)
+## Nâng cao
 
 ```ts
-import vnstock from 'vnstock-js';
+import vnstock, { sma, rsi } from 'vnstock-js';
 
-// Truy cập trực tiếp
-const prices = await vnstock.stock.quote.history({
+// Dữ liệu giá với nhiều tùy chọn
+const history = await vnstock.stock.quote.history({
   symbols: ['VCI'],
   start: '2024-01-01',
+  end: '2024-06-30',
   timeFrame: '1D'
+});
+
+// Tính chỉ báo kỹ thuật
+const sma20 = sma(history, { period: 20 });
+const rsi14 = rsi(history);
+
+// Sàng lọc cổ phiếu
+const screened = await vnstock.stock.screening.screen({
+  exchange: 'HOSE',
+  filters: [
+    { field: 'pe', operator: '<', value: 15 },
+    { field: 'roe', operator: '>', value: 0.15 },
+  ],
+  sortBy: 'marketCap',
+  order: 'desc',
+  limit: 10,
 });
 ```

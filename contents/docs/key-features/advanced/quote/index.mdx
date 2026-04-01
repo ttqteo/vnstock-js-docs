@@ -1,6 +1,56 @@
 ---
 title: Báo Giá - Quote
-description: Báo Giá - Quote
+description: API báo giá - dữ liệu giá lịch sử
 ---
 
-TBD
+## Dữ liệu giá lịch sử
+
+```typescript
+import vnstock from 'vnstock-js';
+
+const history = await vnstock.stock.quote.history({
+  symbols: ['VCI'],
+  start: '2024-01-01',
+  end: '2024-06-30',
+  timeFrame: '1D',
+});
+```
+
+### Params
+
+| Param | Type | Mô tả |
+|-------|------|--------|
+| `symbols` | string[] | Danh sách mã (VCI, FPT, VNINDEX...) |
+| `start` | string | Ngày bắt đầu (yyyy-MM-dd) |
+| `end` | string? | Ngày kết thúc (mặc định: hôm nay) |
+| `timeFrame` | string | Khung thời gian: 1m, 5m, 15m, 30m, 1H, 1D, 1W, 1M |
+| `countBack` | number? | Số nến tối đa (mặc định: 365) |
+
+### Output: `QuoteHistory[]`
+
+| Field | Type | Mô tả |
+|-------|------|--------|
+| `date` | string | Ngày (yyyy-MM-dd) |
+| `open` | number | Giá mở cửa (nghìn VND) |
+| `high` | number | Giá cao nhất |
+| `low` | number | Giá thấp nhất |
+| `close` | number | Giá đóng cửa |
+| `volume` | number | Khối lượng |
+
+### Ví dụ lấy nhiều timeframe
+
+```typescript
+// Dữ liệu theo giờ
+const hourly = await vnstock.stock.quote.history({
+  symbols: ['FPT'],
+  start: '2024-06-01',
+  timeFrame: '1H',
+});
+
+// Dữ liệu theo tuần
+const weekly = await vnstock.stock.quote.history({
+  symbols: ['FPT'],
+  start: '2024-01-01',
+  timeFrame: '1W',
+});
+```
