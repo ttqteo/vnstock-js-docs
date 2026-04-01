@@ -1,10 +1,10 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function StockQuoteCard({
   data,
 }: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
 }) {
   if (!data) return <div>Loading...</div>;
