@@ -19,16 +19,27 @@ const SOURCE_COLORS: Record<string, string> = {
   vnexpress: "bg-red-100 text-red-700 hover:bg-red-100",
   vneconomy: "bg-green-100 text-green-700 hover:bg-green-100",
   markettimes: "bg-orange-100 text-orange-700 hover:bg-orange-100",
+  "nguoi quan sat": "bg-purple-100 text-purple-700 hover:bg-purple-100",
+  "người quan sát": "bg-purple-100 text-purple-700 hover:bg-purple-100",
   nguoiquansat: "bg-purple-100 text-purple-700 hover:bg-purple-100",
   tinnhanhchungkhoan: "bg-yellow-100 text-yellow-700 hover:bg-yellow-100",
+  "tin nhanh chung khoan": "bg-yellow-100 text-yellow-700 hover:bg-yellow-100",
 };
 
-function formatTime(timestamp: string): string {
+function formatRelativeTime(timestamp: string): string {
   try {
     const date = new Date(timestamp);
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    return `${hours}:${minutes}`;
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHour = Math.floor(diffMs / 3600000);
+    const diffDay = Math.floor(diffMs / 86400000);
+
+    if (diffMin < 1) return "Vừa xong";
+    if (diffMin < 60) return `${diffMin} phút trước`;
+    if (diffHour < 24) return `${diffHour} giờ trước`;
+    if (diffDay < 7) return `${diffDay} ngày trước`;
+    return `${date.getDate()}/${date.getMonth() + 1}`;
   } catch {
     return "";
   }
@@ -53,7 +64,7 @@ export function NewsWidget({ articles }: { articles: NewsArticle[] }) {
             <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
               <CardContent className="p-4">
                 <div className="flex gap-3">
-                  {article.image_url && (
+                  {article.image_url ? (
                     <img
                       src={article.image_url}
                       alt=""
@@ -62,6 +73,10 @@ export function NewsWidget({ articles }: { articles: NewsArticle[] }) {
                         (e.target as HTMLImageElement).style.display = "none";
                       }}
                     />
+                  ) : (
+                    <div className="w-20 h-14 rounded flex-shrink-0 bg-muted flex items-center justify-center text-muted-foreground text-xs">
+                      Tin tức
+                    </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-sm leading-tight line-clamp-2 mb-1">
@@ -77,7 +92,7 @@ export function NewsWidget({ articles }: { articles: NewsArticle[] }) {
                         {article.source}
                       </Badge>
                       {article.published_timestamp && (
-                        <span>{formatTime(article.published_timestamp)}</span>
+                        <span>{formatRelativeTime(article.published_timestamp)}</span>
                       )}
                     </div>
                   </div>

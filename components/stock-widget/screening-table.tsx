@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SymbolLink } from "./stock-chart-dialog";
 
 interface ScreenResult {
   symbol: string;
@@ -46,7 +47,7 @@ export function ScreeningTable({ data }: { data: ScreenResult[] }) {
         <TableBody>
           {data.map((item) => (
             <TableRow key={item.symbol}>
-              <TableCell className="font-medium">{item.symbol}</TableCell>
+              <TableCell><SymbolLink symbol={item.symbol} /></TableCell>
               <TableCell className="max-w-[200px] truncate">{item.companyName}</TableCell>
               <TableCell>
                 <Badge variant="outline">{item.exchange}</Badge>

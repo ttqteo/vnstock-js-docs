@@ -6,6 +6,7 @@ import { ScreeningTable } from "@/components/stock-widget/screening-table";
 import { CompanyProfileCard } from "@/components/stock-widget/company-profile-card";
 import { IndicatorsCard } from "@/components/stock-widget/indicators-card";
 import { NewsWidget } from "@/components/stock-widget/news-widget";
+import { StockSearch } from "@/components/stock-widget/stock-search";
 import { Metadata } from "next";
 import { commodity, stock, sma, rsi, VnstockTypes } from "vnstock-js";
 
@@ -70,44 +71,51 @@ export default async function ExamplesPage() {
   }));
 
   // News from news-crawler
+  // Data format: Object { hash: { item_id, source, title, summary, link, image, published, ... } }
   let newsArticles: any[] = [];
-  try {
-    const today = new Date();
-    const dateStr = `${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}-${today.getFullYear()}`;
-    const newsRes = await fetch(
+
+  async function fetchNews(dateStr: string): Promise<any[]> {
+    const res = await fetch(
       `https://raw.githubusercontent.com/ttqteo/crawl-news/master/docs/news/${dateStr}.json`,
       { next: { revalidate: 3600 } }
     );
-    if (newsRes.ok) {
-      newsArticles = await newsRes.json();
+    if (!res.ok) return [];
+    const json = await res.json();
+    if (Array.isArray(json)) return json;
+    if (json && typeof json === "object") {
+      return Object.values(json).map((item: any) => ({
+        ...item,
+        image_url: item.image || item.image_url || "",
+        published_timestamp: item.published || item.published_timestamp || "",
+      }));
+    }
+    return [];
+  }
+
+  try {
+    const today = new Date();
+    const dateStr = `${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}-${today.getFullYear()}`;
+    newsArticles = await fetchNews(dateStr);
+
+    // Fallback to yesterday
+    if (newsArticles.length === 0) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yDateStr = `${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}-${yesterday.getFullYear()}`;
+      newsArticles = await fetchNews(yDateStr);
     }
   } catch {
     // Silently fail - news is optional
   }
 
-  // If today has no news, try yesterday
-  if (newsArticles.length === 0) {
-    try {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const dateStr = `${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}-${yesterday.getFullYear()}`;
-      const newsRes = await fetch(
-        `https://raw.githubusercontent.com/ttqteo/crawl-news/master/docs/news/${dateStr}.json`,
-        { next: { revalidate: 3600 } }
-      );
-      if (newsRes.ok) {
-        newsArticles = await newsRes.json();
-      }
-    } catch {}
-  }
-
   return (
     <div className="w-full mx-auto flex flex-col gap-1 sm:min-h-[91vh] min-h-[88vh] pt-2">
-      <div className="mb-7 flex flex-col gap-2">
+      <div className="mb-7 flex flex-col gap-3">
         <h1 className="text-3xl font-extrabold">Ví dụ mẫu</h1>
         <p className="text-muted-foreground">
           Các widget mẫu sử dụng vnstock-js v1.0 — có thể copy code để tích hợp vào dự án.
         </p>
+        <StockSearch />
       </div>
 
       <div className="grid lg:grid-cols-2 grid-cols-1 sm:gap-8 gap-4 mb-5">

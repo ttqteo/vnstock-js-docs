@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SymbolLink } from "./stock-chart-dialog";
 
 interface TopStock {
   symbol: string;
@@ -40,7 +41,7 @@ function StockTable({ data }: { data: TopStock[] }) {
         <TableBody>
           {data.slice(0, 15).map((item) => (
             <TableRow key={item.symbol}>
-              <TableCell className="font-medium">{item.symbol}</TableCell>
+              <TableCell><SymbolLink symbol={item.symbol} /></TableCell>
               <TableCell>
                 <Badge variant="outline">{item.exchange}</Badge>
               </TableCell>
