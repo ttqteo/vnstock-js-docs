@@ -11,30 +11,18 @@ import { VnstockTypes } from "vnstock-js";
 
 function isTradingHours() {
   const now = new Date();
-  const day = now.getDay(); // 0=Sunday, 6=Saturday
+  const day = now.getDay();
   if (day === 0 || day === 6) return false;
   const hour = now.getHours();
   const min = now.getMinutes();
-  // Morning: 09:00-11:30
-  if (
-    (hour === 9 && min >= 0) ||
-    (hour > 9 && hour < 11) ||
-    (hour === 11 && min <= 30)
-  )
-    return true;
-  // Afternoon: 13:00-15:00
-  if (
-    (hour === 13 && min >= 0) ||
-    (hour > 13 && hour < 15) ||
-    (hour === 15 && min === 0)
-  )
-    return true;
+  if ((hour === 9 && min >= 0) || (hour > 9 && hour < 11) || (hour === 11 && min <= 30)) return true;
+  if ((hour === 13 && min >= 0) || (hour > 13 && hour < 15) || (hour === 15 && min === 0)) return true;
   return false;
 }
 
 interface StickerRealtimeCardProps {
   initialSymbols?: string[];
-  initialPriceboard?: Record<string, VnstockTypes.PriceBoard>;
+  initialPriceboard?: Record<string, VnstockTypes.PriceBoardItem>;
 }
 
 export function StickerRealtimeCard({
@@ -47,15 +35,12 @@ export function StickerRealtimeCard({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [quotes, setQuotes] = useState<Record<string, any>>({});
   const [priceboard, setPriceboard] =
-    useState<Record<string, VnstockTypes.PriceBoard | undefined>>(
-      initialPriceboard
-    );
+    useState<Record<string, VnstockTypes.PriceBoardItem | undefined>>(initialPriceboard);
   const [mode, setMode] = useState<"realtime" | "priceboard">(
     isTradingHours() ? "realtime" : "priceboard"
   );
   const socketRef = useRef<WebSocket | null>(null);
 
-  // Check trading hours on mount and every minute
   useEffect(() => {
     const check = () => {
       setMode(isTradingHours() ? "realtime" : "priceboard");
@@ -65,22 +50,16 @@ export function StickerRealtimeCard({
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch priceboard data if in priceboard mode
   useEffect(() => {
     if (mode === "priceboard") {
       if (symbols.length === 0) return;
-      // Only fetch if not provided by SSR
-      if (
-        Object.keys(initialPriceboard).length > 0 &&
-        symbols.every((s) => initialPriceboard[s])
-      ) {
+      if (Object.keys(initialPriceboard).length > 0 && symbols.every((s) => initialPriceboard[s])) {
         setPriceboard(initialPriceboard);
         return;
       }
     }
   }, [mode, symbols, initialPriceboard]);
 
-  // Realtime logic
   useEffect(() => {
     if (mode !== "realtime") return;
     const socket = connect({
@@ -132,11 +111,7 @@ export function StickerRealtimeCard({
 
       <div className="flex flex-wrap gap-2">
         {symbols.map((s) => (
-          <Badge
-            key={s}
-            variant="secondary"
-            className="flex items-center gap-1"
-          >
+          <Badge key={s} variant="secondary" className="flex items-center gap-1">
             {s}
             <button onClick={() => handleRemoveSymbol(s)} className="ml-1">
               <X size={12} />
@@ -147,36 +122,38 @@ export function StickerRealtimeCard({
 
       <div className="mb-2">
         {mode === "realtime" ? (
-          <Badge variant="outline" className="text-green-600">
-            Dữ liệu realtime
-          </Badge>
+          <Badge variant="outline" className="text-green-600">Dữ liệu realtime</Badge>
         ) : (
-          <Badge variant="outline" className="text-yellow-600">
-            Dữ liệu cuối ngày
-          </Badge>
+          <Badge variant="outline" className="text-yellow-600">Dữ liệu cuối ngày</Badge>
         )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {symbols.map((symbol) => {
-          const quote =
-            mode === "realtime" ? quotes[symbol] : priceboard[symbol];
+          const realtimeQuote = mode === "realtime" ? quotes[symbol] : null;
+          const pbQuote = priceboard[symbol];
+          const quote = realtimeQuote || pbQuote;
+
+          // Unified field access for both realtime and priceboard
+          const price = realtimeQuote?.matched?.price ?? pbQuote?.price ?? 0;
+          const volume = realtimeQuote?.matched?.volume ?? pbQuote?.matchVolume ?? 0;
+          const totalValue = quote?.totalValue ?? 0;
+          const change = realtimeQuote?.matched?.change ?? 0;
+          const changePercent = realtimeQuote?.matched?.changePercent
+            ? (realtimeQuote.matched.changePercent * 100).toFixed(2)
+            : null;
+
           return (
             <Card key={symbol}>
               <CardHeader>
                 <CardTitle className="text-lg flex justify-between items-center">
                   <span>{symbol}</span>
-                  {quote?.matched?.percent || quote?.percentPriceChange ? (
+                  {changePercent ? (
                     <Badge
                       variant="outline"
-                      className={
-                        Number(quote?.matched?.change ?? quote?.priceChange) > 0
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }
+                      className={change > 0 ? "text-green-600" : "text-red-600"}
                     >
-                      {quote?.matched?.change ?? quote?.priceChange} (
-                      {quote?.matched?.percent ?? quote?.percentPriceChange}%)
+                      {change > 0 ? "+" : ""}{(change * 1000).toFixed(0)} ({changePercent}%)
                     </Badge>
                   ) : null}
                 </CardTitle>
@@ -186,30 +163,15 @@ export function StickerRealtimeCard({
                   <>
                     <div className="flex justify-between">
                       <span>Giá hiện tại:</span>
-                      <span className="font-semibold">
-                        {quote?.matched?.price ?? quote?.matchPrice?.matchPrice}
-                      </span>
+                      <span className="font-semibold">{(price * 1000).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Khối lượng:</span>
-                      <span>
-                        {Number(
-                          quote?.matched?.volume ??
-                            quote?.matchPrice?.matchVol ??
-                            0
-                        ).toLocaleString()}
-                      </span>
+                      <span>{Number(volume).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Giá trị giao dịch:</span>
-                      <span>
-                        {Number(
-                          quote?.totalValue ??
-                            quote?.matchPrice?.accumulatedValue ??
-                            0
-                        ).toLocaleString()}{" "}
-                        ₫
-                      </span>
+                      <span>{Number(totalValue).toLocaleString()} ₫</span>
                     </div>
                   </>
                 ) : (

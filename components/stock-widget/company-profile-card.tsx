@@ -1,12 +1,11 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { VnstockTypes } from "vnstock-js";
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function CompanyProfileCard({
   data,
 }: {
-  data: VnstockTypes.CompanyOverview;
+  data: any;
 }) {
   if (!data) return <div>Loading profile...</div>;
 

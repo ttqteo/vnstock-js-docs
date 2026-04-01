@@ -9,10 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogIndexPage() {
-  const goldPrice =
-    (await commodity.gold.priceGiaVangNet()) as VnstockTypes.GoldPriceGiaVangNet[];
-
-  // const companyProfile = await stock.company(symbol);
+  const goldPrice = await commodity.gold.priceGiaVangNet();
 
   const indexPrices = await stock.index({
     index: "VNINDEX",
@@ -31,10 +28,11 @@ export default async function BlogIndexPage() {
   const priceboardArr = await stock.priceBoard({
     ticker: defaultSymbols.join(","),
   });
-  const initialPriceboard: Record<string, VnstockTypes.PriceBoard> = {};
+  // v1.0: PriceBoardItem[] has flat .symbol field
+  const initialPriceboard: Record<string, VnstockTypes.PriceBoardItem> = {};
   if (priceboardArr.length > 0) {
     priceboardArr.forEach((item) => {
-      initialPriceboard[item?.listingInfo?.symbol] = item;
+      initialPriceboard[item.symbol] = item;
     });
   }
 
@@ -53,9 +51,9 @@ export default async function BlogIndexPage() {
         </div>
         <div className="grid grid-cols-1 gap-4">
           <p className="text-lg font-bold">Chỉ Số</p>
-          <IndexPriceCard data={indexPrices} />
-          <IndexPriceCard data={indexPrices2} />
-          <IndexPriceCard data={indexPrices3} />
+          <IndexPriceCard data={indexPrices} symbol="VNINDEX" />
+          <IndexPriceCard data={indexPrices2} symbol="HNXIndex" />
+          <IndexPriceCard data={indexPrices3} symbol="HNXUpcomIndex" />
         </div>
         <div className="grid grid-cols-1 gap-4">
           <StickerRealtimeCard
@@ -63,8 +61,6 @@ export default async function BlogIndexPage() {
             initialPriceboard={initialPriceboard}
           />
         </div>
-        {/* <StockQuoteCard data={companyProfile} /> */}
-        {/* <CompanyProfileCard data={companyProfile} /> */}
       </div>
     </div>
   );
