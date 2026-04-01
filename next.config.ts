@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
     ],
   },
   // if used turbopack
-  transpilePackages: ["next-mdx-remote"],
+  transpilePackages: ["next-mdx-remote", "vnstock-js", "lightweight-charts"],
 };
 
 export default nextConfig;
