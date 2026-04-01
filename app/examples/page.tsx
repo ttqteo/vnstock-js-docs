@@ -5,6 +5,7 @@ import { TopGainersLosersTable } from "@/components/stock-widget/top-gainers-los
 import { ScreeningTable } from "@/components/stock-widget/screening-table";
 import { CompanyProfileCard } from "@/components/stock-widget/company-profile-card";
 import { IndicatorsCard } from "@/components/stock-widget/indicators-card";
+import { NewsWidget } from "@/components/stock-widget/news-widget";
 import { Metadata } from "next";
 import { commodity, stock, sma, rsi, VnstockTypes } from "vnstock-js";
 
@@ -68,6 +69,38 @@ export default async function ExamplesPage() {
     rsi14: rsi14[i]?.rsi ?? null,
   }));
 
+  // News from news-crawler
+  let newsArticles: any[] = [];
+  try {
+    const today = new Date();
+    const dateStr = `${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}-${today.getFullYear()}`;
+    const newsRes = await fetch(
+      `https://raw.githubusercontent.com/ttqteo/crawl-news/master/docs/news/${dateStr}.json`,
+      { next: { revalidate: 3600 } }
+    );
+    if (newsRes.ok) {
+      newsArticles = await newsRes.json();
+    }
+  } catch {
+    // Silently fail - news is optional
+  }
+
+  // If today has no news, try yesterday
+  if (newsArticles.length === 0) {
+    try {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const dateStr = `${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}-${yesterday.getFullYear()}`;
+      const newsRes = await fetch(
+        `https://raw.githubusercontent.com/ttqteo/crawl-news/master/docs/news/${dateStr}.json`,
+        { next: { revalidate: 3600 } }
+      );
+      if (newsRes.ok) {
+        newsArticles = await newsRes.json();
+      }
+    } catch {}
+  }
+
   return (
     <div className="w-full mx-auto flex flex-col gap-1 sm:min-h-[91vh] min-h-[88vh] pt-2">
       <div className="mb-7 flex flex-col gap-2">
@@ -126,6 +159,12 @@ export default async function ExamplesPage() {
         <div className="grid gap-4">
           <p className="text-lg font-bold">Chỉ Báo Kỹ Thuật</p>
           <IndicatorsCard ticker={indicatorTicker} data={indicatorData} />
+        </div>
+
+        {/* News */}
+        <div className="grid gap-4 col-span-full">
+          <p className="text-lg font-bold">Tin Tức Tài Chính</p>
+          <NewsWidget articles={newsArticles.slice(0, 20)} />
         </div>
       </div>
     </div>
