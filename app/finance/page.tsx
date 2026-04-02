@@ -10,6 +10,26 @@ export const metadata: Metadata = {
 };
 
 export default async function FinancePage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function fetchNews(dateStr: string): Promise<any[]> {
+    const res = await fetch(
+      `https://raw.githubusercontent.com/ttqteo/crawl-news/master/docs/news/${dateStr}.json`,
+      { next: { revalidate: 3600 } },
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    if (Array.isArray(json)) return json;
+    if (json && typeof json === "object") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return Object.values(json).map((item: any) => ({
+        ...item,
+        image_url: item.image || item.image_url || "",
+        published_timestamp: item.published || item.published_timestamp || "",
+      }));
+    }
+    return [];
+  }
+
   // Fetch all data in parallel
   const [
     vnindexResult,
@@ -63,6 +83,23 @@ export default async function FinancePage() {
     volume: d.volume,
   }));
 
+  // Fetch news
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let newsArticles: any[] = [];
+  try {
+    const today = new Date();
+    const dateStr = `${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}-${today.getFullYear()}`;
+    newsArticles = await fetchNews(dateStr);
+    if (newsArticles.length === 0) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yDateStr = `${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}-${yesterday.getFullYear()}`;
+      newsArticles = await fetchNews(yDateStr);
+    }
+  } catch {
+    // Silently fail
+  }
+
   return (
     <FinanceDashboard
       indices={indices}
@@ -70,6 +107,7 @@ export default async function FinancePage() {
       gainers={gainers}
       losers={losers}
       gold={gold}
+      news={newsArticles.slice(0, 15)}
     />
   );
 }

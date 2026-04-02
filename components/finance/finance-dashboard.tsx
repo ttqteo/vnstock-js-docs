@@ -126,24 +126,39 @@ function MoversList({ stocks, type }: { stocks: TopStock[]; type: "gainer" | "lo
 
 function GoldCard({ gold }: { gold: GoldPrice[] }) {
   if (!gold || gold.length === 0) return null;
-  const items = gold.slice(0, 4);
+  // Filter out items with no meaningful prices, take first few
+  const items = gold.filter((g: GoldPrice) => g.buy > 0 || g.sell > 0).slice(0, 5);
+  if (items.length === 0) return null;
+
+  function formatGoldPrice(val: number) {
+    if (val === 0) return "—";
+    if (val > 100000) return (val / 1000000).toFixed(2) + "tr";
+    return val.toLocaleString();
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-display uppercase tracking-wider">
-          Giá Vàng
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-display uppercase tracking-wider">
+            Giá Vàng
+          </CardTitle>
+          <div className="flex gap-6 text-[0.6rem] text-muted-foreground uppercase tracking-wider">
+            <span>Mua</span>
+            <span>Bán</span>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="space-y-2">
           {items.map((g: GoldPrice, i: number) => (
             <div key={i} className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground truncate max-w-[140px]">
-                {g.name || g.type || `Loại ${i + 1}`}
+              <span className="text-muted-foreground truncate max-w-[140px] text-xs">
+                {g.type_code || `Loại ${i + 1}`}
               </span>
-              <div className="flex gap-3 font-mono text-xs">
-                <span className="text-green-500">{g.buyPrice?.toLocaleString?.() || g.buyPrice}</span>
-                <span className="text-red-500">{g.sellPrice?.toLocaleString?.() || g.sellPrice}</span>
+              <div className="flex gap-4 font-mono text-xs">
+                <span className="text-green-500 w-14 text-right">{formatGoldPrice(g.buy)}</span>
+                <span className="text-red-500 w-14 text-right">{formatGoldPrice(g.sell)}</span>
               </div>
             </div>
           ))}
@@ -153,18 +168,192 @@ function GoldCard({ gold }: { gold: GoldPrice[] }) {
   );
 }
 
+interface NewsArticle {
+  title?: string;
+  summary?: string;
+  link?: string;
+  image_url?: string;
+  source?: string;
+  published_timestamp?: string;
+}
+
+function NewsSection({ news }: { news: NewsArticle[] }) {
+  if (!news || news.length === 0) return null;
+
+  const featured = news[0];
+  const secondary = news.slice(1, 3);
+  const sidebar = news.slice(3, 7);
+  const latest = news.slice(7);
+
+  function timeAgo(ts: string | undefined) {
+    if (!ts) return "";
+    const diff = Date.now() - new Date(ts).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}'`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h`;
+    return `${Math.floor(hours / 24)}d`;
+  }
+
+  function getSource(link: string | undefined) {
+    if (!link) return "";
+    try {
+      return new URL(link).hostname.replace("www.", "").toUpperCase();
+    } catch {
+      return "";
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <h2 className="font-display text-xl font-bold uppercase tracking-wider">
+        Tin tức
+      </h2>
+
+      {/* Featured + secondary + sidebar grid */}
+      <div className="grid lg:grid-cols-[1fr_1fr_300px] gap-4">
+        {/* Featured */}
+        {featured && (
+          <a
+            href={featured.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group block"
+          >
+            {featured.image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={featured.image_url}
+                alt={featured.title || ""}
+                className="w-full h-48 object-cover mb-3"
+              />
+            )}
+            <h3 className="font-display font-bold text-lg leading-tight group-hover:underline mb-2">
+              {featured.title}
+            </h3>
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+              {featured.summary}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {getSource(featured.link)} · {timeAgo(featured.published_timestamp)}
+            </p>
+          </a>
+        )}
+
+        {/* Secondary */}
+        <div className="space-y-4">
+          {secondary.map((article, i) => (
+            <a
+              key={i}
+              href={article.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group block"
+            >
+              {article.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={article.image_url}
+                  alt={article.title || ""}
+                  className="w-full h-32 object-cover mb-2"
+                />
+              )}
+              <h3 className="font-semibold text-sm leading-tight group-hover:underline mb-1">
+                {article.title}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {getSource(article.link)} · {timeAgo(article.published_timestamp)}
+              </p>
+            </a>
+          ))}
+        </div>
+
+        {/* Sidebar news */}
+        <div className="space-y-3">
+          {sidebar.map((article, i) => (
+            <a
+              key={i}
+              href={article.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex gap-3"
+            >
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium leading-tight group-hover:underline line-clamp-2">
+                  {article.title}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {getSource(article.link)} · {timeAgo(article.published_timestamp)}
+                </p>
+              </div>
+              {article.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={article.image_url}
+                  alt=""
+                  className="w-16 h-16 object-cover shrink-0"
+                />
+              )}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {/* Latest news list */}
+      {latest.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-display font-semibold uppercase tracking-wider text-muted-foreground">
+            Mới nhất
+          </h3>
+          {latest.map((article, i) => (
+            <a
+              key={i}
+              href={article.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex gap-4 py-3 border-t"
+            >
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm group-hover:underline line-clamp-1">
+                  {article.title}
+                </h3>
+                <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
+                  {article.summary}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {getSource(article.link)} · {timeAgo(article.published_timestamp)}
+                </p>
+              </div>
+              {article.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={article.image_url}
+                  alt=""
+                  className="w-24 h-16 object-cover shrink-0"
+                />
+              )}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function FinanceDashboard({
   indices,
   chartData,
   gainers,
   losers,
   gold,
+  news,
 }: {
   indices: IndexSummary[];
   chartData: ChartDataPoint[];
   gainers: TopStock[];
   losers: TopStock[];
   gold: GoldPrice[];
+  news: NewsArticle[];
 }) {
   const [selectedIndex] = useState("VNINDEX");
 
@@ -220,6 +409,9 @@ export function FinanceDashboard({
           <GoldCard gold={gold} />
         </div>
       </div>
+
+      {/* News */}
+      <NewsSection news={news} />
     </div>
   );
 }
