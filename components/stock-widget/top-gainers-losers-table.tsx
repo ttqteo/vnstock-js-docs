@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -23,7 +25,11 @@ interface TopStock {
   hnx30: boolean;
 }
 
-function StockTable({ data }: { data: TopStock[] }) {
+const EXCHANGES = ["HOSE", "HNX", "UPCOM"] as const;
+
+function StockTable({ data, exchange }: { data: TopStock[]; exchange: string }) {
+  const filtered = exchange === "ALL" ? data : data.filter((d) => d.exchange === exchange);
+
   return (
     <div className="max-h-[400px] overflow-y-auto">
       <Table>
@@ -39,7 +45,7 @@ function StockTable({ data }: { data: TopStock[] }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.slice(0, 15).map((item) => (
+          {filtered.slice(0, 15).map((item) => (
             <TableRow key={item.symbol}>
               <TableCell><SymbolLink symbol={item.symbol} /></TableCell>
               <TableCell>
@@ -63,6 +69,13 @@ function StockTable({ data }: { data: TopStock[] }) {
               </TableCell>
             </TableRow>
           ))}
+          {filtered.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center text-muted-foreground py-4">
+                Không có dữ liệu
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>
@@ -76,18 +89,41 @@ export function TopGainersLosersTable({
   gainers: TopStock[];
   losers: TopStock[];
 }) {
+  const [exchange, setExchange] = useState("HOSE");
+
   return (
-    <Tabs defaultValue="gainers">
-      <TabsList>
-        <TabsTrigger value="gainers">Top Tăng</TabsTrigger>
-        <TabsTrigger value="losers">Top Giảm</TabsTrigger>
-      </TabsList>
-      <TabsContent value="gainers">
-        <StockTable data={gainers} />
-      </TabsContent>
-      <TabsContent value="losers">
-        <StockTable data={losers} />
-      </TabsContent>
-    </Tabs>
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant={exchange === "ALL" ? "default" : "outline"}
+          onClick={() => setExchange("ALL")}
+        >
+          Tất cả
+        </Button>
+        {EXCHANGES.map((ex) => (
+          <Button
+            key={ex}
+            size="sm"
+            variant={exchange === ex ? "default" : "outline"}
+            onClick={() => setExchange(ex)}
+          >
+            {ex}
+          </Button>
+        ))}
+      </div>
+      <Tabs defaultValue="gainers">
+        <TabsList>
+          <TabsTrigger value="gainers">Top Tăng</TabsTrigger>
+          <TabsTrigger value="losers">Top Giảm</TabsTrigger>
+        </TabsList>
+        <TabsContent value="gainers">
+          <StockTable data={gainers} exchange={exchange} />
+        </TabsContent>
+        <TabsContent value="losers">
+          <StockTable data={losers} exchange={exchange} />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

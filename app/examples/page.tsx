@@ -7,6 +7,8 @@ import { CompanyProfileCard } from "@/components/stock-widget/company-profile-ca
 import { IndicatorsCard } from "@/components/stock-widget/indicators-card";
 import { NewsWidget } from "@/components/stock-widget/news-widget";
 import { StockSearch } from "@/components/stock-widget/stock-search";
+import { ExampleBlock } from "@/components/example-block";
+import { UsageGuide } from "@/components/usage-guide";
 import { Metadata } from "next";
 import { commodity, stock, sma, rsi, VnstockTypes } from "vnstock-js";
 
@@ -14,18 +16,108 @@ export const metadata: Metadata = {
   title: "Ví Dụ",
 };
 
+const CODE_SNIPPETS = {
+  stockSearch: `import { stock } from "vnstock-js";
+
+// Lấy lịch sử giá 180 ngày
+const history = await stock.quote({
+  ticker: "FPT",
+  start: "2025-01-01",
+});`,
+
+  goldPrice: `import { commodity } from "vnstock-js";
+
+const goldPrice = await commodity.gold.priceGiaVangNet();`,
+
+  indexPrice: `import { stock } from "vnstock-js";
+
+const vnindex = await stock.index({
+  index: "VNINDEX",
+  start: "2025-06-22",
+});`,
+
+  realtime: `import { stock } from "vnstock-js";
+
+// Lấy bảng giá
+const priceboard = await stock.priceBoard({
+  ticker: "MBB,FPT,STB",
+});
+
+// Realtime qua WebSocket
+const { connect, subscribe, parseData } = stock.realtime;
+const socket = connect({
+  onOpen: () => subscribe(socket, { symbols: ["FPT"] }),
+  onMessage: (data) => {
+    if (typeof data === "string" && data.includes("S#")) {
+      const parsed = parseData(data);
+      console.log(parsed.symbol, parsed.matched.price);
+    }
+  },
+});`,
+
+  topGainersLosers: `import { stock } from "vnstock-js";
+
+const gainers = await stock.topGainers();
+const losers = await stock.topLosers();`,
+
+  screening: `import { stock } from "vnstock-js";
+
+const screened = await stock.screening({
+  exchange: "HOSE",
+  filters: [
+    { field: "pe", operator: "<", value: 15 },
+    { field: "roe", operator: ">", value: 0.10 },
+  ],
+  sortBy: "roe",
+  order: "desc",
+  limit: 15,
+});`,
+
+  companyProfile: `import { stock } from "vnstock-js";
+
+const company = stock.company({ ticker: "VCI" });
+const profile = await company.profile();
+const shareholders = await company.shareholders();`,
+
+  indicators: `import { stock, sma, rsi } from "vnstock-js";
+
+const history = await stock.quote({
+  ticker: "FPT",
+  start: "2024-10-01",
+});
+const sma20 = sma(history, { period: 20 });
+const rsi14 = rsi(history);`,
+
+  news: `// Tin tức từ GitHub news-crawler
+const res = await fetch(
+  "https://raw.githubusercontent.com/ttqteo/crawl-news/master/docs/news/04-02-2026.json"
+);
+const articles = await res.json();`,
+};
+
 export default async function ExamplesPage() {
   // Gold prices
   const goldPrice = await commodity.gold.priceGiaVangNet();
 
   // Index data
-  const indexPrices = await stock.index({ index: "VNINDEX", start: "2025-06-22" });
-  const indexPrices2 = await stock.index({ index: "HNXIndex", start: "2025-06-22" });
-  const indexPrices3 = await stock.index({ index: "HNXUpcomIndex", start: "2025-06-22" });
+  const indexPrices = await stock.index({
+    index: "VNINDEX",
+    start: "2025-06-22",
+  });
+  const indexPrices2 = await stock.index({
+    index: "HNXIndex",
+    start: "2025-06-22",
+  });
+  const indexPrices3 = await stock.index({
+    index: "HNXUpcomIndex",
+    start: "2025-06-22",
+  });
 
   // Price board + realtime
-  const defaultSymbols = ["LPB"];
-  const priceboardArr = await stock.priceBoard({ ticker: defaultSymbols.join(",") });
+  const defaultSymbols = ["MBB", "FPT", "STB"];
+  const priceboardArr = await stock.priceBoard({
+    ticker: defaultSymbols.join(","),
+  });
   const initialPriceboard: Record<string, VnstockTypes.PriceBoardItem> = {};
   priceboardArr.forEach((item) => {
     initialPriceboard[item.symbol] = item;
@@ -42,7 +134,7 @@ export default async function ExamplesPage() {
       exchange: "HOSE",
       filters: [
         { field: "pe", operator: "<", value: 15 },
-        { field: "roe", operator: ">", value: 0.10 },
+        { field: "roe", operator: ">", value: 0.1 },
       ],
       sortBy: "roe",
       order: "desc",
@@ -60,7 +152,10 @@ export default async function ExamplesPage() {
 
   // Indicators
   const indicatorTicker = "FPT";
-  const history = await stock.quote({ ticker: indicatorTicker, start: "2024-10-01" });
+  const history = await stock.quote({
+    ticker: indicatorTicker,
+    start: "2024-10-01",
+  });
   const sma20 = sma(history, { period: 20 });
   const rsi14 = rsi(history);
   const indicatorData = history.map((h, i) => ({
@@ -71,13 +166,12 @@ export default async function ExamplesPage() {
   }));
 
   // News from news-crawler
-  // Data format: Object { hash: { item_id, source, title, summary, link, image, published, ... } }
   let newsArticles: any[] = [];
 
   async function fetchNews(dateStr: string): Promise<any[]> {
     const res = await fetch(
       `https://raw.githubusercontent.com/ttqteo/crawl-news/master/docs/news/${dateStr}.json`,
-      { next: { revalidate: 3600 } }
+      { next: { revalidate: 3600 } },
     );
     if (!res.ok) return [];
     const json = await res.json();
@@ -113,67 +207,68 @@ export default async function ExamplesPage() {
       <div className="mb-7 flex flex-col gap-3">
         <h1 className="text-3xl font-extrabold">Ví dụ mẫu</h1>
         <p className="text-muted-foreground">
-          Các widget mẫu sử dụng vnstock-js v1.0 — có thể copy code để tích hợp vào dự án.
+          Các widget mẫu sử dụng vnstock-js v1.0 — bấm tab{" "}
+          <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">Code</code>{" "}
+          để xem code và copy.
         </p>
+        <UsageGuide />
         <StockSearch />
       </div>
 
-      <div className="grid lg:grid-cols-2 grid-cols-1 sm:gap-8 gap-4 mb-5">
+      <div className="flex flex-col sm:gap-8 gap-6 mb-5">
         {/* Gold Prices */}
-        <div className="grid gap-4 col-span-full">
-          <p className="text-lg font-bold">Giá Vàng</p>
+        <ExampleBlock title="Giá Vàng" code={CODE_SNIPPETS.goldPrice}>
           <GoldPriceDataTable goldPrice={goldPrice} />
-        </div>
+        </ExampleBlock>
 
         {/* Index Cards */}
-        <div className="grid grid-cols-1 gap-4">
-          <p className="text-lg font-bold">Chỉ Số</p>
-          <IndexPriceCard data={indexPrices} symbol="VNINDEX" />
-          <IndexPriceCard data={indexPrices2} symbol="HNXIndex" />
-          <IndexPriceCard data={indexPrices3} symbol="HNXUpcomIndex" />
-        </div>
+        <ExampleBlock title="Chỉ Số" code={CODE_SNIPPETS.indexPrice}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <IndexPriceCard data={indexPrices} symbol="VNINDEX" />
+            <IndexPriceCard data={indexPrices2} symbol="HNXIndex" />
+            <IndexPriceCard data={indexPrices3} symbol="HNXUpcomIndex" />
+          </div>
+        </ExampleBlock>
 
         {/* Realtime */}
-        <div className="grid grid-cols-1 gap-4">
+        <ExampleBlock title="Dữ Liệu Realtime / Bảng Giá" code={CODE_SNIPPETS.realtime}>
           <StickerRealtimeCard
             initialSymbols={defaultSymbols}
             initialPriceboard={initialPriceboard}
           />
-        </div>
+        </ExampleBlock>
 
         {/* Top Gainers/Losers */}
-        <div className="grid gap-4 col-span-full">
-          <p className="text-lg font-bold">Top Tăng / Giảm</p>
+        <ExampleBlock title="Top Tăng / Giảm" code={CODE_SNIPPETS.topGainersLosers}>
           <TopGainersLosersTable gainers={gainers} losers={losers} />
-        </div>
+        </ExampleBlock>
 
         {/* Screening */}
-        <div className="grid gap-4 col-span-full">
-          <p className="text-lg font-bold">Sàng Lọc Cổ Phiếu (HOSE, PE &lt; 15, ROE &gt; 10%)</p>
+        <ExampleBlock
+          title="Sàng Lọc Cổ Phiếu (HOSE, PE < 15, ROE > 10%)"
+          code={CODE_SNIPPETS.screening}
+        >
           <ScreeningTable data={screened} />
-        </div>
+        </ExampleBlock>
 
         {/* Company Profile */}
-        <div className="grid gap-4">
-          <p className="text-lg font-bold">Thông Tin Công Ty — {companyTicker}</p>
+        <ExampleBlock title={`Thông Tin Công Ty — ${companyTicker}`} code={CODE_SNIPPETS.companyProfile}>
           <CompanyProfileCard
             ticker={companyTicker}
             profile={companyProfile}
             shareholders={companyShareholders}
           />
-        </div>
+        </ExampleBlock>
 
         {/* Indicators */}
-        <div className="grid gap-4">
-          <p className="text-lg font-bold">Chỉ Báo Kỹ Thuật</p>
+        <ExampleBlock title="Chỉ Báo Kỹ Thuật" code={CODE_SNIPPETS.indicators}>
           <IndicatorsCard ticker={indicatorTicker} data={indicatorData} />
-        </div>
+        </ExampleBlock>
 
         {/* News */}
-        <div className="grid gap-4 col-span-full">
-          <p className="text-lg font-bold">Tin Tức Tài Chính</p>
+        <ExampleBlock title="Tin Tức Tài Chính" code={CODE_SNIPPETS.news}>
           <NewsWidget articles={newsArticles.slice(0, 20)} />
-        </div>
+        </ExampleBlock>
       </div>
     </div>
   );

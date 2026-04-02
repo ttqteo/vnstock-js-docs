@@ -1,6 +1,7 @@
 import { ThemeProvider } from "@/components/contexts/theme-provider";
 import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
+import { NavigationProgress } from "@/components/navigation-progress";
 import "@/app/globals.css";
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
@@ -34,6 +35,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <NavigationProgress />
           <Navbar />
           <main className="sm:container mx-auto w-[90vw] h-auto scroll-smooth">
             {children}

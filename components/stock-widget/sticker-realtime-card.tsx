@@ -15,8 +15,18 @@ function isTradingHours() {
   if (day === 0 || day === 6) return false;
   const hour = now.getHours();
   const min = now.getMinutes();
-  if ((hour === 9 && min >= 0) || (hour > 9 && hour < 11) || (hour === 11 && min <= 30)) return true;
-  if ((hour === 13 && min >= 0) || (hour > 13 && hour < 15) || (hour === 15 && min === 0)) return true;
+  if (
+    (hour === 9 && min >= 0) ||
+    (hour > 9 && hour < 11) ||
+    (hour === 11 && min <= 30)
+  )
+    return true;
+  if (
+    (hour === 13 && min >= 0) ||
+    (hour > 13 && hour < 15) ||
+    (hour === 15 && min === 0)
+  )
+    return true;
   return false;
 }
 
@@ -35,9 +45,11 @@ export function StickerRealtimeCard({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [quotes, setQuotes] = useState<Record<string, any>>({});
   const [priceboard, setPriceboard] =
-    useState<Record<string, VnstockTypes.PriceBoardItem | undefined>>(initialPriceboard);
+    useState<Record<string, VnstockTypes.PriceBoardItem | undefined>>(
+      initialPriceboard,
+    );
   const [mode, setMode] = useState<"realtime" | "priceboard">(
-    isTradingHours() ? "realtime" : "priceboard"
+    isTradingHours() ? "realtime" : "priceboard",
   );
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -51,14 +63,26 @@ export function StickerRealtimeCard({
   }, []);
 
   useEffect(() => {
-    if (mode === "priceboard") {
-      if (symbols.length === 0) return;
-      if (Object.keys(initialPriceboard).length > 0 && symbols.every((s) => initialPriceboard[s])) {
-        setPriceboard(initialPriceboard);
-        return;
-      }
-    }
-  }, [mode, symbols, initialPriceboard]);
+    if (symbols.length === 0) return;
+    const missingSymbols = symbols.filter((s) => !priceboard[s]);
+    if (missingSymbols.length === 0) return;
+
+    // Fetch priceboard via API route to avoid CORS
+    fetch(`/api/stock/priceboard?ticker=${missingSymbols.join(",")}`)
+      .then((res) => res.json())
+      .then((arr) => {
+        if (!Array.isArray(arr)) return;
+        setPriceboard((prev) => {
+          const next = { ...prev };
+          arr.forEach((item: VnstockTypes.PriceBoardItem) => {
+            next[item.symbol] = item;
+          });
+          return next;
+        });
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbols]);
 
   useEffect(() => {
     if (mode !== "realtime") return;
@@ -111,7 +135,11 @@ export function StickerRealtimeCard({
 
       <div className="flex flex-wrap gap-2">
         {symbols.map((s) => (
-          <Badge key={s} variant="secondary" className="flex items-center gap-1">
+          <Badge
+            key={s}
+            variant="secondary"
+            className="flex items-center gap-1"
+          >
             {s}
             <button onClick={() => handleRemoveSymbol(s)} className="ml-1">
               <X size={12} />
@@ -122,9 +150,13 @@ export function StickerRealtimeCard({
 
       <div className="mb-2">
         {mode === "realtime" ? (
-          <Badge variant="outline" className="text-green-600">Dữ liệu realtime</Badge>
+          <Badge variant="outline" className="text-green-600">
+            Dữ liệu realtime
+          </Badge>
         ) : (
-          <Badge variant="outline" className="text-yellow-600">Dữ liệu cuối ngày</Badge>
+          <Badge variant="outline" className="text-yellow-600">
+            Dữ liệu cuối ngày
+          </Badge>
         )}
       </div>
 
@@ -134,26 +166,64 @@ export function StickerRealtimeCard({
           const pbQuote = priceboard[symbol];
           const quote = realtimeQuote || pbQuote;
 
-          // Unified field access for both realtime and priceboard
-          const price = realtimeQuote?.matched?.price ?? pbQuote?.price ?? 0;
-          const volume = realtimeQuote?.matched?.volume ?? pbQuote?.matchVolume ?? 0;
+          // Validate realtime price against priceboard bounds (floor-ceiling)
+          const ceiling = pbQuote?.ceilingPrice ?? 0;
+          const floor = pbQuote?.floorPrice ?? 0;
+          const rtPrice = realtimeQuote?.matched?.price ?? 0;
+          const isRtPriceValid =
+            rtPrice > 0 &&
+            ceiling > 0 &&
+            floor > 0 &&
+            rtPrice >= floor &&
+            rtPrice <= ceiling;
+
+          const price = isRtPriceValid ? rtPrice : (pbQuote?.price ?? rtPrice);
+          const volume =
+            realtimeQuote?.matched?.volume ?? pbQuote?.matchVolume ?? 0;
           const totalValue = quote?.totalValue ?? 0;
-          const change = realtimeQuote?.matched?.change ?? 0;
-          const changePercent = realtimeQuote?.matched?.changePercent
-            ? (realtimeQuote.matched.changePercent * 100).toFixed(2)
-            : null;
+
+          // Calculate change from referencePrice when available (more reliable)
+          const refPrice = pbQuote?.referencePrice ?? 0;
+          let change = realtimeQuote?.matched?.change ?? 0;
+          let changePercent: string | null = null;
+
+          if (refPrice > 0 && price > 0) {
+            change = price - refPrice;
+            changePercent = ((change / refPrice) * 100).toFixed(2);
+          } else if (realtimeQuote?.matched?.changePercent != null) {
+            const pct = realtimeQuote.matched.changePercent * 100;
+            if (Math.abs(pct) <= 30) {
+              changePercent = pct.toFixed(2);
+            }
+          }
+
+          // Fallback: priceboard mode with no change info yet, show 0
+          if (changePercent == null && price > 0 && quote) {
+            changePercent = "0.00";
+          }
+
+          // Color based on VN stock market convention
+          let colorClass = "text-yellow-500"; // reference (no change)
+          if (price > 0 && ceiling > 0 && price >= ceiling) {
+            colorClass = "text-purple-600"; // ceiling
+          } else if (price > 0 && floor > 0 && price <= floor) {
+            colorClass = "text-blue-600"; // floor
+          } else if (change > 0) {
+            colorClass = "text-green-600"; // up
+          } else if (change < 0) {
+            colorClass = "text-red-600"; // down
+          }
 
           return (
             <Card key={symbol}>
               <CardHeader>
                 <CardTitle className="text-lg flex justify-between items-center">
                   <span>{symbol}</span>
-                  {changePercent ? (
-                    <Badge
-                      variant="outline"
-                      className={change > 0 ? "text-green-600" : "text-red-600"}
-                    >
-                      {change > 0 ? "+" : ""}{(change * 1000).toFixed(0)} ({changePercent}%)
+                  {changePercent != null ? (
+                    <Badge variant="outline" className={colorClass}>
+                      {change > 0 ? "+" : ""}
+                      {(change * 1000).toFixed(0)} / {change > 0 ? "+" : ""}
+                      {changePercent}%
                     </Badge>
                   ) : null}
                 </CardTitle>
@@ -163,7 +233,9 @@ export function StickerRealtimeCard({
                   <>
                     <div className="flex justify-between">
                       <span>Giá hiện tại:</span>
-                      <span className="font-semibold">{(price * 1000).toLocaleString()}</span>
+                      <span className={`font-semibold ${colorClass}`}>
+                        {(price * 1000).toLocaleString()}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Khối lượng:</span>
