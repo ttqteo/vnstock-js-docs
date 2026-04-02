@@ -8,6 +8,7 @@ import {
   Terminal,
   Github,
   ArrowRight,
+  Gauge,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,23 +18,30 @@ import { MarketTicker } from "@/components/market-ticker";
 const FEATURES = [
   {
     icon: Zap,
-    title: "Realtime WebSocket",
-    description: "Nhận giá cổ phiếu cập nhật liên tục trong giờ giao dịch",
+    label: "REALTIME",
+    title: "WebSocket Streaming",
+    description:
+      "Giá cổ phiếu cập nhật liên tục qua SSI WebSocket. Không cần polling.",
   },
   {
     icon: BarChart3,
+    label: "TECHNICALS",
     title: "Chỉ báo kỹ thuật",
-    description: "SMA, EMA, RSI tích hợp sẵn — không cần thư viện ngoài",
+    description:
+      "SMA, EMA, RSI tích hợp sẵn. Import và dùng ngay, không cần thư viện ngoài.",
   },
   {
     icon: Filter,
+    label: "SCREENING",
     title: "Sàng lọc cổ phiếu",
-    description: "Lọc theo PE, ROE, vốn hóa và hàng chục chỉ số khác",
+    description: "Lọc theo PE, ROE, vốn hóa. Hỗ trợ HOSE, HNX, UPCOM.",
   },
   {
     icon: Code2,
-    title: "TypeScript",
-    description: "Type đầy đủ cho mọi response — autocomplete mượt mà",
+    label: "TYPESCRIPT",
+    title: "Type-safe",
+    description:
+      "Type đầy đủ cho mọi response. Autocomplete mượt mà trên mọi IDE.",
   },
 ];
 
@@ -49,12 +57,28 @@ const prices = await stock.quote({
 const sma20 = sma(prices, { period: 20 });`;
 
 export default async function Home() {
-  let indexData: { symbol: string; value: number; change: number; changePct: number }[] = [];
+  let indexData: {
+    symbol: string;
+    value: number;
+    change: number;
+    changePct: number;
+  }[] = [];
   try {
     const indices = ["VNINDEX", "HNXIndex", "HNXUpcomIndex"] as const;
-    const displayNames: Record<string, string> = { VNINDEX: "HSX", HNXIndex: "HNX", HNXUpcomIndex: "UPCOM" };
+    const displayNames: Record<string, string> = {
+      VNINDEX: "HSX",
+      HNXIndex: "HNX",
+      HNXUpcomIndex: "UPCOM",
+    };
     const results = await Promise.all(
-      indices.map((idx) => stock.index({ index: idx, start: new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0] }))
+      indices.map((idx) =>
+        stock.index({
+          index: idx,
+          start: new Date(Date.now() - 7 * 86400000)
+            .toISOString()
+            .split("T")[0],
+        }),
+      ),
     );
     indexData = results.map((data, i) => {
       const latest = data[data.length - 1];
@@ -78,27 +102,26 @@ export default async function Home() {
       {indexData.length > 0 && <MarketTicker data={indexData} />}
 
       {/* Hero */}
-      <section className="flex flex-col items-center justify-center text-center px-4 pt-20 pb-16 sm:pt-28 sm:pb-20">
-        <div className="flex items-center gap-2 mb-6">
+      <section className="flex flex-col items-center justify-center text-center px-4 pt-24 pb-20 sm:pt-32 sm:pb-24">
+        <div className="flex items-center gap-3 mb-8">
           <Image
             src="/vnstock.png"
             alt="vnstock-js"
-            width={48}
-            height={48}
+            width={56}
+            height={56}
             className="rounded-full"
           />
         </div>
-        <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl mb-4">
+        <h1 className="font-display text-5xl font-extrabold tracking-tight sm:text-7xl mb-6">
           vnstock-js
         </h1>
-        <p className="text-lg sm:text-xl text-muted-foreground max-w-[600px] mb-8">
-          Thư viện JavaScript lấy dữ liệu chứng khoán Việt Nam.
-          <br className="hidden sm:block" />
-          Đơn giản, nhanh, có TypeScript.
+        <p className="text-lg sm:text-xl text-muted-foreground max-w-[550px] mb-4 leading-relaxed">
+          Thư viện JavaScript nhanh nhất để truy cập dữ liệu chứng khoán Việt
+          Nam. Nhẹ, type-safe, sẵn sàng cho production.
         </p>
 
         {/* Install command */}
-        <div className="flex items-center gap-2 bg-muted rounded-lg px-4 py-2.5 mb-8 font-mono text-sm">
+        <div className="flex items-center gap-2 bg-muted px-5 py-3 mb-10 font-mono text-sm dark:bg-accent">
           <Terminal className="w-4 h-4 text-muted-foreground shrink-0" />
           <code>npm install vnstock-js</code>
         </div>
@@ -107,7 +130,11 @@ export default async function Home() {
         <div className="flex flex-row items-center gap-4">
           <Link
             href={`/docs${page_routes[0].href}`}
-            className={buttonVariants({ className: "px-6", size: "lg" })}
+            className={buttonVariants({
+              className:
+                "px-8 font-display font-semibold uppercase tracking-wider",
+              size: "lg",
+            })}
           >
             Bắt Đầu
             <ArrowRight className="w-4 h-4 ml-2" />
@@ -116,7 +143,8 @@ export default async function Home() {
             href="/examples"
             className={buttonVariants({
               variant: "outline",
-              className: "px-6",
+              className:
+                "px-8 font-display font-semibold uppercase tracking-wider",
               size: "lg",
             })}
           >
@@ -135,59 +163,86 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Code demo */}
-      <section className="px-4 pb-16 sm:pb-20 max-w-3xl mx-auto w-full">
-        <div className="rounded-xl border bg-muted/30 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/50">
-            <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-400/70" />
-              <div className="w-3 h-3 rounded-full bg-yellow-400/70" />
-              <div className="w-3 h-3 rounded-full bg-green-400/70" />
-            </div>
-            <span className="text-xs text-muted-foreground font-mono ml-2">
-              index.ts
-            </span>
-          </div>
-          <div className="p-4 sm:p-6 overflow-x-auto text-sm leading-relaxed font-mono whitespace-pre">
-            {CODE_EXAMPLE}
-          </div>
-        </div>
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          3 dòng code. Không cần API key. Không cần đăng ký.
-        </p>
-      </section>
-
       {/* Features */}
-      <section className="px-4 pb-16 sm:pb-20">
-        <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
+      <section className="px-4 pb-20 sm:pb-24">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px max-w-5xl mx-auto bg-border dark:bg-white/5">
           {FEATURES.map((f) => (
             <div
               key={f.title}
-              className="flex gap-4 p-5 rounded-xl border bg-card hover:border-primary/20 transition-colors"
+              className="flex flex-col gap-3 p-6 sm:p-8 bg-background hover:bg-muted/50 transition-colors"
             >
-              <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <f.icon className="w-5 h-5 text-primary" />
+              <div className="flex items-center gap-3">
+                <f.icon className="w-5 h-5 text-muted-foreground" />
+                <span className="text-[0.65rem] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                  {f.label}
+                </span>
               </div>
-              <div>
-                <h3 className="font-semibold mb-1">{f.title}</h3>
-                <p className="text-sm text-muted-foreground">{f.description}</p>
-              </div>
+              <h3 className="font-display text-lg font-bold">{f.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {f.description}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="px-4 pb-20 sm:pb-28">
-        <div className="max-w-2xl mx-auto text-center rounded-xl border bg-card p-8 sm:p-12">
-          <h2 className="text-2xl font-bold mb-3">Sẵn sàng bắt đầu?</h2>
-          <p className="text-muted-foreground mb-6">
-            Đọc tài liệu, xem ví dụ mẫu, hoặc bắt tay vào code ngay.
+      {/* Built for Speed */}
+      <section className="px-4 pb-20 sm:pb-24">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center gap-3 mb-4">
+            <Gauge className="w-5 h-5 text-muted-foreground" />
+            <span className="text-[0.65rem] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+              Built for Speed
+            </span>
+          </div>
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold mb-4 uppercase tracking-tight">
+            3 dòng code.
+            <br />
+            Không API key. Không đăng ký.
+          </h2>
+          <p className="text-muted-foreground mb-8 max-w-lg">
+            Gọi trực tiếp từ server hoặc script. Dữ liệu được chuẩn hóa, có type
+            sẵn, sẵn sàng render.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
+
+          {/* Code block — always dark */}
+          <div className="overflow-hidden bg-[#141516] text-[#e5e2e1]">
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-white/10">
+              <div className="flex gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+              </div>
+              <span className="text-xs text-white/40 font-mono ml-2">
+                index.ts
+              </span>
+            </div>
+            <div className="p-5 sm:p-8 overflow-x-auto text-sm leading-relaxed font-mono whitespace-pre">
+              {CODE_EXAMPLE}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Bottom CTA */}
+      <section className="px-4 pb-24 sm:pb-32">
+        <div className="max-w-5xl mx-auto text-center bg-primary text-primary-foreground p-10 sm:p-16">
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold mb-4 uppercase tracking-tight">
+            Sẵn sàng bắt đầu?
+          </h2>
+          <p className="mb-8 opacity-70 max-w-md mx-auto">
+            Đọc tài liệu, xem ví dụ mẫu với dữ liệu thật, hoặc bắt tay vào code
+            ngay.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
             <Link
               href={`/docs${page_routes[0].href}`}
-              className={buttonVariants({ size: "lg", className: "px-6" })}
+              className={buttonVariants({
+                variant: "secondary",
+                size: "lg",
+                className:
+                  "px-8 font-display font-semibold uppercase tracking-wider",
+              })}
             >
               Đọc Tài Liệu
             </Link>
@@ -196,20 +251,11 @@ export default async function Home() {
               className={buttonVariants({
                 variant: "outline",
                 size: "lg",
-                className: "px-6",
+                className:
+                  "px-8 font-display font-semibold uppercase tracking-wider border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10",
               })}
             >
               Xem Ví Dụ
-            </Link>
-            <Link
-              href="/blog"
-              className={buttonVariants({
-                variant: "ghost",
-                size: "lg",
-                className: "px-6",
-              })}
-            >
-              Đọc Blog
             </Link>
           </div>
         </div>

@@ -25,7 +25,7 @@ export const NAVLINKS = [
 
 export function Navbar() {
   return (
-    <nav className="w-full border-b h-16 sticky top-0 z-50 bg-background">
+    <nav className="w-full border-b h-16 sticky top-0 z-50 bg-background dark:bg-background/80 dark:backdrop-blur-xl">
       <div className="sm:container mx-auto w-[95vw] h-full flex items-center justify-between md:gap-2">
         <div className="flex items-center gap-5">
           <SheetLeftbar />
@@ -68,7 +68,7 @@ export function Logo() {
         height={24}
         className="rounded-full"
       />
-      <h2 className="text-md font-bold font-code">vnstock-js</h2>
+      <h2 className="text-md font-bold font-display uppercase tracking-wider">vnstock-js</h2>
     </Link>
   );
 }

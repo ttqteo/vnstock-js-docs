@@ -4,11 +4,16 @@ import { Navbar } from "@/components/navbar";
 import { NavigationProgress } from "@/components/navigation-progress";
 import "@/app/globals.css";
 import type { Metadata } from "next";
-import { Roboto } from "next/font/google";
+import { Inter, Manrope } from "next/font/google";
 
-const roboto = Roboto({
-  weight: "400",
+const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
 });
 
 export const metadata: Metadata = {
@@ -26,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${roboto.className} font-regular antialiased tracking-wide`}
+        className={`${inter.variable} ${manrope.variable} font-sans antialiased tracking-wide`}
         suppressHydrationWarning
       >
         <ThemeProvider
