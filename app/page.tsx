@@ -226,34 +226,24 @@ export default async function Home() {
 
       {/* Bottom CTA */}
       <section className="px-4 pb-24 sm:pb-32">
-        <div className="max-w-5xl mx-auto text-center bg-primary text-primary-foreground p-10 sm:p-16">
+        <div className="max-w-5xl mx-auto text-center bg-[#1a1a1a] text-white dark:bg-white dark:text-[#1a1a1a] p-10 sm:p-16">
           <h2 className="font-display text-3xl sm:text-4xl font-extrabold mb-4 uppercase tracking-tight">
             Sẵn sàng bắt đầu?
           </h2>
-          <p className="mb-8 opacity-70 max-w-md mx-auto">
+          <p className="mb-8 opacity-60 max-w-md mx-auto">
             Đọc tài liệu, xem ví dụ mẫu với dữ liệu thật, hoặc bắt tay vào code
             ngay.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link
               href={`/docs${page_routes[0].href}`}
-              className={buttonVariants({
-                variant: "secondary",
-                size: "lg",
-                className:
-                  "px-8 font-display font-semibold uppercase tracking-wider",
-              })}
+              className="inline-flex items-center justify-center px-8 h-11 font-display font-semibold uppercase tracking-wider text-sm bg-white text-[#1a1a1a] dark:bg-[#1a1a1a] dark:text-white hover:opacity-90 transition-opacity"
             >
               Đọc Tài Liệu
             </Link>
             <Link
               href="/examples"
-              className={buttonVariants({
-                variant: "outline",
-                size: "lg",
-                className:
-                  "px-8 font-display font-semibold uppercase tracking-wider border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10",
-              })}
+              className="inline-flex items-center justify-center px-8 h-11 font-display font-semibold uppercase tracking-wider text-sm border border-white/30 text-white dark:border-[#1a1a1a]/30 dark:text-[#1a1a1a] hover:opacity-80 transition-opacity"
             >
               Xem Ví Dụ
             </Link>
