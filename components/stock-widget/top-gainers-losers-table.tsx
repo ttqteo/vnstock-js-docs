@@ -45,7 +45,7 @@ function StockTable({ data, exchange }: { data: TopStock[]; exchange: string }) 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filtered.slice(0, 15).map((item) => (
+          {filtered.map((item) => (
             <TableRow key={item.symbol}>
               <TableCell><SymbolLink symbol={item.symbol} /></TableCell>
               <TableCell>

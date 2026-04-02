@@ -83,9 +83,9 @@ function CodeBlock({ code, label }: { code: string; label: string }) {
         <span className="text-xs text-muted-foreground font-mono">{label}</span>
         <Copy content={code} />
       </div>
-      <pre className="overflow-x-auto p-4 text-sm">
-        <code>{code}</code>
-      </pre>
+      <div className="overflow-x-auto p-4 text-sm font-mono whitespace-pre">
+        {code}
+      </div>
     </div>
   );
 }

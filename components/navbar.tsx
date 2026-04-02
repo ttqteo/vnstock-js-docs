@@ -1,7 +1,8 @@
 import { ModeToggle } from "@/components/theme-toggle";
 import { SheetClose } from "@/components/ui/sheet";
 import { page_routes } from "@/lib/routes-config";
-import { ChartCandlestickIcon } from "lucide-react";
+import { Github } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import Anchor from "./anchor";
 import { SheetLeftbar } from "./leftbar";
@@ -41,6 +42,14 @@ export function Navbar() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Search />
+            <Link
+              href="https://github.com/ttqteo/vnstock-js"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-accent hover:text-accent-foreground text-muted-foreground"
+            >
+              <Github className="w-[1.1rem] h-[1.1rem]" />
+            </Link>
             <ModeToggle />
           </div>
         </div>
@@ -52,9 +61,12 @@ export function Navbar() {
 export function Logo() {
   return (
     <Link href="/" className="flex items-center gap-2.5">
-      <ChartCandlestickIcon
-        className="w-6 h-6 text-muted-foreground"
-        strokeWidth={2}
+      <Image
+        src="/vnstock.png"
+        alt="vnstock-js"
+        width={24}
+        height={24}
+        className="rounded-full"
       />
       <h2 className="text-md font-bold font-code">vnstock-js</h2>
     </Link>

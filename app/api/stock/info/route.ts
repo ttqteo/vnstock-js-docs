@@ -10,16 +10,19 @@ export async function GET(request: NextRequest) {
   const symbol = ticker.toUpperCase();
 
   try {
-    const [priceboard, profile] = await Promise.allSettled([
+    const company = stock.company({ ticker: symbol });
+    const [priceboard, profile, shareholders] = await Promise.allSettled([
       stock.priceBoard({ ticker: symbol }),
-      stock.company({ ticker: symbol }).profile(),
+      company.profile(),
+      company.shareholders(),
     ]);
 
     const pb =
       priceboard.status === "fulfilled" ? priceboard.value[0] ?? null : null;
     const prof = profile.status === "fulfilled" ? profile.value : null;
+    const sh = shareholders.status === "fulfilled" ? shareholders.value : [];
 
-    return NextResponse.json({ priceboard: pb, profile: prof });
+    return NextResponse.json({ priceboard: pb, profile: prof, shareholders: sh });
   } catch {
     return NextResponse.json(
       { error: "Không tìm thấy dữ liệu" },

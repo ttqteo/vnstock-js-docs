@@ -3,7 +3,7 @@ import { IndexPriceCard } from "@/components/stock-widget/index-price-card";
 import { StickerRealtimeCard } from "@/components/stock-widget/sticker-realtime-card";
 import { TopGainersLosersTable } from "@/components/stock-widget/top-gainers-losers-table";
 import { ScreeningTable } from "@/components/stock-widget/screening-table";
-import { CompanyProfileCard } from "@/components/stock-widget/company-profile-card";
+import { CompanySearchCard } from "@/components/stock-widget/company-search-card";
 import { IndicatorsCard } from "@/components/stock-widget/indicators-card";
 import { NewsWidget } from "@/components/stock-widget/news-widget";
 import { StockSearch } from "@/components/stock-widget/stock-search";
@@ -115,12 +115,12 @@ export default async function ExamplesPage() {
 
   // Price board + realtime
   const defaultSymbols = ["MBB", "FPT", "STB"];
-  const priceboardArr = await stock.priceBoard({
-    ticker: defaultSymbols.join(","),
-  });
+  const priceboardArr = await Promise.all(
+    defaultSymbols.map((t) => stock.priceBoard({ ticker: t }).then((arr) => arr[0]).catch(() => null))
+  );
   const initialPriceboard: Record<string, VnstockTypes.PriceBoardItem> = {};
   priceboardArr.forEach((item) => {
-    initialPriceboard[item.symbol] = item;
+    if (item) initialPriceboard[item.symbol] = item;
   });
 
   // Top gainers/losers
@@ -224,9 +224,9 @@ export default async function ExamplesPage() {
         {/* Index Cards */}
         <ExampleBlock title="Chỉ Số" code={CODE_SNIPPETS.indexPrice}>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <IndexPriceCard data={indexPrices} symbol="VNINDEX" />
-            <IndexPriceCard data={indexPrices2} symbol="HNXIndex" />
-            <IndexPriceCard data={indexPrices3} symbol="HNXUpcomIndex" />
+            <IndexPriceCard data={indexPrices} symbol="VNINDEX" displayName="HSX" />
+            <IndexPriceCard data={indexPrices2} symbol="HNXIndex" displayName="HNX" />
+            <IndexPriceCard data={indexPrices3} symbol="HNXUpcomIndex" displayName="UPCOM" />
           </div>
         </ExampleBlock>
 
@@ -252,11 +252,13 @@ export default async function ExamplesPage() {
         </ExampleBlock>
 
         {/* Company Profile */}
-        <ExampleBlock title={`Thông Tin Công Ty — ${companyTicker}`} code={CODE_SNIPPETS.companyProfile}>
-          <CompanyProfileCard
-            ticker={companyTicker}
-            profile={companyProfile}
-            shareholders={companyShareholders}
+        <ExampleBlock title="Thông Tin Công Ty" code={CODE_SNIPPETS.companyProfile}>
+          <CompanySearchCard
+            initialData={{
+              ticker: companyTicker,
+              profile: companyProfile,
+              shareholders: companyShareholders,
+            }}
           />
         </ExampleBlock>
 

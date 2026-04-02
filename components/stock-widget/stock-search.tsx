@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { Input } from "@/components/ui/input";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -10,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { StockChart } from "./stock-chart";
+import { TickerSearch } from "./ticker-search";
 import { sma } from "vnstock-js";
 
 interface ChartDataPoint {
@@ -34,11 +34,6 @@ interface PriceInfo {
   foreignBuyVolume: number;
   foreignSellVolume: number;
 }
-
-const POPULAR_SYMBOLS = [
-  "FPT", "VNM", "MBB", "VCB", "TCB", "HPG", "VHM", "VIC", "MSN", "VRE",
-  "SSI", "VCI", "MWG", "PNJ", "ACB", "STB", "TPB", "HDB", "LPB", "VPB",
-];
 
 function getPriceColor(price: number, ref: number, ceiling: number, floor: number) {
   if (ceiling > 0 && price >= ceiling) return "text-purple-600";
@@ -104,41 +99,14 @@ function PriceInfoPanel({ info }: { info: PriceInfo }) {
 }
 
 export function StockSearch() {
-  const [input, setInput] = useState("");
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [dialogSymbol, setDialogSymbol] = useState<string | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [smaData, setSmaData] = useState<{ date: string; sma: number | null }[]>([]);
   const [priceInfo, setPriceInfo] = useState<PriceInfo | null>(null);
   const [loading, setLoading] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const val = input.toUpperCase().trim();
-    if (val.length === 0) {
-      setSuggestions(POPULAR_SYMBOLS.slice(0, 8));
-    } else {
-      setSuggestions(
-        POPULAR_SYMBOLS.filter((s) => s.includes(val)).slice(0, 8)
-      );
-    }
-  }, [input]);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const openChart = (symbol: string) => {
     setDialogSymbol(symbol);
-    setShowSuggestions(false);
-    setInput("");
     setLoading(true);
     setChartData([]);
     setSmaData([]);
@@ -158,45 +126,10 @@ export function StockSearch() {
       .finally(() => setLoading(false));
   };
 
-  const handleSubmit = () => {
-    const s = input.toUpperCase().trim();
-    if (s) openChart(s);
-  };
-
   return (
     <>
-      <div ref={wrapperRef} className="relative max-w-xs">
-        <Input
-          placeholder="Tìm mã cổ phiếu (VD: FPT)..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onFocus={() => setShowSuggestions(true)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-        />
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-50 overflow-hidden">
-            <div className="p-2 text-xs text-muted-foreground">
-              {input.trim() ? "Kết quả" : "Phổ biến"}
-            </div>
-            {suggestions.map((s) => (
-              <button
-                key={s}
-                onClick={() => openChart(s)}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors cursor-pointer"
-              >
-                {s}
-              </button>
-            ))}
-            {input.trim() && !suggestions.some((s) => s === input.toUpperCase().trim()) && (
-              <button
-                onClick={handleSubmit}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors cursor-pointer text-blue-600"
-              >
-                Xem biểu đồ &quot;{input.toUpperCase().trim()}&quot;
-              </button>
-            )}
-          </div>
-        )}
+      <div className="max-w-xs">
+        <TickerSearch onSelect={openChart} placeholder="Tìm cổ phiếu (VD: FPT, Vinhomes...)" />
       </div>
 
       <Dialog open={!!dialogSymbol} onOpenChange={(open) => !open && setDialogSymbol(null)}>

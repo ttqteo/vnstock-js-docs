@@ -9,25 +9,20 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { VnstockTypes } from "vnstock-js";
 
-function isTradingHours() {
+type MarketStatus = "realtime" | "lunch" | "closed";
+
+function getMarketStatus(): MarketStatus {
   const now = new Date();
   const day = now.getDay();
-  if (day === 0 || day === 6) return false;
-  const hour = now.getHours();
-  const min = now.getMinutes();
-  if (
-    (hour === 9 && min >= 0) ||
-    (hour > 9 && hour < 11) ||
-    (hour === 11 && min <= 30)
-  )
-    return true;
-  if (
-    (hour === 13 && min >= 0) ||
-    (hour > 13 && hour < 15) ||
-    (hour === 15 && min === 0)
-  )
-    return true;
-  return false;
+  if (day === 0 || day === 6) return "closed";
+  const t = now.getHours() * 60 + now.getMinutes(); // minutes since midnight
+  // Sáng: 9:00 - 11:30
+  if (t >= 540 && t <= 690) return "realtime";
+  // Nghỉ trưa: 11:30 - 13:00
+  if (t > 690 && t < 780) return "lunch";
+  // Chiều: 13:00 - 15:00
+  if (t >= 780 && t <= 900) return "realtime";
+  return "closed";
 }
 
 interface StickerRealtimeCardProps {
@@ -48,14 +43,12 @@ export function StickerRealtimeCard({
     useState<Record<string, VnstockTypes.PriceBoardItem | undefined>>(
       initialPriceboard,
     );
-  const [mode, setMode] = useState<"realtime" | "priceboard">(
-    isTradingHours() ? "realtime" : "priceboard",
-  );
+  const [mode, setMode] = useState<MarketStatus>(getMarketStatus());
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     const check = () => {
-      setMode(isTradingHours() ? "realtime" : "priceboard");
+      setMode(getMarketStatus());
     };
     check();
     const interval = setInterval(check, 60000);
@@ -67,11 +60,11 @@ export function StickerRealtimeCard({
     const missingSymbols = symbols.filter((s) => !priceboard[s]);
     if (missingSymbols.length === 0) return;
 
-    // Fetch priceboard via API route to avoid CORS
+    let cancelled = false;
     fetch(`/api/stock/priceboard?ticker=${missingSymbols.join(",")}`)
       .then((res) => res.json())
       .then((arr) => {
-        if (!Array.isArray(arr)) return;
+        if (cancelled || !Array.isArray(arr)) return;
         setPriceboard((prev) => {
           const next = { ...prev };
           arr.forEach((item: VnstockTypes.PriceBoardItem) => {
@@ -81,6 +74,7 @@ export function StickerRealtimeCard({
         });
       })
       .catch(() => {});
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbols]);
 
@@ -152,6 +146,10 @@ export function StickerRealtimeCard({
         {mode === "realtime" ? (
           <Badge variant="outline" className="text-green-600">
             Dữ liệu realtime
+          </Badge>
+        ) : mode === "lunch" ? (
+          <Badge variant="outline" className="text-orange-500">
+            Nghỉ trưa (11:30 - 13:00)
           </Badge>
         ) : (
           <Badge variant="outline" className="text-yellow-600">

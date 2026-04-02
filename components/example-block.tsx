@@ -28,9 +28,9 @@ export function ExampleBlock({ title, code, children }: ExampleBlockProps) {
             <div className="absolute right-3 top-3 z-10">
               <Copy content={code} />
             </div>
-            <pre className="overflow-x-auto p-4 text-sm">
-              <code>{code}</code>
-            </pre>
+            <div className="overflow-x-auto p-4 text-sm font-mono whitespace-pre">
+              {code}
+            </div>
           </div>
         </TabsContent>
       </Tabs>

@@ -3,7 +3,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { VnstockTypes } from "vnstock-js";
 
-export function IndexPriceCard({ data, symbol }: { data: VnstockTypes.QuoteHistory[]; symbol: string }) {
+export function IndexPriceCard({ data, symbol, displayName }: { data: VnstockTypes.QuoteHistory[]; symbol: string; displayName?: string }) {
   if (!data || data.length === 0) return <div>Loading index...</div>;
 
   const latest = data[data.length - 1];
@@ -17,7 +17,7 @@ export function IndexPriceCard({ data, symbol }: { data: VnstockTypes.QuoteHisto
   return (
     <Card className="max-w-sm">
       <CardHeader>
-        <CardTitle>{symbol}</CardTitle>
+        <CardTitle>{displayName || symbol}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-1 text-sm">
         <p className="flex gap-2">

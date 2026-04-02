@@ -8,8 +8,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const data = await stock.priceBoard({ ticker: ticker.toUpperCase() });
-    return NextResponse.json(data);
+    const tickers = ticker.toUpperCase().split(",").filter(Boolean);
+    const results = await Promise.all(
+      tickers.map((t) => stock.priceBoard({ ticker: t }).then((arr) => arr[0]).catch(() => null))
+    );
+    return NextResponse.json(results.filter(Boolean));
   } catch {
     return NextResponse.json(
       { error: "Không tìm thấy dữ liệu" },

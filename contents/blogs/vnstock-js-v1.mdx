@@ -1,0 +1,128 @@
+---
+title: "vnstock-js v1.0 chính thức ra mắt"
+description: "Hành trình từ side-project nhỏ đến thư viện npm chính thức. vnstock-js v1.0 mang đến trải nghiệm hoàn toàn mới cho developer Việt Nam."
+date: 02-04-2026
+authors:
+  - avatar: "https://avatars.githubusercontent.com/ttqteo"
+    handle: ttqteo
+    username: Tran Tu Quang
+    handleUrl: "https://github.com/ttqteo"
+cover: "/vnstock.png"
+---
+
+Hôm nay mình chính thức publish **vnstock-js v1.0** lên npm. Đây là cột mốc khá ý nghĩa với mình, và mình muốn chia sẻ câu chuyện phía sau.
+
+## Tại sao lại có v1.0?
+
+Các bản trước đó (v0.x) mình viết khá vội, API thiết kế theo kiểu "nghĩ tới đâu code tới đó". Kết quả là cú pháp dài dòng, khó nhớ, và thiếu nhiều tính năng mà anh em trader hay developer cần.
+
+Mình quyết định viết lại từ đầu với mục tiêu: **đơn giản nhất có thể**. Nếu bạn chỉ cần lấy giá một cổ phiếu, nó phải gọn trong 2 dòng code.
+
+## Thay đổi lớn nhất
+
+### Gọn hơn rất nhiều
+
+Trước đây bạn phải viết thế này:
+
+```ts
+import vnstock from "vnstock-js";
+const data = await vnstock.stock.quote.history({ symbols: ["FPT"], ... });
+```
+
+Giờ chỉ cần:
+
+```ts
+import { stock } from "vnstock-js";
+const data = await stock.quote({ ticker: "FPT", start: "2025-01-01" });
+```
+
+Ít chữ hơn, dễ nhớ hơn, autocomplete tốt hơn.
+
+### Realtime giá cổ phiếu
+
+Đây là tính năng mình hào hứng nhất. vnstock-js giờ hỗ trợ **WebSocket realtime** — bạn có thể nhận giá cổ phiếu cập nhật liên tục trong giờ giao dịch, không cần polling.
+
+```ts
+const { connect, subscribe, parseData } = stock.realtime;
+const socket = connect({
+  onOpen: () => subscribe(socket, { symbols: ["FPT", "MBB"] }),
+  onMessage: (data) => {
+    const parsed = parseData(data);
+    console.log(`${parsed.symbol}: ${parsed.matched.price}`);
+  },
+});
+```
+
+### Chỉ báo kỹ thuật tích hợp sẵn
+
+Không cần cài thêm thư viện nào. SMA, EMA, RSI — import thẳng từ vnstock-js:
+
+```ts
+import { stock, sma, rsi } from "vnstock-js";
+
+const history = await stock.quote({ ticker: "FPT", start: "2024-10-01" });
+const sma20 = sma(history, { period: 20 });
+const rsi14 = rsi(history);
+```
+
+### Sàng lọc cổ phiếu
+
+Muốn tìm cổ phiếu PE thấp, ROE cao? Một dòng:
+
+```ts
+const results = await stock.screening({
+  exchange: "HOSE",
+  filters: [
+    { field: "pe", operator: "<", value: 15 },
+    { field: "roe", operator: ">", value: 0.10 },
+  ],
+  sortBy: "roe",
+  order: "desc",
+});
+```
+
+### Và nhiều hơn nữa
+
+- **Bảng giá** với đầy đủ thông tin trần/sàn/tham chiếu
+- **Thông tin công ty**: hồ sơ, cổ đông, ban lãnh đạo, sự kiện, tin tức
+- **Giá vàng & tỷ giá** từ nhiều nguồn (SJC, BTMC, GiaVang.net)
+- **TypeScript** hoàn chỉnh — mọi response đều có type
+
+## Ai nên dùng?
+
+- **Developer** muốn xây dashboard chứng khoán, bot trading, hay tool phân tích
+- **Data engineer** cần pipeline lấy dữ liệu thị trường VN bằng JavaScript/TypeScript
+- **Sinh viên** muốn làm đồ án, side-project liên quan tài chính
+
+## Một lưu ý quan trọng
+
+vnstock-js gọi API từ SSI/Vietcap. Các API này **không hỗ trợ CORS**, nên bạn không thể gọi trực tiếp từ browser. Có 2 cách dùng:
+
+1. **Server-side** (Next.js Server Component, Node.js script) — gọi trực tiếp, không vấn đề gì
+2. **Client-side** — tạo API route proxy trên server, client gọi qua đó
+
+Riêng **WebSocket realtime** thì chạy trực tiếp trên browser, không bị CORS.
+
+Chi tiết hướng dẫn xem tại trang [Ví Dụ](/examples).
+
+## Nếu bạn đang dùng v0.x
+
+Nâng cấp khá nhanh:
+
+1. `npm install vnstock-js@latest`
+2. Đổi `import vnstock from "vnstock-js"` thành `import { stock } from "vnstock-js"`
+3. Đổi `symbols: ["FPT"]` thành `ticker: "FPT"`
+4. Bỏ đường dẫn dài: `vnstock.stock.quote.history(...)` thành `stock.quote(...)`
+
+## Kế hoạch tiếp theo
+
+- Hỗ trợ thêm nguồn dữ liệu
+- Cải thiện WebSocket reconnect
+- Thêm indicators (MACD, Bollinger Bands, ...)
+- Viết thêm ví dụ và widget mẫu
+
+## Lời kết
+
+vnstock-js bắt đầu từ một side-project nhỏ, giờ đã trở thành thư viện mà mình hy vọng sẽ hữu ích cho cộng đồng developer Việt Nam. Nếu bạn thấy hay, cho mình một star trên [GitHub](https://github.com/ttqteo/vnstock-js) nhé!
+
+Mọi góp ý hay bug report, mở issue tại [đây](https://github.com/ttqteo/vnstock-js/issues). Cảm ơn mọi người!
