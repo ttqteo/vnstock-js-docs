@@ -19,6 +19,7 @@ export const ROUTES: EachRoute[] = [
       { title: "Kiến Trúc", href: "/architecture" },
       { title: "Hướng Dẫn Sử Dụng Nhanh", href: "/quick-start-guide" },
       { title: "Lịch Sử Phiên Bản", href: "/changelog" },
+      { title: "Câu Hỏi Thường Gặp", href: "/faq" },
     ],
   },
   {

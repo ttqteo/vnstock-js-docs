@@ -1,0 +1,127 @@
+---
+title: Câu Hỏi Thường Gặp
+description: FAQ - Những lưu ý quan trọng khi sử dụng vnstock-js
+---
+
+## vnstock-js có chạy được trên browser (client-side) không?
+
+**Không.** vnstock-js chỉ hoạt động ở **server-side** (Node.js).
+
+Lý do: VietCap API không cho phép gọi trực tiếp từ browser (bị chặn bởi CORS - Cross-Origin Resource Sharing). Khi gọi từ browser sẽ bị lỗi:
+
+```
+Access to fetch at 'https://trading.vietcap.com.vn/...' has been blocked by CORS policy
+```
+
+### Cách sử dụng đúng
+
+**Next.js** -- dùng Server Components hoặc API Routes:
+
+```typescript
+// app/page.tsx (Server Component) -- OK
+import { stock } from 'vnstock-js';
+
+export default async function Page() {
+  const data = await stock.quote({ ticker: 'FPT', start: '2024-01-01' });
+  return <div>{JSON.stringify(data)}</div>;
+}
+```
+
+```typescript
+// app/api/stock/route.ts (API Route) -- OK
+import { stock } from 'vnstock-js';
+
+export async function GET(request: Request) {
+  const data = await stock.quote({ ticker: 'FPT', start: '2024-01-01' });
+  return Response.json(data);
+}
+```
+
+```typescript
+// components/MyComponent.tsx (Client Component) -- SAI
+'use client';
+import { stock } from 'vnstock-js'; // Lỗi CORS khi gọi API
+```
+
+**Express/Fastify** -- gọi trực tiếp:
+
+```typescript
+import { stock } from 'vnstock-js';
+
+app.get('/api/stock/:ticker', async (req, res) => {
+  const data = await stock.quote({ ticker: req.params.ticker, start: '2024-01-01' });
+  res.json(data);
+});
+```
+
+**Ngoại lệ:** Chỉ báo kỹ thuật (SMA, EMA, RSI) là pure functions, chạy được ở cả server và client vì không gọi API:
+
+```typescript
+'use client';
+import { sma, rsi } from 'vnstock-js'; // OK - không gọi API
+```
+
+---
+
+## Giá chia 1000 là sao?
+
+vnstock-js chuẩn hóa giá cổ phiếu bằng cách chia 1000. Đơn vị output là **nghìn VND**:
+
+| API trả về | vnstock-js output | Ý nghĩa |
+|-----------|-------------------|---------|
+| 25500 | 25.5 | 25,500 VND |
+| 74700 | 74.7 | 74,700 VND |
+| 1250000 | 1250 | 1,250,000 VND |
+
+Khi hiển thị cho người dùng, nhân lại 1000:
+
+```typescript
+const board = await stock.priceBoard({ ticker: 'FPT' });
+const displayPrice = (board[0].price * 1000).toLocaleString(); // "74,700"
+```
+
+---
+
+## Realtime WebSocket chỉ hoạt động trong giờ giao dịch?
+
+Đúng. SSI WebSocket chỉ gửi dữ liệu trong giờ giao dịch:
+
+- **Sáng:** 9:00 - 11:30
+- **Chiều:** 13:00 - 15:00
+- **Nghỉ trưa:** 11:30 - 13:00 (không có dữ liệu)
+- **Ngoài giờ / Cuối tuần:** không có dữ liệu
+
+Ngoài giờ giao dịch, dùng `stock.priceBoard()` để lấy dữ liệu cuối ngày.
+
+---
+
+## Screening chạy chậm?
+
+`stock.screening()` fetch dữ liệu tài chính cho ~1500 mã cổ phiếu qua batch GraphQL queries. Thời gian chạy khoảng 10-30 giây tùy mạng.
+
+Gợi ý: Cache kết quả screening ở tầng ứng dụng (react-query, SWR, Redis...) vì dữ liệu tài chính thay đổi theo quý, không cần gọi liên tục.
+
+---
+
+## Tại sao không hỗ trợ TCBS, SSI REST API?
+
+- **TCBS:** Đã yêu cầu xác thực (authentication), không thể gọi tự do
+- **SSI REST:** Tương tự, cần token
+
+vnstock-js chỉ dùng nguồn không cần xác thực:
+- **VietCap** (REST + GraphQL) cho dữ liệu chứng khoán
+- **SSI WebSocket** cho realtime (public, không cần auth)
+- **BTMC, SJC, GiaVang.net** cho giá vàng
+- **Vietcombank** cho tỷ giá
+
+---
+
+## Có hỗ trợ phái sinh (derivatives/futures) không?
+
+Chưa. Hiện tại chỉ hỗ trợ cổ phiếu, chỉ số, vàng, và tỷ giá.
+
+---
+
+## Làm sao đóng góp (contribute)?
+
+Xem [CONTRIBUTING.md](https://github.com/ttqteo/vnstock-js/blob/master/CONTRIBUTING.md) trên GitHub.
