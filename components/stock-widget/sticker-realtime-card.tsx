@@ -176,9 +176,8 @@ export function StickerRealtimeCard({
             rtPrice <= ceiling;
 
           const price = isRtPriceValid ? rtPrice : (pbQuote?.price ?? rtPrice);
-          const volume =
-            realtimeQuote?.matched?.volume ?? pbQuote?.matchVolume ?? 0;
-          const totalValue = quote?.totalValue ?? 0;
+          const totalVolume =
+            realtimeQuote?.totalVolume ?? pbQuote?.totalVolume ?? 0;
 
           // Calculate change from referencePrice when available (more reliable)
           const refPrice = pbQuote?.referencePrice ?? 0;
@@ -236,13 +235,21 @@ export function StickerRealtimeCard({
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Khối lượng:</span>
-                      <span>{Number(volume).toLocaleString()}</span>
+                      <span>Tổng KL:</span>
+                      <span>{Number(totalVolume).toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Giá trị giao dịch:</span>
-                      <span>{Number(totalValue).toLocaleString()} ₫</span>
-                    </div>
+                    {ceiling > 0 && (
+                      <div className="flex justify-between text-xs text-muted-foreground pt-1">
+                        <span>
+                          <span className="text-blue-600">{(floor * 1000).toLocaleString()}</span>
+                          {" / "}
+                          <span className="text-yellow-500">{(refPrice * 1000).toLocaleString()}</span>
+                          {" / "}
+                          <span className="text-purple-600">{(ceiling * 1000).toLocaleString()}</span>
+                        </span>
+                        <span>Sàn / TC / Trần</span>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <p className="text-muted-foreground italic">Đang tải...</p>
