@@ -203,6 +203,7 @@ export default async function StockDetailPage({
         {newsArticles.length > 0 && (
           <div>
             <p className="text-lg font-bold mb-3">Tin tuc lien quan</p>
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <NewsWidget articles={newsArticles.slice(0, 10) as any} />
           </div>
         )}

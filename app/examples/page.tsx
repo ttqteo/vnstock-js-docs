@@ -166,8 +166,10 @@ export default async function ExamplesPage() {
   }));
 
   // News from news-crawler
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let newsArticles: any[] = [];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function fetchNews(dateStr: string): Promise<any[]> {
     const res = await fetch(
       `https://raw.githubusercontent.com/ttqteo/crawl-news/master/docs/news/${dateStr}.json`,
@@ -177,6 +179,7 @@ export default async function ExamplesPage() {
     const json = await res.json();
     if (Array.isArray(json)) return json;
     if (json && typeof json === "object") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return Object.values(json).map((item: any) => ({
         ...item,
         image_url: item.image || item.image_url || "",
