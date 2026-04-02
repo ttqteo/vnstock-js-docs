@@ -134,7 +134,6 @@ function MoversList({ stocks }: { stocks: TopStock[] }) {
               </Badge>
             </div>
             <div className="flex items-center gap-3">
-              <span className="font-mono text-xs">{price.toLocaleString()}</span>
               <span className={`font-mono text-xs w-16 text-right ${color}`}>
                 {change > 0 ? "+" : ""}{change.toFixed(2)}%
               </span>
