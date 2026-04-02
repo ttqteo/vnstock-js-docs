@@ -63,13 +63,35 @@ function IndexCard({ index }: { index: IndexSummary }) {
   );
 }
 
+const EXCHANGES = ["ALL", "HOSE", "HNX", "UPCOM"] as const;
+
 function TopMoversCard({ gainers, losers }: { gainers: TopStock[]; losers: TopStock[] }) {
+  const [exchange, setExchange] = useState("HOSE");
+
+  const filterByExchange = (stocks: TopStock[]) =>
+    exchange === "ALL" ? stocks : stocks.filter((s) => s.exchange === exchange);
+
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-display uppercase tracking-wider">
           Biến động
         </CardTitle>
+        <div className="flex gap-1 mt-2">
+          {EXCHANGES.map((ex) => (
+            <button
+              key={ex}
+              onClick={() => setExchange(ex)}
+              className={`px-2 py-0.5 text-[0.6rem] uppercase tracking-wider transition-colors ${
+                exchange === ex
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {ex === "ALL" ? "Tất cả" : ex}
+            </button>
+          ))}
+        </div>
       </CardHeader>
       <CardContent className="pt-0">
         <Tabs defaultValue="gainers">
@@ -84,10 +106,10 @@ function TopMoversCard({ gainers, losers }: { gainers: TopStock[]; losers: TopSt
             </TabsTrigger>
           </TabsList>
           <TabsContent value="gainers">
-            <MoversList stocks={gainers.slice(0, 8)} type="gainer" />
+            <MoversList stocks={filterByExchange(gainers).slice(0, 8)} type="gainer" />
           </TabsContent>
           <TabsContent value="losers">
-            <MoversList stocks={losers.slice(0, 8)} type="loser" />
+            <MoversList stocks={filterByExchange(losers).slice(0, 8)} type="loser" />
           </TabsContent>
         </Tabs>
       </CardContent>
