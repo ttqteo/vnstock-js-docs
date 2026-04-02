@@ -10,6 +10,10 @@ import Search from "./search";
 
 export const NAVLINKS = [
   {
+    title: "Tài Chính",
+    href: "/finance",
+  },
+  {
     title: "Bài Viết",
     href: "/blog",
   },
@@ -68,7 +72,9 @@ export function Logo() {
         height={24}
         className="rounded-full"
       />
-      <h2 className="text-md font-bold font-display uppercase tracking-wider">vnstock-js</h2>
+      <h2 className="text-md font-bold font-display tracking-wider">
+        vnstock-js
+      </h2>
     </Link>
   );
 }
