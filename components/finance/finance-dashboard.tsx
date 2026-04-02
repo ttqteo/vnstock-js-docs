@@ -106,10 +106,10 @@ function TopMoversCard({ gainers, losers }: { gainers: TopStock[]; losers: TopSt
             </TabsTrigger>
           </TabsList>
           <TabsContent value="gainers">
-            <MoversList stocks={filterByExchange(gainers).slice(0, 8)} type="gainer" />
+            <MoversList stocks={filterByExchange(gainers).slice(0, 8)} />
           </TabsContent>
           <TabsContent value="losers">
-            <MoversList stocks={filterByExchange(losers).slice(0, 8)} type="loser" />
+            <MoversList stocks={filterByExchange(losers).slice(0, 8)} />
           </TabsContent>
         </Tabs>
       </CardContent>
@@ -117,14 +117,14 @@ function TopMoversCard({ gainers, losers }: { gainers: TopStock[]; losers: TopSt
   );
 }
 
-function MoversList({ stocks, type }: { stocks: TopStock[]; type: "gainer" | "loser" }) {
+function MoversList({ stocks }: { stocks: TopStock[] }) {
   return (
     <div className="space-y-1">
       {stocks.map((s) => {
         const price = s.price1DayAgo * 1000;
         const prev = s.price5DaysAgo * 1000;
         const change = prev > 0 ? ((price - prev) / prev) * 100 : 0;
-        const color = type === "gainer" ? "text-green-500" : "text-red-500";
+        const color = change > 0 ? "text-green-500" : change < 0 ? "text-red-500" : "text-muted-foreground";
         return (
           <div key={s.symbol} className="flex items-center justify-between py-1.5 text-sm">
             <div className="flex items-center gap-2">
