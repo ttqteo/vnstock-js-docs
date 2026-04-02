@@ -1,0 +1,44 @@
+---
+title: ExchangeRate
+description: Cấu trúc dữ liệu tỷ giá ngoại tệ
+---
+
+## Các hàm sử dụng
+
+Cơ bản:
+1. `commodity.exchange()`
+
+Nâng cao:
+1. `vnstock.commodity.exchangeRates()`
+
+## Cấu trúc dữ liệu
+
+Output là `ExchangeRate[]`:
+
+| Trường | Kiểu | Mô tả |
+|--------|------|--------|
+| `currencyCode` | string | Mã ngoại tệ (USD, EUR, JPY...) |
+| `currencyName` | string | Tên ngoại tệ |
+| `buyCash` | string | Giá mua tiền mặt |
+| `buyTransfer` | string | Giá mua chuyển khoản |
+| `sell` | string | Giá bán |
+
+## Ví dụ
+
+```typescript
+import { commodity } from 'vnstock-js';
+
+const rates = await commodity.exchange();
+// [
+//   { currencyCode: "USD", currencyName: "US DOLLAR", buyCash: "26110.00", buyTransfer: "26140.00", sell: "26360.00" },
+//   { currencyCode: "EUR", currencyName: "EURO", buyCash: "29710.90", buyTransfer: "30011.01", sell: "31277.19" },
+//   ...
+// ]
+
+// Lấy tỷ giá theo ngày cụ thể
+const ratesYesterday = await commodity.exchange('2026-04-01');
+```
+
+<Note type="note">
+Nguồn dữ liệu: Vietcombank JSON API. Tỷ giá cập nhật hàng ngày.
+</Note>

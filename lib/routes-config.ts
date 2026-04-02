@@ -52,10 +52,13 @@ export const ROUTES: EachRoute[] = [
     href: "/data",
     noLink: true,
     items: [
-      {
-        title: "QuoteHistory",
-        href: "/ChartData",
-      },
+      { title: "QuoteHistory", href: "/ChartData" },
+      { title: "PriceBoardItem", href: "/PriceBoardItem" },
+      { title: "TopStock", href: "/TopStock" },
+      { title: "CompanyProfile", href: "/CompanyProfile" },
+      { title: "ScreenResult", href: "/ScreenResult" },
+      { title: "RealtimeQuote", href: "/RealtimeQuote" },
+      { title: "ExchangeRate", href: "/ExchangeRate" },
     ],
   },
 ];

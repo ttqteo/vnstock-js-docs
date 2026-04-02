@@ -1,0 +1,47 @@
+---
+title: CompanyProfile
+description: Cấu trúc dữ liệu thông tin công ty
+---
+
+## Các hàm sử dụng
+
+Cơ bản:
+1. `stock.company({ ticker }).profile()`
+
+Nâng cao:
+1. `vnstock.stock.company(ticker).profile()`
+
+## Cấu trúc dữ liệu
+
+Output là `CompanyProfile`:
+
+| Trường | Kiểu | Mô tả |
+|--------|------|--------|
+| `id` | string | Mã định danh |
+| `issuedShares` | number | Số cổ phiếu phát hành |
+| `history` | string | Lịch sử công ty |
+| `historyEn` | string | Lịch sử (tiếng Anh) |
+| `profile` | string | Giới thiệu công ty |
+| `profileEn` | string | Giới thiệu (tiếng Anh) |
+| `industry` | string | Ngành (ICB level 3) |
+| `industryEn` | string | Ngành (tiếng Anh) |
+| `sector` | string | Lĩnh vực (ICB level 2) |
+| `sectorEn` | string | Lĩnh vực (tiếng Anh) |
+| `subIndustry` | string | Phân ngành (ICB level 4) |
+| `subIndustryEn` | string | Phân ngành (tiếng Anh) |
+
+## Dữ liệu liên quan
+
+Company instance cũng cung cấp:
+
+| Hàm | Output type | Mô tả |
+|-----|-------------|--------|
+| `shareholders()` | `Shareholder[]` | Cổ đông lớn |
+| `officers()` | `Officer[]` | Ban lãnh đạo |
+| `events()` | `CorporateEvent[]` | Sự kiện doanh nghiệp |
+| `news()` | `StockNews[]` | Tin tức |
+| `dividends()` | `CorporateEvent[]` | Lịch sử cổ tức |
+| `insiderDeals()` | `CorporateEvent[]` | Giao dịch nội bộ |
+| `subsidiaries()` | `Subsidiary[]` | Công ty con |
+| `affiliates()` | `Affiliate[]` | Công ty liên kết |
+| `analysisReports()` | `AnalysisReport[]` | Báo cáo phân tích |

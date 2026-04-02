@@ -1,0 +1,66 @@
+---
+title: ScreenResult
+description: Cấu trúc dữ liệu sàng lọc cổ phiếu
+---
+
+## Các hàm sử dụng
+
+Cơ bản:
+1. `stock.screening()`
+
+Nâng cao:
+1. `vnstock.stock.screening.screen()`
+
+## Cấu trúc dữ liệu
+
+Output là `ScreenResult[]`:
+
+| Trường | Kiểu | Mô tả |
+|--------|------|--------|
+| `symbol` | string | Mã cổ phiếu |
+| `companyName` | string | Tên công ty |
+| `companyNameEn` | string | Tên tiếng Anh |
+| `industry` | string | Ngành |
+| `industryEn` | string | Ngành (tiếng Anh) |
+| `exchange` | string | Sàn |
+| `pe` | number | Price/Earnings |
+| `pb` | number | Price/Book |
+| `eps` | number | Earnings Per Share |
+| `roe` | number | Return on Equity |
+| `roa` | number | Return on Assets |
+| `marketCap` | number | Vốn hóa |
+| `price` | number | Giá hiện tại (nghìn VND) |
+| `priceChange` | number | Thay đổi giá |
+| `volume` | number | Khối lượng |
+| `revenue` | number | Doanh thu |
+| `netProfit` | number | Lợi nhuận ròng |
+| `debtToEquity` | number | Tỷ lệ nợ/vốn chủ |
+
+## Ví dụ
+
+```typescript
+import vnstock from 'vnstock-js';
+
+const results = await vnstock.stock.screening.screen({
+  exchange: 'HOSE',
+  filters: [
+    { field: 'pe', operator: '<', value: 15 },
+    { field: 'roe', operator: '>', value: 0.15 },
+  ],
+  sortBy: 'roe',
+  order: 'desc',
+  limit: 10,
+});
+
+// results[0]:
+// {
+//   symbol: "FPT",
+//   companyName: "CTCP FPT",
+//   exchange: "HOSE",
+//   pe: 13.5,
+//   roe: 0.28,
+//   marketCap: 127000,
+//   price: 74.7,
+//   ...
+// }
+```

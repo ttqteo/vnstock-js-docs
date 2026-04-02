@@ -1,0 +1,31 @@
+---
+title: TopStock
+description: Cấu trúc dữ liệu top tăng/giảm
+---
+
+## Các hàm sử dụng
+
+Cơ bản:
+1. `stock.topGainers()`
+2. `stock.topLosers()`
+
+Nâng cao:
+1. `vnstock.stock.trading.topGainers()`
+2. `vnstock.stock.trading.topLosers()`
+
+## Cấu trúc dữ liệu
+
+Output là `TopStock[]`:
+
+| Trường | Kiểu | Mô tả |
+|--------|------|--------|
+| `symbol` | string | Mã cổ phiếu |
+| `exchange` | string | Sàn (HOSE/HNX/UPCOM) |
+| `marketCap` | number | Vốn hóa thị trường |
+| `price1DayAgo` | number | Giá 1 ngày trước (nghìn VND) |
+| `price5DaysAgo` | number | Giá 5 ngày trước |
+| `price20DaysAgo` | number | Giá 20 ngày trước |
+| `type` | string | Loại (GAINER_1_D, LOSER_1_D...) |
+| `liquidity` | number | Thanh khoản |
+| `vn30` | boolean | Thuộc VN30 |
+| `hnx30` | boolean | Thuộc HNX30 |

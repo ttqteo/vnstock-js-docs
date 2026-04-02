@@ -10,6 +10,14 @@ Tất cả dữ liệu trả về đều là **Array of Objects** đã chuẩn h
 - Ngày: ISO string "yyyy-MM-dd"
 - Phần trăm: decimal (0.15 thay vì 15%)
 
-Xem chi tiết:
+## Danh sách kiểu dữ liệu
 
-- [QuoteHistory](/docs/data/ChartData) — Dữ liệu giá lịch sử
+| Kiểu | Mô tả | Hàm liên quan |
+|------|--------|---------------|
+| [QuoteHistory](/docs/data/ChartData) | Giá lịch sử OHLCV | `stock.quote()`, `stock.index()` |
+| [PriceBoardItem](/docs/data/PriceBoardItem) | Bảng giá | `stock.priceBoard()` |
+| [TopStock](/docs/data/TopStock) | Top tăng/giảm | `stock.topGainers()`, `stock.topLosers()` |
+| [CompanyProfile](/docs/data/CompanyProfile) | Thông tin công ty | `company.profile()` |
+| [ScreenResult](/docs/data/ScreenResult) | Sàng lọc cổ phiếu | `stock.screening()` |
+| [RealtimeQuote](/docs/data/RealtimeQuote) | Dữ liệu realtime | `realtime.parseData()` |
+| [ExchangeRate](/docs/data/ExchangeRate) | Tỷ giá ngoại tệ | `commodity.exchange()` |

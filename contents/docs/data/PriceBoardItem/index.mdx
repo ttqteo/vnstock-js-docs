@@ -1,0 +1,37 @@
+---
+title: PriceBoardItem
+description: Cấu trúc dữ liệu bảng giá
+---
+
+## Các hàm sử dụng
+
+Cơ bản:
+1. `stock.priceBoard()`
+
+Nâng cao:
+1. `vnstock.stock.trading.priceBoard()`
+
+## Cấu trúc dữ liệu
+
+Output là `PriceBoardItem[]`:
+
+| Trường | Kiểu | Mô tả |
+|--------|------|--------|
+| `symbol` | string | Mã cổ phiếu |
+| `companyName` | string | Tên công ty |
+| `companyNameEn` | string | Tên tiếng Anh |
+| `exchange` | string | Sàn (HOSE/HNX/UPCOM) |
+| `ceilingPrice` | number | Giá trần (nghìn VND) |
+| `floorPrice` | number | Giá sàn |
+| `referencePrice` | number | Giá tham chiếu |
+| `price` | number | Giá khớp lệnh |
+| `matchVolume` | number | Khối lượng khớp |
+| `totalVolume` | number | Tổng khối lượng |
+| `totalValue` | number | Tổng giá trị giao dịch |
+| `averagePrice` | number | Giá trung bình |
+| `highestPrice` | number | Giá cao nhất phiên |
+| `lowestPrice` | number | Giá thấp nhất phiên |
+| `foreignBuyVolume` | number | KL mua nước ngoài |
+| `foreignSellVolume` | number | KL bán nước ngoài |
+| `bidPrices` | array | 3 mức giá mua `[{price, volume}]` |
+| `askPrices` | array | 3 mức giá bán `[{price, volume}]` |

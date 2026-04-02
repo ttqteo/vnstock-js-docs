@@ -1,0 +1,51 @@
+---
+title: RealtimeQuote
+description: Cấu trúc dữ liệu realtime WebSocket
+---
+
+## Các hàm sử dụng
+
+1. `vnstock.realtime.parseData()`
+
+## Cấu trúc dữ liệu
+
+Output là `RealtimeQuote`:
+
+| Trường | Kiểu | Mô tả |
+|--------|------|--------|
+| `exchange` | string | Sàn (MAIN) |
+| `symbol` | string | Mã cổ phiếu |
+| `bidPrices` | array | 3 mức giá mua `[{price, volume}]` |
+| `askPrices` | array | 3 mức giá bán `[{price, volume}]` |
+| `matched.price` | number | Giá khớp (nghìn VND) |
+| `matched.volume` | number | KL khớp |
+| `matched.change` | number | Thay đổi giá |
+| `matched.changePercent` | number | Phần trăm thay đổi (decimal) |
+| `totalBuyVolume` | number | Tổng KL mua nước ngoài |
+| `totalBuyValue` | number | Tổng giá trị mua NN |
+| `totalVolume` | number | Tổng khối lượng |
+| `totalValue` | number | Tổng giá trị |
+| `side` | string | Bên khớp: "buy" hoặc "sell" |
+| `lastUpdated` | number | Timestamp cập nhật |
+
+## Ví dụ
+
+```typescript
+import vnstock from 'vnstock-js';
+
+const socket = vnstock.realtime.connect({
+  onMessage: (data) => {
+    if (typeof data === 'string' && data.includes('S#')) {
+      const quote = vnstock.realtime.parseData(data);
+      console.log(quote.symbol, quote.matched.price);
+      // ACB 23.55
+    }
+  },
+});
+
+vnstock.realtime.subscribe(socket, { symbols: ['ACB', 'FPT'] });
+```
+
+<Note type="note">
+Dữ liệu realtime chỉ có trong giờ giao dịch: 9:00-11:30 và 13:00-15:00 các ngày trong tuần.
+</Note>
