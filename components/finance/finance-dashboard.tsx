@@ -8,6 +8,7 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 import { FinanceChart } from "./finance-chart";
 import { SymbolLink } from "@/components/stock-widget/stock-chart-dialog";
 import { StockLookup } from "./stock-lookup";
+import { WatchlistPanel } from "./watchlist-panel";
 
 interface IndexSummary {
   name: string;
@@ -146,42 +147,38 @@ function MoversList({ stocks }: { stocks: TopStock[] }) {
   );
 }
 
-function GoldCard({ gold }: { gold: GoldPrice[] }) {
+function formatGoldPrice(val: number) {
+  if (val === 0) return "—";
+  if (val > 100000) return (val / 1000000).toFixed(1) + "tr";
+  return val.toLocaleString();
+}
+
+function GoldMiniCard({ gold }: { gold: GoldPrice[] }) {
   if (!gold || gold.length === 0) return null;
-  // Filter out items with no meaningful prices, take first few
-  const items = gold.filter((g: GoldPrice) => g.buy > 0 || g.sell > 0).slice(0, 5);
+  const items = gold.filter((g: GoldPrice) => g.buy > 0 || g.sell > 0).slice(0, 3);
   if (items.length === 0) return null;
 
-  function formatGoldPrice(val: number) {
-    if (val === 0) return "—";
-    if (val > 100000) return (val / 1000000).toFixed(2) + "tr";
-    return val.toLocaleString();
-  }
+  // Show SJC as main price
+  const sjc = items[0];
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-display uppercase tracking-wider">
-            Giá Vàng
-          </CardTitle>
-          <div className="flex gap-6 text-[0.6rem] text-muted-foreground uppercase tracking-wider">
-            <span>Mua</span>
-            <span>Bán</span>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-2">
+      <CardContent className="p-4">
+        <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">
+          Vàng SJC
+        </p>
+        <p className="text-2xl font-display font-bold text-yellow-500">
+          {formatGoldPrice(sjc.sell)}
+        </p>
+        <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
           {items.map((g: GoldPrice, i: number) => (
-            <div key={i} className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground truncate max-w-[140px] text-xs">
-                {g.type_code || `Loại ${i + 1}`}
+            <div key={i} className="flex justify-between">
+              <span className="truncate max-w-[80px]">{g.type_code || `${i + 1}`}</span>
+              <span className="font-mono">
+                <span className="text-green-500">{formatGoldPrice(g.buy)}</span>
+                {" / "}
+                <span className="text-red-500">{formatGoldPrice(g.sell)}</span>
               </span>
-              <div className="flex gap-4 font-mono text-xs">
-                <span className="text-green-500 w-14 text-right">{formatGoldPrice(g.buy)}</span>
-                <span className="text-red-500 w-14 text-right">{formatGoldPrice(g.sell)}</span>
-              </div>
             </div>
           ))}
         </div>
@@ -381,7 +378,6 @@ export function FinanceDashboard({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl sm:text-3xl font-extrabold uppercase tracking-tight">
           Thị trường
@@ -396,19 +392,16 @@ export function FinanceDashboard({
         </p>
       </div>
 
-      {/* Stock Lookup */}
       <StockLookup />
 
-      {/* Index Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {indices.map((idx) => (
           <IndexCard key={idx.name} index={idx} />
         ))}
+        <GoldMiniCard gold={gold} />
       </div>
 
-      {/* Main content + Sidebar */}
       <div className="grid lg:grid-cols-[1fr_340px] gap-6">
-        {/* Main: Chart */}
         <div className="space-y-4">
           <Card>
             <CardHeader className="pb-3">
@@ -428,14 +421,12 @@ export function FinanceDashboard({
           </Card>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-4">
+          <WatchlistPanel />
           <TopMoversCard gainers={gainers} losers={losers} />
-          <GoldCard gold={gold} />
         </div>
       </div>
 
-      {/* News */}
       <NewsSection news={news} />
     </div>
   );

@@ -74,10 +74,20 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "flash-up": {
+          "0%": { backgroundColor: "rgb(34 197 94 / 0.3)" },
+          "100%": { backgroundColor: "transparent" },
+        },
+        "flash-down": {
+          "0%": { backgroundColor: "rgb(239 68 68 / 0.3)" },
+          "100%": { backgroundColor: "transparent" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "flash-up": "flash-up 0.6s ease-out",
+        "flash-down": "flash-down 0.6s ease-out",
       },
     },
   },
