@@ -47,17 +47,24 @@ export function TickerSearch({
   }, []);
 
   useEffect(() => {
-    const q = input.toUpperCase().trim();
+    const q = input.trim().toLowerCase();
     if (!q) {
       setResults([]);
       return;
     }
-    const filtered = companies.filter(
-      (c) =>
-        c.t.includes(q) ||
-        c.n.toLowerCase().includes(input.toLowerCase())
-    );
-    setResults(filtered.slice(0, 8));
+    const scored: { c: Company; s: number }[] = [];
+    for (const c of companies) {
+      const ticker = c.t.toLowerCase();
+      const name = c.n.toLowerCase();
+      let s = 0;
+      if (ticker === q) s = 100;
+      else if (ticker.startsWith(q)) s = 80;
+      else if (name.startsWith(q)) s = 60;
+      else if (ticker.includes(q) || name.includes(q)) s = 20;
+      if (s > 0) scored.push({ c, s });
+    }
+    scored.sort((a, b) => b.s - a.s);
+    setResults(scored.slice(0, 8).map((x) => x.c));
   }, [input, companies]);
 
   const handleSelect = (ticker: string) => {

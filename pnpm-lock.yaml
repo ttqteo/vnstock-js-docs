@@ -93,8 +93,8 @@ importers:
         specifier: ^5.0.0
         version: 5.1.0
       vnstock-js:
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.2.0
+        version: 1.2.0
     devDependencies:
       '@tailwindcss/typography':
         specifier: ^0.5.14
@@ -3041,8 +3041,8 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  vnstock-js@1.0.1:
-    resolution: {integrity: sha512-sJ+cmMi70wH68B1CJLyWZdImQGP40anWwxVKPSwBaxeeH7J++pNFDDGcSnLC+YCS1HvjMziE8FgRDugi/1cbsg==}
+  vnstock-js@1.2.0:
+    resolution: {integrity: sha512-YC5AIPloxhO3e6xf2SV/3qbzy2PvV/uU7OATSxS/jAUr5ISBF8YoYYGc2/nOzi4PfndCPivIGe38b+Ma9pCxKQ==}
     engines: {node: '>=16'}
 
   web-namespaces@2.0.1:
@@ -6743,7 +6743,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vnstock-js@1.0.1:
+  vnstock-js@1.2.0:
     dependencies:
       axios: 1.14.0
       date-fns: 4.1.0
