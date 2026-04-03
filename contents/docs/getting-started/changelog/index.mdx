@@ -3,6 +3,41 @@ title: Lịch Sử Phiên Bản
 description: Các thay đổi qua từng phiên bản vnstock-js
 ---
 
+## 1.2.0 (03-04-2026)
+
+### Tính năng mới
+- **Symbol Directory** -- danh sách ~3300 mã offline với search theo tên/mã/ngành, relevance ranking, VN30 boost
+- **Market Calendar** -- `isTradeDay`, `nextTradeDay`, `prevTradeDay`, `holidays`, giờ giao dịch sàn HOSE
+- **Rate limit auto-wait** -- gặp HTTP 429 tự động chờ theo `Retry-After` header rồi retry
+
+### API mới
+- `stock.search(query, { limit })` -- tìm mã cổ phiếu offline
+- `listing.search()`, `listing.getBySymbol()`, `listing.getByExchange()`, `listing.getByIndustry()`, `listing.allLocal()`
+- `market.calendar.isTradeDay(date)`, `nextTradeDay(date)`, `prevTradeDay(date)`, `holidays(year)`, `session()`
+
+### Nội bộ
+- `fetchWithRetry` hỗ trợ `rateLimitWait` option (mặc định 5s)
+- Thêm `SymbolInfo`, `TradingSession` types
+- Thêm script `npm run update-symbols`
+- Bundle `data/symbols.json` và `data/holidays.json` trong npm package
+
+## 1.1.0 (03-04-2026)
+
+### Tính năng mới
+- **Error taxonomy** -- 6 custom error classes: `VnstockError`, `NetworkError`, `RateLimitError`, `ApiError`, `InvalidSymbolError`, `InvalidParameterError`, `ParseError`
+- **Realtime v2** -- `RealtimeClient` dùng EventEmitter pattern, auto-reconnect với exponential backoff, heartbeat, subscribe queue
+- **Adapter pattern** -- `StockDataAdapter` interface + `VciAdapter`, chuẩn bị cho multi-source sau này
+- **FinancialStatement typing** -- thêm 7 optional typed fields (revenue, grossProfit, netIncome, totalAssets, totalEquity, totalDebt, operatingCashFlow)
+
+### Thay đổi breaking
+- Realtime API cũ (`VnstockRealtime.connect/subscribe/parseData`) thay bằng `realtime.create()` + `RealtimeClient` event emitter
+- `realtime` giờ là top-level export, không còn trên `Vnstock` class hay `stock` object
+
+### Nội bộ
+- Pipeline `fetchWithRetry` wrap axios errors thành custom error classes
+- Tất cả validation dùng `InvalidParameterError` thay vì `throw new Error`
+- Core modules (quote, trading, listing, financial, company) gọi qua adapter thay vì trực tiếp URL
+
 ## 1.0.1 (02-04-2026)
 
 - Xóa dependency `xlsx` (2 CVE: Prototype Pollution + ReDoS)

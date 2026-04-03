@@ -44,6 +44,8 @@ export const ROUTES: EachRoute[] = [
           { title: "Tài Chính - Financials", href: "/financials" },
           { title: "Chỉ Báo - Indicators", href: "/indicators" },
           { title: "Sàng Lọc - Screening", href: "/screening" },
+          { title: "Tìm Kiếm - Search", href: "/search" },
+          { title: "Lịch Giao Dịch - Calendar", href: "/calendar" },
         ],
       },
     ],

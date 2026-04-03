@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { stock } from "vnstock-js";
+import { realtime } from "vnstock-js";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { VnstockTypes } from "vnstock-js";
@@ -34,7 +34,6 @@ export function StickerRealtimeCard({
   initialSymbols = ["FPT"],
   initialPriceboard = {},
 }: StickerRealtimeCardProps) {
-  const { connect, subscribe, parseData } = stock.realtime;
   const [symbols, setSymbols] = useState<string[]>(initialSymbols);
   const [input, setInput] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,7 +43,31 @@ export function StickerRealtimeCard({
       initialPriceboard,
     );
   const [mode, setMode] = useState<MarketStatus>(getMarketStatus());
-  const socketRef = useRef<WebSocket | null>(null);
+  const clientRef = useRef<ReturnType<typeof realtime.create> | null>(null);
+
+  // Restore favorites from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("vnstock-favorites");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSymbols(parsed);
+        }
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, []);
+
+  // Save favorites to localStorage whenever symbols change
+  useEffect(() => {
+    try {
+      localStorage.setItem("vnstock-favorites", JSON.stringify(symbols));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [symbols]);
 
   useEffect(() => {
     const check = () => {
@@ -80,27 +103,14 @@ export function StickerRealtimeCard({
 
   useEffect(() => {
     if (mode !== "realtime") return;
-    const socket = connect({
-      onOpen: () => {
-        subscribe(socket, { symbols });
-      },
-      onMessage: (data) => {
-        if (typeof data === "string" && data.includes("S#")) {
-          const parsed = parseData(data);
-          if (!parsed?.symbol) return;
-          setQuotes((prev) => ({ ...prev, [parsed.symbol]: parsed }));
-        }
-      },
+    const client = realtime.create({ symbols });
+    client.on("quote", (parsed) => {
+      if (!parsed?.symbol) return;
+      setQuotes((prev) => ({ ...prev, [parsed.symbol]: parsed }));
     });
-    socketRef.current = socket;
-    return () => socket?.close?.();
-  }, [mode, symbols]);
-
-  useEffect(() => {
-    if (mode !== "realtime") return;
-    if (socketRef.current?.readyState === 1) {
-      subscribe(socketRef.current, { symbols });
-    }
+    client.connect();
+    clientRef.current = client;
+    return () => client.disconnect();
   }, [mode, symbols]);
 
   const handleAddSymbol = () => {

@@ -36,24 +36,23 @@ const vnindex = await stock.index({
   start: "2025-06-22",
 });`,
 
-  realtime: `import { stock } from "vnstock-js";
+  realtime: `import { stock, realtime } from "vnstock-js";
 
 // Lấy bảng giá
 const priceboard = await stock.priceBoard({
   ticker: "MBB,FPT,STB",
 });
 
-// Realtime qua WebSocket
-const { connect, subscribe, parseData } = stock.realtime;
-const socket = connect({
-  onOpen: () => subscribe(socket, { symbols: ["FPT"] }),
-  onMessage: (data) => {
-    if (typeof data === "string" && data.includes("S#")) {
-      const parsed = parseData(data);
-      console.log(parsed.symbol, parsed.matched.price);
-    }
-  },
-});`,
+// Realtime qua WebSocket (v1.2 event emitter)
+const client = realtime.create({ symbols: ["FPT"] });
+client.on("quote", (quote) => {
+  console.log(quote.symbol, quote.matched.price);
+});
+client.on("connected", () => console.log("Connected"));
+client.connect();
+
+// Ngắt kết nối khi không cần
+// client.disconnect();`,
 
   topGainersLosers: `import { stock } from "vnstock-js";
 
@@ -210,7 +209,7 @@ export default async function ExamplesPage() {
       <div className="mb-7 flex flex-col gap-3">
         <h1 className="text-3xl font-extrabold">Ví dụ mẫu</h1>
         <p className="text-muted-foreground">
-          Các widget mẫu sử dụng vnstock-js v1.0 — bấm tab{" "}
+          Các widget mẫu sử dụng vnstock-js v1.2 — bấm tab{" "}
           <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">Code</code>{" "}
           để xem code và copy.
         </p>

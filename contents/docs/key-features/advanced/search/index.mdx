@@ -1,0 +1,60 @@
+---
+title: Tim Kiem Ma - Search
+description: Tim kiem ma co phieu offline voi relevance ranking va VN30 boost
+---
+
+## Symbol Directory & Search
+
+Module `listing` cung cap danh sach ~3300 ma co phieu offline, khong can goi API.
+
+### Tim kiem
+
+```typescript
+import { stock } from "vnstock-js";
+// hoac: const vnstock = new Vnstock(); vnstock.stock.listing.search(...)
+
+stock.search("Vinamilk");
+// [{ symbol: "VNM", companyName: "CTCP Sua Viet Nam", exchange: "HOSE", vn30: true, ... }]
+
+stock.search("ngan hang", { limit: 5 });
+// Top 5 ket qua lien quan den nganh ngan hang
+```
+
+### Thu tu uu tien ket qua
+
+1. **Khop chinh xac ma** -- `"VNM"` -> VNM len dau
+2. **Ma bat dau bang** -- `"VN"` -> VNM, VND, VNS...
+3. **Ten bat dau bang** -- `"Vin"` -> Vinamilk, Vinhomes, Vingroup
+4. **Chua tu khoa** -- `"sua"` -> tat ca cong ty co "sua" trong ten/nganh
+5. **VN30 boost** -- ma VN30 duoc uu tien trong cung nhom
+
+### Tra cuu chinh xac
+
+```typescript
+import { Vnstock } from "vnstock-js";
+const vnstock = new Vnstock();
+
+vnstock.stock.listing.getBySymbol("FPT");
+// { symbol: "FPT", companyName: "CTCP FPT", exchange: "HOSE", vn30: true, ... }
+
+vnstock.stock.listing.getBySymbol("ZZZZZ");
+// null
+```
+
+### Loc theo san / nganh
+
+```typescript
+vnstock.stock.listing.getByExchange("HOSE");
+// SymbolInfo[] -- tat ca ma tren san HOSE
+
+vnstock.stock.listing.getByIndustry("Ngan hang");
+// SymbolInfo[] -- tat ca ngan hang
+
+vnstock.stock.listing.allLocal();
+// SymbolInfo[] -- toan bo ~3300 ma
+```
+
+<Note>
+Du lieu duoc bundle cung package, cap nhat bang `npm run update-symbols`.
+Khong can ket noi internet de su dung cac ham search.
+</Note>

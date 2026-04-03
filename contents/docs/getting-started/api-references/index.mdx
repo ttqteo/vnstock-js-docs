@@ -1,6 +1,6 @@
 ---
 title: Danh Sách Hàm
-description: Tất cả API của vnstock-js v1.0
+description: Tất cả API của vnstock-js v1.2
 ---
 
 ## Khởi tạo
@@ -8,13 +8,14 @@ description: Tất cả API của vnstock-js v1.0
 ### Cơ bản
 
 ```ts
-import { stock, commodity } from 'vnstock-js';
+import { stock, commodity, market, realtime } from 'vnstock-js';
 ```
 
 ### Nâng cao
 
 ```ts
-import vnstock from 'vnstock-js';
+import { Vnstock } from 'vnstock-js';
+const vnstock = new Vnstock();
 ```
 
 ## Chứng khoán - Stock
@@ -86,6 +87,27 @@ Nâng cao:
 | `sma()` | Simple Moving Average | `data, { period, field? }` |
 | `ema()` | Exponential Moving Average | `data, { period, field? }` |
 | `rsi()` | Relative Strength Index | `data, { period?, field? }` |
+
+### Tìm kiếm mã (v1.2+)
+
+| Hàm | Mô tả | Params |
+|-----|--------|--------|
+| `stock.search()` | Tìm mã cổ phiếu offline | `query, { limit? }` |
+| `vnstock.stock.listing.search()` | Tìm kiếm nâng cao | `query, { limit? }` |
+| `vnstock.stock.listing.getBySymbol()` | Tra cứu chính xác | `symbol` |
+| `vnstock.stock.listing.getByExchange()` | Lọc theo sàn | `exchange` |
+| `vnstock.stock.listing.getByIndustry()` | Lọc theo ngành | `industry` |
+| `vnstock.stock.listing.allLocal()` | Toàn bộ ~3300 mã offline | -- |
+
+## Lịch Giao Dịch - Market Calendar (v1.2+)
+
+| Hàm | Mô tả | Params |
+|-----|--------|--------|
+| `market.calendar.isTradeDay()` | Kiểm tra ngày giao dịch | `date` |
+| `market.calendar.nextTradeDay()` | Ngày giao dịch kế tiếp | `date` |
+| `market.calendar.prevTradeDay()` | Ngày giao dịch trước đó | `date` |
+| `market.calendar.holidays()` | Danh sách ngày nghỉ lễ | `year` |
+| `market.calendar.session()` | Giờ giao dịch sàn HOSE | -- |
 
 ## Hàng Hoá - Commodity
 
