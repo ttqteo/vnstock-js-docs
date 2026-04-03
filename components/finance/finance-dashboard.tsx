@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { FinanceChart } from "./finance-chart";
 import { SymbolLink } from "@/components/stock-widget/stock-chart-dialog";
+import { StockLookup } from "./stock-lookup";
 
 interface IndexSummary {
   name: string;
@@ -394,6 +395,9 @@ export function FinanceDashboard({
           })}
         </p>
       </div>
+
+      {/* Stock Lookup */}
+      <StockLookup />
 
       {/* Index Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
