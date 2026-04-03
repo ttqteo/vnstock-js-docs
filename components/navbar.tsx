@@ -10,20 +10,20 @@ import Search from "./search";
 
 export const NAVLINKS = [
   {
-    title: "Tài Chính",
-    href: "/finance",
-  },
-  {
-    title: "Bài Viết",
-    href: "/blog",
-  },
-  {
     title: "Tài Liệu",
     href: `/docs${page_routes[0].href}`,
   },
   {
     title: "Ví Dụ",
     href: "/examples",
+  },
+  {
+    title: "Bài Viết",
+    href: "/blog",
+  },
+  {
+    title: "Tài Chính",
+    href: "/finance",
   },
 ];
 
