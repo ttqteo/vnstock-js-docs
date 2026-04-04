@@ -1,0 +1,86 @@
+---
+title: Phát Hành Thêm Cổ Phiếu (Rights Issue)
+description: Cơ chế phát hành thêm, quyền mua ưu đãi, và tác động pha loãng lên cổ phiếu hiện hữu
+---
+
+## Phát hành thêm là gì?
+
+**Phát hành thêm cổ phiếu (Rights Issue)** là việc công ty phát hành cổ phiếu mới để huy động vốn, thường kèm theo **quyền mua ưu đãi** cho cổ đông hiện hữu.
+
+## Các hình thức phát hành thêm
+
+### 1. Phát hành quyền (Rights Issue)
+
+Cổ đông hiện hữu được quyền mua cổ phiếu mới theo **tỷ lệ** và **giá ưu đãi**.
+
+```
+Ví dụ: Phát hành quyền tỷ lệ 5:1, giá 15,000đ
+Sở hữu 1,000 cp → Quyền mua thêm 200 cp với giá 15,000đ/cp
+Chi phí: 200 × 15,000 = 3,000,000đ
+```
+
+### 2. ESOP (Employee Stock Ownership Plan)
+
+Phát hành cho nhân viên, thường với giá ưu đãi hoặc miễn phí.
+
+### 3. Phát hành riêng lẻ (Private Placement)
+
+Phát hành cho nhà đầu tư chiến lược, không cần quyền mua của cổ đông hiện hữu.
+
+<Note>
+Phát hành riêng lẻ thường gây **pha loãng nhiều nhất** vì cổ đông cũ không có quyền mua bù.
+</Note>
+
+## Pha loãng (Dilution) là gì?
+
+Khi số cổ phiếu tăng mà lợi nhuận không tăng tương ứng, **EPS (lợi nhuận trên cổ phiếu)** sẽ giảm:
+
+```
+EPS trước = 10,000đ (LN 100 tỷ / 10 triệu cp)
+Phát hành thêm 2 triệu cp
+EPS sau = 8,333đ (LN 100 tỷ / 12 triệu cp)
+→ Pha loãng 16.7%
+```
+
+## Công thức tính giá điều chỉnh
+
+```
+Giá điều chỉnh = (Giá cũ × Số CP cũ + Giá phát hành × Số CP mới) / Tổng CP mới
+
+Ví dụ:
+Giá cũ: 50,000đ, Số cũ: 1,000 cp
+Giá phát hành: 15,000đ, Số mới: 200 cp
+
+Giá điều chỉnh = (50,000 × 1,000 + 15,000 × 200) / 1,200
+             = 44,167đ
+```
+
+## Timeline phát hành quyền
+
+```
+Công bố      ĐKCC          Ex-date       Thời gian     Ngày
+phương án    (Record Date)               đăng ký mua   giao dịch CP mới
+   |            |              |             |              |
+   ▼            ▼              ▼             ▼              ▼
+ĐHCĐ thông qua  Chốt DS cổ đông  Giá điều chỉnh  14-21 ngày    CP mới lên sàn
+```
+
+## Tra cứu sự kiện phát hành
+
+```typescript
+import { company } from "vnstock-js";
+
+const events = await company.events({ ticker: "HPG" });
+// Lọc sự kiện phát hành
+const issues = events.filter(e =>
+  e.eventName?.includes("phát hành") || e.eventName?.includes("quyền mua")
+);
+```
+
+## Lưu ý quan trọng
+
+1. **Quyền mua có giá trị** — nếu không muốn mua, có thể bán quyền (nếu được phép)
+2. **Không thực hiện quyền = mất giá trị** vì bị pha loãng mà không có thêm cổ phiếu
+3. Kiểm tra **mục đích huy động vốn** — mở rộng sản xuất tốt hơn trả nợ
+4. So sánh **giá phát hành vs giá thị trường** — chênh lệch càng lớn, quyền càng có giá trị
+5. Phát hành riêng lẻ cho đối tác chiến lược có thể là **tin tích cực** (đối tác uy tín)

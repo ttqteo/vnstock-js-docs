@@ -71,7 +71,14 @@ export function FinanceChart({ data }: { data: ChartDataPoint[] }) {
       }))
     );
 
-    chart.timeScale().fitContent();
+    // Default visible range: last 3 months
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const fromDate = threeMonthsAgo.toISOString().split("T")[0];
+    chart.timeScale().setVisibleRange({
+      from: fromDate as unknown as import("lightweight-charts").Time,
+      to: data[data.length - 1].date as unknown as import("lightweight-charts").Time,
+    });
 
     const handleResize = () => {
       if (chartContainerRef.current) {

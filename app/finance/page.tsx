@@ -83,6 +83,46 @@ export default async function FinancePage() {
     volume: d.volume,
   }));
 
+  // Fetch fuel price forecast from chogia.vn
+  let fuelPrices: { name: string; price: string; change: string }[] = [];
+  let fuelForecastDate = "";
+  try {
+    const fuelRes = await fetch(
+      "https://chogia.vn/du-bao-gia-xang-dau-37804/",
+      { next: { revalidate: 3600 } },
+    );
+    if (fuelRes.ok) {
+      const html = await fuelRes.text();
+      const tableMatch = html.match(/<table[^>]*>([\s\S]*?)<\/table>/);
+      if (tableMatch) {
+        const rows = tableMatch[1].match(/<tr[^>]*>([\s\S]*?)<\/tr>/g);
+        if (rows) {
+          // Extract forecast date from title row (row 0)
+          const titleText = rows[0].replace(/<[^>]*>/g, "").trim();
+          const dateMatch = titleText.match(/(\d{2}\/\d{2}\/\d{4})/);
+          if (dateMatch) fuelForecastDate = dateMatch[1];
+
+          // Skip header rows (0, 1), parse data rows (2-7)
+          for (let i = 2; i <= 7 && i < rows.length; i++) {
+            const cells = rows[i].match(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/g);
+            if (cells && cells.length >= 2) {
+              const cleaned = cells.map((c) =>
+                c.replace(/<[^>]*>/g, "").replace(/&#8211;/g, "–").replace(/&nbsp;/g, "").trim(),
+              );
+              fuelPrices.push({
+                name: cleaned[0],
+                price: cleaned[1] || "",
+                change: cleaned[2] || "",
+              });
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // Silently fail
+  }
+
   // Fetch news
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let newsArticles: any[] = [];
@@ -108,6 +148,8 @@ export default async function FinancePage() {
       losers={losers}
       gold={gold}
       news={newsArticles.slice(0, 15)}
+      fuelPrices={fuelPrices}
+      fuelForecastDate={fuelForecastDate}
     />
   );
 }
