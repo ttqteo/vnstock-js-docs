@@ -1,0 +1,67 @@
+---
+title: Đại Hội Cổ Đông (Shareholder Meeting)
+description: Ý nghĩa ĐHCĐ thường niên và bất thường, quyền biểu quyết và các nghị quyết quan trọng
+---
+
+## Đại hội cổ đông là gì?
+
+**Đại hội cổ đông (ĐHCĐ)** là cuộc họp cao nhất của công ty cổ phần, nơi các cổ đông thực hiện quyền biểu quyết về những vấn đề quan trọng nhất.
+
+## Các loại ĐHCĐ
+
+### 1. ĐHCĐ Thường Niên (AGM - Annual General Meeting)
+
+- Tổ chức **mỗi năm 1 lần**, thường trong Q1-Q2
+- Bắt buộc theo luật doanh nghiệp
+- Nội dung: báo cáo kết quả kinh doanh, kế hoạch năm mới, chia cổ tức, bầu HĐQT
+
+### 2. ĐHCĐ Bất Thường (EGM - Extraordinary General Meeting)
+
+- Tổ chức khi có vấn đề **cấp bách** cần cổ đông biểu quyết
+- Ví dụ: phát hành thêm cổ phiếu, sáp nhập, thay đổi ngành nghề kinh doanh
+
+## Những nội dung quan trọng tại ĐHCĐ
+
+| Nội dung | Ý nghĩa với nhà đầu tư |
+|----------|------------------------|
+| Kế hoạch doanh thu/lợi nhuận | Định hướng tăng trưởng |
+| Phương án chia cổ tức | Thu nhập cổ đông |
+| Phát hành thêm cổ phiếu | Pha loãng cổ phiếu |
+| Bầu/miễn nhiệm HĐQT | Thay đổi lãnh đạo |
+| Hợp đồng giao dịch liên quan | Xung đột lợi ích |
+
+<Note>
+Cổ đông cần nắm cổ phiếu **trước ngày đăng ký cuối cùng** để dự ĐHCĐ và biểu quyết.
+</Note>
+
+## Quyền của cổ đông tại ĐHCĐ
+
+1. **Quyền tham dự**: trực tiếp hoặc ủy quyền
+2. **Quyền biểu quyết**: mỗi cổ phiếu = 1 phiếu bầu (cổ phiếu phổ thông)
+3. **Quyền trình nghị quyết**: cổ đông/nhóm cổ đông >= 5% vốn có thể đề xuất
+4. **Quyền tiếp cận thông tin**: tài liệu họp phải được gửi trước >= 10 ngày
+
+## Ảnh hưởng đến giá cổ phiếu
+
+- **Trước ĐHCĐ**: giá thường tăng nhẹ do kỳ vọng vào kế hoạch/cổ tức
+- **Sau ĐHCĐ**: phụ thuộc vào nội dung nghị quyết — tích cực hay tiêu cực
+- **ĐHCĐ bất thành** (không đủ tham dự): giá có thể giảm do bất ổn
+
+## Theo dõi lịch ĐHCĐ
+
+```typescript
+import { company } from "vnstock-js";
+
+const events = await company.events({ ticker: "VNM" });
+// Lọc sự kiện ĐHCĐ
+const meetings = events.filter(e =>
+  e.eventName?.includes("ĐHCĐ") || e.eventName?.includes("đại hội")
+);
+```
+
+## Lưu ý
+
+1. Đọc **tài liệu họp** trước ĐHCĐ để nắm bắt các đề xuất quan trọng
+2. Chú ý **phương án phát hành thêm** — đây là yếu tố pha loãng cổ phiếu
+3. ĐHCĐ bất thường thường mang tin **bất ngờ** — cần theo dõi sát
+4. Kết quả biểu quyết ảnh hưởng trực tiếp đến chiến lược công ty

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { createChart, CandlestickSeries, HistogramSeries, LineSeries } from "lightweight-charts";
+import { createChart, CandlestickSeries, HistogramSeries, LineSeries, createSeriesMarkers } from "lightweight-charts";
 
 interface ChartDataPoint {
   date: string;
@@ -17,12 +17,20 @@ interface SmaPoint {
   sma: number | null;
 }
 
+interface ChartEvent {
+  date: string;
+  type: "dividend" | "split" | "meeting" | "rights" | "other";
+  label: string;
+}
+
 export function StockChart({
   data,
   smaData,
+  events,
 }: {
   data: ChartDataPoint[];
   smaData?: SmaPoint[];
+  events?: ChartEvent[];
 }) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +75,34 @@ export function StockChart({
         close: d.close * 1000,
       }))
     );
+
+    // Event markers
+    if (events && events.length > 0) {
+      const dates = new Set(data.map((d) => d.date));
+      const markers = events
+        .filter((e) => dates.has(e.date))
+        .map((e) => ({
+          time: e.date as import("lightweight-charts").Time,
+          position: "aboveBar" as const,
+          color:
+            e.type === "dividend"
+              ? "#22c55e"
+              : e.type === "split"
+                ? "#3b82f6"
+                : e.type === "meeting"
+                  ? "#a855f7"
+                  : e.type === "rights"
+                    ? "#f97316"
+                    : "#9ca3af",
+          shape: "arrowDown" as const,
+          text: e.label,
+        }))
+        .sort((a, b) =>
+          (a.time as string).localeCompare(b.time as string)
+        );
+
+      createSeriesMarkers(candleSeries, markers);
+    }
 
     // Volume histogram
     const volumeSeries = chart.addSeries(HistogramSeries, {
@@ -118,7 +154,7 @@ export function StockChart({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [data, smaData]);
+  }, [data, smaData, events]);
 
   return <div ref={chartContainerRef} className="w-full" />;
 }

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Metadata } from "next";
 import { stock, sma, rsi } from "vnstock-js";
+import { classifyEvent, isValidDate } from "@/components/calendar/market-calendar";
 
 type Params = Promise<{ symbol: string }>;
 
@@ -26,7 +27,7 @@ export default async function StockDetailPage({
   const ticker = symbol.toUpperCase();
 
   // Fetch all data in parallel
-  const [history, priceBoardArr, companyProfile, companyShareholders, financials] =
+  const [history, priceBoardArr, companyProfile, companyShareholders, financials, eventsData] =
     await Promise.all([
       stock.quote({ ticker, start: "2024-06-01" }),
       stock.priceBoard({ ticker }).catch(() => []),
@@ -39,6 +40,7 @@ export default async function StockDetailPage({
         .shareholders()
         .catch(() => []),
       stock.financials({ ticker, period: "quarter" }).catch(() => null),
+      stock.company({ ticker }).events().catch(() => []),
     ]);
 
   // Calculate indicators
@@ -53,6 +55,15 @@ export default async function StockDetailPage({
 
   // Financial data
   const fd = financials?.data as Record<string, unknown> | null;
+
+  // Chart events
+  const chartEvents = (eventsData as Record<string, unknown>[])
+    .filter((e) => isValidDate(e.exRightDate as string) || isValidDate(e.issuedAt as string))
+    .map((e) => ({
+      date: (e.exRightDate as string) || (e.issuedAt as string) || "",
+      type: classifyEvent((e.title as string) || (e.eventTypeName as string) || ""),
+      label: ((e.title as string) || "Event").slice(0, 15),
+    }));
 
   // News for this ticker
   let newsArticles: Array<Record<string, unknown>> = [];
@@ -97,7 +108,7 @@ export default async function StockDetailPage({
             <CardTitle className="text-lg">Bieu do gia</CardTitle>
           </CardHeader>
           <CardContent>
-            <StockChart data={history} smaData={sma20} />
+            <StockChart data={history} smaData={sma20} events={chartEvents} />
           </CardContent>
         </Card>
 

@@ -1,0 +1,57 @@
+---
+title: Ngày Giao Dịch Không Hưởng Quyền (Ex-date)
+description: Tìm hiểu về ngày giao dịch không hưởng quyền, ảnh hưởng đến giá cổ phiếu và quyền lợi cổ đông
+---
+
+## Ngày giao dịch không hưởng quyền là gì?
+
+**Ngày giao dịch không hưởng quyền (Ex-date)** là ngày mà người mua cổ phiếu sẽ **không** được hưởng quyền lợi (cổ tức, quyền mua, thưởng cổ phiếu) đã được công bố trước đó.
+
+Nếu bạn mua cổ phiếu **trước** ngày Ex-date → bạn được hưởng quyền.
+Nếu bạn mua cổ phiếu **từ ngày Ex-date trở đi** → bạn không được hưởng quyền.
+
+## Timeline sự kiện quyền
+
+```
+Ngày công bố → Ngày đăng ký cuối cùng → Ngày Ex-date → Ngày thanh toán
+(Announcement)   (Record Date)           (Ex-date)      (Payment Date)
+```
+
+<Note>
+Tại Việt Nam, ngày Ex-date thường là **T+1** trước ngày đăng ký cuối cùng (do chu kỳ thanh toán T+2 của VSD).
+</Note>
+
+## Ảnh hưởng đến giá cổ phiếu
+
+Vào ngày Ex-date, giá tham chiếu sẽ được **điều chỉnh giảm** tương ứng với giá trị quyền lợi:
+
+- **Cổ tức tiền mặt 2,000 đồng/cp**: giá tham chiếu giảm 2,000 đồng
+- **Cổ tức cổ phiếu 20%**: giá tham chiếu = Giá đóng cửa / 1.2
+- **Chia tách 2:1**: giá tham chiếu = Giá đóng cửa / 2
+
+## Ví dụ thực tế
+
+| Sự kiện | Giá trước Ex-date | Điều chỉnh | Giá tham chiếu mới |
+|---------|-------------------|------------|---------------------|
+| Cổ tức 3,000đ | 50,000 | -3,000 | 47,000 |
+| Thưởng CP 10% | 50,000 | /1.1 | 45,455 |
+| Chia tách 5:1 | 100,000 | /5 | 20,000 |
+
+## Làm sao để theo dõi?
+
+Sử dụng vnstock-js để lấy danh sách sự kiện quyền của công ty:
+
+```typescript
+import { company } from "vnstock-js";
+
+const events = await company.events({ ticker: "FPT" });
+// Lọc sự kiện có exDate
+const exDateEvents = events.filter(e => e.exDate);
+```
+
+## Những điều cần lưu ý
+
+1. **Mua trước Ex-date ít nhất 1 ngày** (T+2) để đảm bảo được ghi nhận quyền
+2. Giá thường **giảm mạnh** vào ngày Ex-date — đây là điều chỉnh kỹ thuật, không phải mất giá trị
+3. Với cổ phiếu thanh khoản thấp, giá có thể mất nhiều ngày để hồi phục về mức cũ
+4. Kiểm tra **tỷ lệ quyền** trước khi quyết định — cổ tức 500 đồng/cp trên cổ phiếu 100,000 chỉ là 0.5%
