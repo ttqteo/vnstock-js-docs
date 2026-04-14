@@ -12,15 +12,15 @@ import { VnstockTypes } from "vnstock-js";
 type MarketStatus = "realtime" | "lunch" | "closed";
 
 function getMarketStatus(): MarketStatus {
+  // Convert to Vietnam time (UTC+7) regardless of client/server locale
   const now = new Date();
-  const day = now.getDay();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const vn = new Date(utcMs + 7 * 60 * 60000);
+  const day = vn.getDay();
   if (day === 0 || day === 6) return "closed";
-  const t = now.getHours() * 60 + now.getMinutes(); // minutes since midnight
-  // Sáng: 9:00 - 11:30
+  const t = vn.getHours() * 60 + vn.getMinutes();
   if (t >= 540 && t <= 690) return "realtime";
-  // Nghỉ trưa: 11:30 - 13:00
   if (t > 690 && t < 780) return "lunch";
-  // Chiều: 13:00 - 15:00
   if (t >= 780 && t <= 900) return "realtime";
   return "closed";
 }
