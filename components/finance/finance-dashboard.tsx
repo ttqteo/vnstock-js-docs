@@ -194,8 +194,20 @@ function GoldMiniCard({ gold }: { gold: GoldPrice[] }) {
   );
 }
 
+function addOneDay(ddmmyyyy: string): string {
+  const m = ddmmyyyy.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return ddmmyyyy;
+  const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  d.setDate(d.getDate() + 1);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
 function FuelPriceCard({ fuelPrices, forecastDate }: { fuelPrices: FuelPrice[]; forecastDate?: string }) {
   if (!fuelPrices || fuelPrices.length === 0) return null;
+
+  const nextDate = forecastDate ? addOneDay(forecastDate) : "";
 
   return (
     <Card>
@@ -212,34 +224,40 @@ function FuelPriceCard({ fuelPrices, forecastDate }: { fuelPrices: FuelPrice[]; 
               chogia.vn
             </a>
           </div>
-          {forecastDate && (
-            <p className="text-[0.65rem] font-normal normal-case text-muted-foreground mt-0.5">
-              Ngày {forecastDate}
-            </p>
-          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="space-y-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_4rem_5.5rem] items-end gap-3 text-[0.6rem] text-muted-foreground pb-2 mb-1 border-b">
+          <span className="uppercase tracking-wider">Mặt hàng</span>
+          <span className="text-right leading-tight">
+            <span className="block">{forecastDate || "Hôm nay"}</span>
+            <span className="block text-[0.55rem] opacity-70">USD/thùng</span>
+          </span>
+          <span className="text-right leading-tight">
+            <span className="block">{nextDate || "Ngày mai"}</span>
+            <span className="block text-[0.55rem] opacity-70">Dự báo (VND)</span>
+          </span>
+        </div>
+        <div className="space-y-1">
           {fuelPrices.map((fuel, i) => {
             const isUp = fuel.change.toLowerCase().includes("tăng");
             const isDown = fuel.change.toLowerCase().includes("giảm");
             return (
               <div
                 key={i}
-                className="flex items-center justify-between text-sm py-1 border-b last:border-b-0"
+                className="grid grid-cols-[minmax(0,1fr)_4rem_5.5rem] items-center gap-3 text-sm py-1 border-b last:border-b-0"
               >
-                <span className="text-muted-foreground truncate max-w-[140px]">
+                <span className="text-muted-foreground truncate">
                   {fuel.name}
                 </span>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs">
-                    {fuel.price}
-                  </span>
-                  {fuel.change && (
+                <span className="font-mono text-xs text-right">
+                  {fuel.price || "—"}
+                </span>
+                <span className="flex justify-end">
+                  {fuel.change ? (
                     <Badge
                       variant="outline"
-                      className={`text-[0.6rem] px-1.5 py-0 ${
+                      className={`text-[0.6rem] px-1.5 py-0 whitespace-nowrap ${
                         isUp
                           ? "text-green-500 border-green-500/20"
                           : isDown
@@ -251,8 +269,10 @@ function FuelPriceCard({ fuelPrices, forecastDate }: { fuelPrices: FuelPrice[]; 
                       {isDown && <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
                       {fuel.change}
                     </Badge>
+                  ) : (
+                    <span className="text-[0.6rem] text-muted-foreground">—</span>
                   )}
-                </div>
+                </span>
               </div>
             );
           })}
@@ -399,35 +419,37 @@ function NewsSection({ news }: { news: NewsArticle[] }) {
           <h3 className="text-sm font-display font-semibold uppercase tracking-wider text-muted-foreground">
             Mới nhất
           </h3>
-          {latest.map((article, i) => (
-            <a
-              key={i}
-              href={article.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex gap-4 py-3 border-t"
-            >
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm group-hover:underline line-clamp-1">
-                  {article.title}
-                </h3>
-                <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
-                  {article.summary}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {getSource(article.link)} · {timeAgo(article.published_timestamp)}
-                </p>
-              </div>
-              {article.image_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={article.image_url}
-                  alt=""
-                  className="w-24 h-16 object-cover shrink-0"
-                />
-              )}
-            </a>
-          ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 border-t">
+            {latest.map((article, i) => (
+              <a
+                key={i}
+                href={article.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex gap-4 py-3 border-b"
+              >
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-sm group-hover:underline line-clamp-2">
+                    {article.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                    {article.summary}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {getSource(article.link)} · {timeAgo(article.published_timestamp)}
+                  </p>
+                </div>
+                {article.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={article.image_url}
+                    alt=""
+                    className="w-24 h-16 object-cover shrink-0"
+                  />
+                )}
+              </a>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -505,7 +527,7 @@ export function FinanceDashboard({
           {fuelPrices && fuelPrices.length > 0 && (
             <FuelPriceCard fuelPrices={fuelPrices} forecastDate={fuelForecastDate} />
           )}
-          <TopMoversCard gainers={gainers} losers={losers} />
+          {/* <TopMoversCard gainers={gainers} losers={losers} /> */}
         </div>
       </div>
 

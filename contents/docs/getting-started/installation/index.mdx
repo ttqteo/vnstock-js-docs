@@ -8,3 +8,25 @@ Cài đặt bằng npm
 ```bash
 npm install vnstock-js@latest
 ```
+
+## CLI (tuỳ chọn)
+
+Từ v1.3.0, vnstock-js kèm CLI tool:
+
+```bash
+npm install -g vnstock-js
+# hoặc chạy tạm
+npx vnstock-js quote VCB
+```
+
+## Khởi tạo runtime
+
+Từ **v1.3.0** trở đi, gọi `await init()` một lần lúc khởi động app trước khi dùng symbol lookup (`stock.search`, `listing.*`) hoặc market calendar. Dữ liệu symbol/holiday được fetch từ remote và cache 24h tại `~/.vnstock-js/cache/`.
+
+```typescript
+import { init } from "vnstock-js";
+
+await init(); // gọi 1 lần ở entrypoint
+```
+
+Các API truy vấn trực tiếp (quote, history, company, financial...) không cần `init()`.

@@ -12,15 +12,15 @@ import { VnstockTypes } from "vnstock-js";
 type MarketStatus = "realtime" | "lunch" | "closed";
 
 function getMarketStatus(): MarketStatus {
+  // Convert to Vietnam time (UTC+7) regardless of client/server locale
   const now = new Date();
-  const day = now.getDay();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const vn = new Date(utcMs + 7 * 60 * 60000);
+  const day = vn.getDay();
   if (day === 0 || day === 6) return "closed";
-  const t = now.getHours() * 60 + now.getMinutes(); // minutes since midnight
-  // Sáng: 9:00 - 11:30
+  const t = vn.getHours() * 60 + vn.getMinutes();
   if (t >= 540 && t <= 690) return "realtime";
-  // Nghỉ trưa: 11:30 - 13:00
   if (t > 690 && t < 780) return "lunch";
-  // Chiều: 13:00 - 15:00
   if (t >= 780 && t <= 900) return "realtime";
   return "closed";
 }
@@ -98,20 +98,70 @@ export function StickerRealtimeCard({
       })
       .catch(() => {});
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbols]);
+  }, [symbols, priceboard]);
 
+  const [wsStatus, setWsStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
+
+  // Connect once when market is open; reuse the same socket across symbol changes
   useEffect(() => {
-    if (mode !== "realtime") return;
+    if (mode !== "realtime") {
+      setWsStatus("idle");
+      return;
+    }
+    setWsStatus("connecting");
     const client = realtime.create({ symbols });
+    client.on("connected", () => {
+      console.log("[realtime] connected to SSI");
+      setWsStatus("connected");
+    });
+    client.on("disconnected", (reason) => {
+      console.log("[realtime] disconnected:", reason);
+      setWsStatus("connecting");
+    });
+    client.on("reconnecting", (attempt) => {
+      console.log("[realtime] reconnecting attempt", attempt);
+    });
+    client.on("error", (err) => {
+      console.error("[realtime] error:", err);
+      setWsStatus("error");
+    });
     client.on("quote", (parsed) => {
       if (!parsed?.symbol) return;
       setQuotes((prev) => ({ ...prev, [parsed.symbol]: parsed }));
     });
     client.connect();
     clientRef.current = client;
-    return () => client.disconnect();
-  }, [mode, symbols]);
+    return () => {
+      client.disconnect();
+      clientRef.current = null;
+      setWsStatus("idle");
+    };
+    // symbols dùng cho seed ban đầu; thay đổi về sau xử lý qua subscribe/unsubscribe effect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  // Apply symbol diffs via subscribe/unsubscribe instead of reconnecting
+  const prevSymbolsRef = useRef<string[]>(symbols);
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!client || mode !== "realtime") {
+      prevSymbolsRef.current = symbols;
+      return;
+    }
+    const prev = prevSymbolsRef.current;
+    const added = symbols.filter((s) => !prev.includes(s));
+    const removed = prev.filter((s) => !symbols.includes(s));
+    if (added.length > 0) client.subscribe(added);
+    if (removed.length > 0) {
+      client.unsubscribe(removed);
+      setQuotes((q) => {
+        const next = { ...q };
+        removed.forEach((s) => delete next[s]);
+        return next;
+      });
+    }
+    prevSymbolsRef.current = symbols;
+  }, [symbols, mode]);
 
   const handleAddSymbol = () => {
     const s = input.toUpperCase().trim();
@@ -154,8 +204,16 @@ export function StickerRealtimeCard({
 
       <div className="mb-2">
         {mode === "realtime" ? (
-          <Badge variant="outline" className="text-green-600">
-            Dữ liệu realtime
+          <Badge variant="outline" className={
+            wsStatus === "connected" ? "text-green-600" :
+            wsStatus === "connecting" ? "text-yellow-500" :
+            wsStatus === "error" ? "text-red-600" :
+            "text-muted-foreground"
+          }>
+            {wsStatus === "connected" ? "● Realtime (SSI)" :
+             wsStatus === "connecting" ? "○ Đang kết nối..." :
+             wsStatus === "error" ? "✕ Lỗi kết nối" :
+             "Realtime"}
           </Badge>
         ) : mode === "lunch" ? (
           <Badge variant="outline" className="text-orange-500">

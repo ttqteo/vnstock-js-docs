@@ -29,7 +29,13 @@
       "Bash(curl -sL -o landing.png \"https://lh3.googleusercontent.com/aida/ADBb0ugOwz978bmzzUePxqtiNkgJJGamBdR50pUYi0NzM2iNK-1rSOJwZSYk_n2x1RjzRplYsSy4VTDmTnVL3J4rfQNANaH9q40_q35mr4K2nEL7kc0RZY0iAsl5dx306euWnPLFTtP_PMfgq6jN84Qk1d4c2ZzQhIyPE6hNN-5-yyIVeHcj-aMJSYRTGNjEFzIw49GDp7bORoQJuLssx3OHZsjnA2m9g42kv6CmDU2VzNNhk6WRo7BHWb-cc1NQ\")",
       "Bash(curl -sL -o docs.png \"https://lh3.googleusercontent.com/aida/ADBb0uincoIAGezWIlUuGP_xnKv3oZh3gU4bJueNw297aa4utPJxYacbd4jJV1l3-scSib9A1djwI1taHHfv6x4bWoe_L0oT9uobp_-JhOdLB6rKCm5Cbc73BVo_3iHoLwVx92GuVb0ovbEB-OewXKasdX1ZRgqM8zzVOazr_jlKzsnaR1DKyrbUW1VUSrCcxtxhqFuc0dE-d_NWIMn-r5QrZ7Bl5qJjs-b6gO9UA6oQUaBe0hduVdorozTQ8qg_\")",
       "Bash(curl -sL -o examples.png \"https://lh3.googleusercontent.com/aida/ADBb0uiK-rLHBn8YTI-hMyvLTXLDfS6oZYFYTrCJZfndq3izk5-WziVOzCB2SVTmHuSvu1xBM9YNHrzgpKNKQeU4ngNEr7jOj64kHbqlhISpQVeMQiTb7SZ9gPfuirwBDwASTGyn0xY-CPx2jbSlbkE3AKb4i_AQ4CMYyHPS383Z89D33w-x4Gd4KyoozLXPz0tpWskW2iIyQhy-_4BW6reZCosR3ms4Ttm85kmzdVUOpYCZLuUvmO4YhS3qhu4u\")",
-      "Bash(curl -sL -o blog.png \"https://lh3.googleusercontent.com/aida/ADBb0uiZf44TeR8VvOpehrj139tNa5iTu3vHWWAGjri4B_o1ceCHBc3pbPmwNyfCMjmOxVcGQ3FIsJc9eUbEoGMWUQ7vMVJhvw0PGkKnEbFnVjnepH87wLgceKp_mQkhwKFEG2dE0poRrOaEj7xE2gem4fLakHPY_yMI9ojoW0avUUDvyp_KM-ZhSn7DomhOxNV_Zu7Z3JrQLqLbLnED22wRujzKYaj7Ds-2D4_A54GF_DWU1EyPeMjO6O7pLhOV\")"
+      "Bash(curl -sL -o blog.png \"https://lh3.googleusercontent.com/aida/ADBb0uiZf44TeR8VvOpehrj139tNa5iTu3vHWWAGjri4B_o1ceCHBc3pbPmwNyfCMjmOxVcGQ3FIsJc9eUbEoGMWUQ7vMVJhvw0PGkKnEbFnVjnepH87wLgceKp_mQkhwKFEG2dE0poRrOaEj7xE2gem4fLakHPY_yMI9ojoW0avUUDvyp_KM-ZhSn7DomhOxNV_Zu7Z3JrQLqLbLnED22wRujzKYaj7Ds-2D4_A54GF_DWU1EyPeMjO6O7pLhOV\")",
+      "Bash(node -e \"const {commodity} = require\\(''vnstock-js''\\); commodity.gold.priceGiaVangNet\\(\\).then\\(d => console.log\\(JSON.stringify\\(d.slice\\(0,2\\), null, 2\\)\\)\\).catch\\(e => console.log\\(''ERR:'', e.message\\)\\)\")",
+      "Read(//d/ttqspace/nnew/vnstock-js/**)",
+      "Bash(npm run:*)",
+      "Bash(grep -E \"\\\\.html$\")",
+      "Bash(node -e ':*)",
+      "Bash(xargs basename:*)"
     ]
   }
 }

@@ -52,18 +52,23 @@ export function StockWidget() {
 
 const REALTIME_CODE = `// WebSocket realtime — chạy trực tiếp client-side
 "use client";
-import { stock } from "vnstock-js";
+import { realtime } from "vnstock-js";
 
-const { connect, subscribe, parseData } = stock.realtime;
-const socket = connect({
-  onOpen: () => subscribe(socket, { symbols: ["FPT", "MBB"] }),
-  onMessage: (data) => {
-    if (typeof data === "string" && data.includes("S#")) {
-      const parsed = parseData(data);
-      console.log(parsed.symbol, parsed.matched.price);
-    }
-  },
-});`;
+const client = realtime.create({ symbols: ["FPT", "MBB"] });
+
+client.on("quote", (quote) => {
+  console.log(quote.symbol, quote.matched.price);
+});
+client.on("error", (err) => console.error(err));
+
+client.connect();
+
+// Thay đổi danh sách mã không cần reconnect
+client.subscribe(["VNM"]);
+client.unsubscribe(["FPT"]);
+
+// Khi component unmount
+client.disconnect();`;
 
 const NODE_CODE = `// script.js (Node.js)
 const { stock, sma, rsi } = require("vnstock-js");
@@ -168,7 +173,7 @@ export function UsageGuide() {
               <p className="text-sm font-medium">WebSocket — chạy trực tiếp client</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              WebSocket không bị CORS. Dùng <code className="bg-muted px-1 rounded text-xs">stock.realtime</code> trực tiếp trong client component.
+              WebSocket không bị CORS. Dùng <code className="bg-muted px-1 rounded text-xs">realtime.create()</code> trực tiếp trong client component. Auto-reconnect với dead-man&apos;s switch, EventEmitter API.
             </p>
             <CodeBlock code={REALTIME_CODE} label="components/realtime.tsx" />
           </div>

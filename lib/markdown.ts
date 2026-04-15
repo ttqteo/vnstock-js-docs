@@ -183,7 +183,9 @@ export async function getAllBlogStaticPaths() {
   try {
     const blogFolder = path.join(process.cwd(), "/contents/blogs/");
     const res = await fs.readdir(blogFolder);
-    return res.map((file) => file.split(".")[0]);
+    return res
+      .filter((file) => file.endsWith(".mdx"))
+      .map((file) => file.replace(/\.mdx$/, ""));
   } catch (err) {
     console.log(err);
   }
@@ -198,7 +200,7 @@ export async function getAllBlogs() {
       const rawMdx = await fs.readFile(filepath, "utf-8");
       return {
         ...justGetFrontmatterFromMD<BlogMdxFrontmatter>(rawMdx),
-        slug: file.split(".")[0],
+        slug: file.replace(/\.mdx$/, ""),
       };
     }),
   );

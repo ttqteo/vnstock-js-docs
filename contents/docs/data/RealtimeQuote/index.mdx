@@ -5,7 +5,8 @@ description: Cấu trúc dữ liệu realtime WebSocket
 
 ## Các hàm sử dụng
 
-1. `vnstock.realtime.parseData()`
+- `realtime.create()` — tạo `RealtimeClient` (EventEmitter). Phát event `"quote"` với `RealtimeQuote`.
+- `realtime.parseData()` — parse 1 message thô thành `RealtimeQuote` (dùng khi tự quản lý WebSocket).
 
 ## Cấu trúc dữ liệu
 
@@ -31,20 +32,36 @@ Output là `RealtimeQuote`:
 ## Ví dụ
 
 ```typescript
-import vnstock from 'vnstock-js';
+import { realtime } from 'vnstock-js';
 
-const socket = vnstock.realtime.connect({
-  onMessage: (data) => {
-    if (typeof data === 'string' && data.includes('S#')) {
-      const quote = vnstock.realtime.parseData(data);
-      console.log(quote.symbol, quote.matched.price);
-      // ACB 23.55
-    }
-  },
+const client = realtime.create({ symbols: ['ACB', 'FPT'] });
+
+client.on('quote', (quote) => {
+  console.log(quote.symbol, quote.matched.price);
+  // ACB 23.55
 });
+client.on('error', (err) => console.error(err));
 
-vnstock.realtime.subscribe(socket, { symbols: ['ACB', 'FPT'] });
+client.connect();
+
+// Thêm/bớt mã không cần reconnect
+client.subscribe(['VNM']);
+client.unsubscribe(['ACB']);
+
+// Khi không cần nữa
+client.disconnect();
 ```
+
+### Options
+
+| Trường | Mặc định | Mô tả |
+|--------|----------|-------|
+| `symbols` | `[]` | Danh sách mã subscribe khi connect |
+| `url` | SSI WS URL | Custom WebSocket endpoint |
+| `autoReconnect` | `true` | Tự động reconnect khi mất kết nối |
+| `reconnectInterval` | `3000` | ms giữa các lần retry (exponential backoff) |
+| `maxReconnectAttempts` | `10` | Số lần retry tối đa |
+| `deadManTimeout` | `60000` | ms không nhận message → reconnect (v1.3.0+, thay cho heartbeat) |
 
 <Note type="note">
 Dữ liệu realtime chỉ có trong giờ giao dịch: 9:00-11:30 và 13:00-15:00 các ngày trong tuần.
