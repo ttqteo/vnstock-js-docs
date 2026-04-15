@@ -25,10 +25,10 @@ export const NAVLINKS = [
     title: "Tài Chính",
     href: "/finance",
   },
-  {
-    title: "Lịch Sự Kiện",
-    href: "/calendar",
-  },
+  // {
+  //   title: "Lịch Sự Kiện",
+  //   href: "/calendar",
+  // },
 ];
 
 export function Navbar() {
@@ -38,7 +38,7 @@ export function Navbar() {
         <div className="flex items-center gap-5">
           <MobileMenu />
           <div className="flex items-center gap-6">
-            <div className="sm:flex hidden">
+            <div className="flex">
               <Logo />
             </div>
             <div className="lg:flex hidden items-center gap-4 text-sm font-medium text-muted-foreground">
@@ -76,7 +76,7 @@ export function Logo() {
         height={24}
         className="rounded-full"
       />
-      <h2 className="text-md font-bold font-display tracking-wider">
+      <h2 className="hidden sm:block text-md font-bold font-display tracking-wider">
         vnstock-js
       </h2>
     </Link>

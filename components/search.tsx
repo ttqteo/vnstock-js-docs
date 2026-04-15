@@ -49,9 +49,18 @@ export default function Search() {
       >
         <DialogTrigger asChild>
           <div className="relative flex-1 max-w-md cursor-pointer">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-500 dark:text-stone-400" />
+            {/* Mobile: icon-only button */}
+            <button
+              type="button"
+              aria-label="Tìm tài liệu"
+              className="sm:hidden inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-accent text-muted-foreground"
+            >
+              <SearchIcon className="h-4 w-4" />
+            </button>
+            {/* Desktop: full input */}
+            <SearchIcon className="hidden sm:block absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-500 dark:text-stone-400" />
             <Input
-              className="md:w-full rounded-md dark:bg-background/95 bg-background border h-9 pl-10 pr-0 sm:pr-7 text-sm shadow-sm overflow-ellipsis"
+              className="hidden sm:block md:w-full rounded-md dark:bg-background/95 bg-background border h-9 pl-10 pr-0 sm:pr-7 text-sm shadow-sm overflow-ellipsis"
               placeholder="Tìm tên tài liệu..."
               type="search"
             />

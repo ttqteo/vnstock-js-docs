@@ -6,12 +6,24 @@ import {
   Filter,
   Code2,
   Terminal,
-  Github,
   ArrowRight,
   Gauge,
   Star,
   Package,
 } from "lucide-react";
+
+function GithubIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M12 .5C5.73.5.5 5.73.5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.34-1.28-1.7-1.28-1.7-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.24 3.34.95.1-.74.4-1.25.72-1.54-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.04 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.5 3.17-1.18 3.17-1.18.63 1.58.23 2.75.12 3.04.73.81 1.18 1.84 1.18 3.1 0 4.43-2.71 5.41-5.28 5.69.41.36.78 1.05.78 2.12v3.15c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z" />
+    </svg>
+  );
+}
 import Image from "next/image";
 import Link from "next/link";
 import { stock } from "vnstock-js";
@@ -145,7 +157,7 @@ export default async function Home() {
       {indexData.length > 0 && <MarketTicker data={indexData} />}
 
       {/* Hero */}
-      <section className="flex flex-col items-center justify-center text-center px-4 pt-24 pb-20 sm:pt-32 sm:pb-24">
+      <section className="flex flex-col items-center justify-center text-center px-4 pt-12 pb-16 sm:pt-32 sm:pb-24">
         <div className="flex items-center gap-3 mb-8">
           <Image
             src="/vnstock.png"
@@ -155,33 +167,33 @@ export default async function Home() {
             className="rounded-full"
           />
         </div>
-        <h1 className="font-display text-5xl font-extrabold tracking-tight sm:text-7xl mb-6">
+        <h1 className="font-display text-4xl sm:text-7xl font-extrabold tracking-tight mb-6">
           vnstock-js
         </h1>
-        <p className="text-lg sm:text-xl text-muted-foreground max-w-[550px] mb-4 leading-relaxed">
+        <p className="text-base sm:text-xl text-muted-foreground max-w-[550px] mb-4 leading-relaxed px-2">
           Thư viện JavaScript nhanh nhất để truy cập dữ liệu chứng khoán Việt
           Nam. Nhẹ, type-safe, sẵn sàng cho production.
         </p>
 
         {/* Install command */}
-        <div className="flex items-center gap-3 bg-muted pl-8 pr-2 py-2 mb-10 font-mono text-sm dark:bg-accent">
+        <div className="flex items-center gap-2 sm:gap-3 bg-muted pl-4 sm:pl-8 pr-2 py-2 mb-10 font-mono text-xs sm:text-sm dark:bg-accent max-w-full">
           <Terminal className="w-4 h-4 text-muted-foreground shrink-0" />
-          <code>npm install vnstock-js</code>
+          <code className="truncate">npm install vnstock-js</code>
           <Copy content="npm install vnstock-js" />
         </div>
 
-        {/* CTA buttons */}
-        <div className="flex flex-row items-center gap-4">
+        {/* Primary CTA */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full max-w-md sm:max-w-none sm:w-auto">
           <Link
             href={`/docs${page_routes[0].href}`}
             className={buttonVariants({
               className:
-                "px-8 font-display font-semibold uppercase tracking-wider",
+                "px-8 font-display font-semibold uppercase tracking-wider group",
               size: "lg",
             })}
           >
             Bắt Đầu
-            <ArrowRight className="w-4 h-4 ml-2" />
+            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform" />
           </Link>
           <Link
             href="/examples"
@@ -194,38 +206,39 @@ export default async function Home() {
           >
             Xem Ví Dụ
           </Link>
+        </div>
+
+        {/* Meta links: GitHub stars + npm version */}
+        <div className="flex items-center gap-5 mt-6 text-sm">
           <Link
             href="https://github.com/ttqteo/vnstock-js"
             target="_blank"
             rel="noopener noreferrer"
-            className={buttonVariants({
-              variant: "outline",
-              size: "lg",
-              className: "gap-2 px-5",
-            })}
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
           >
-            <Github className="w-5 h-5" />
+            <GithubIcon className="w-4 h-4" />
+            <span>GitHub</span>
             {stars != null && (
-              <>
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span className="font-mono text-sm">{formatStars(stars)}</span>
-              </>
+              <span className="flex items-center gap-0.5 ml-1 text-xs font-mono">
+                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                {formatStars(stars)}
+              </span>
             )}
           </Link>
+          <span className="h-4 w-px bg-border" />
           <Link
             href="https://www.npmjs.com/package/vnstock-js"
             target="_blank"
             rel="noopener noreferrer"
-            className={buttonVariants({
-              variant: "outline",
-              size: "lg",
-              className: "gap-2 px-5",
-            })}
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
           >
-            <Package className="w-5 h-5" />
-            <span className="font-mono text-sm">
-              {npmVersion ? `v${npmVersion}` : "npm"}
-            </span>
+            <Package className="w-4 h-4" />
+            <span>npm</span>
+            {npmVersion && (
+              <span className="ml-1 text-xs font-mono px-1.5 py-0.5 rounded bg-muted">
+                v{npmVersion}
+              </span>
+            )}
           </Link>
         </div>
       </section>
