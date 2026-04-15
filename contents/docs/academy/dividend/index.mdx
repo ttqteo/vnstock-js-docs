@@ -1,0 +1,90 @@
+---
+title: Cổ Tức (Dividend)
+description: Các hình thức trả cổ tức, timeline từ công bố đến thanh toán, và cách tính toán
+---
+
+## Cổ tức là gì?
+
+**Cổ tức (Dividend)** là phần lợi nhuận được công ty phân phối cho cổ đông. Đây là một trong hai cách nhà đầu tư kiếm lời từ cổ phiếu (cách còn lại là chênh lệch giá).
+
+## Các hình thức cổ tức
+
+### 1. Cổ tức tiền mặt (Cash Dividend)
+
+Trả trực tiếp bằng tiền vào tài khoản chứng khoán.
+
+```
+Ví dụ: cổ tức 3,000 đồng/cổ phiếu
+Sở hữu 1,000 cp → Nhận 3,000,000 đồng (trước thuế)
+```
+
+### 2. Cổ tức cổ phiếu (Stock Dividend)
+
+Trả bằng cổ phiếu mới phát hành thêm.
+
+```
+Ví dụ: cổ tức 20% (tỷ lệ 5:1)
+Sở hữu 1,000 cp → Nhận thêm 200 cp mới
+```
+
+### 3. Cổ tức bằng tài sản khác
+
+Hiếm gặp tại Việt Nam. Trả bằng tài sản, sản phẩm của công ty.
+
+## Timeline cổ tức
+
+```
+Ngày công bố     Ngày ĐKCC      Ngày Ex-date    Ngày thanh toán
+(Board approval)  (Record Date)  (T-1 trước ĐKCC)  (Payment)
+     |                |               |               |
+     ▼                ▼               ▼               ▼
+  Thông báo      Sổ sách cổ đông   Giá điều chỉnh   Tiền/CP vào TK
+  tỷ lệ cổ tức   được chốt         giảm tương ứng
+```
+
+<Note>
+Thuế thu nhập cá nhân trên cổ tức tiền mặt tại Việt Nam là **5%**, khấu trừ tại nguồn.
+</Note>
+
+## Các chỉ số liên quan
+
+### Tỷ suất cổ tức (Dividend Yield)
+
+```
+Dividend Yield = Cổ tức hàng năm / Giá cổ phiếu hiện tại × 100%
+```
+
+Ví dụ: cổ tức 3,000đ, giá hiện tại 50,000đ → Yield = 6%
+
+### Tỷ lệ chi trả (Payout Ratio)
+
+```
+Payout Ratio = Tổng cổ tức chi trả / Lợi nhuận ròng × 100%
+```
+
+Tỷ lệ > 80% có thể không bền vững. Tỷ lệ 30-50% thường là lành mạnh.
+
+## Tra cứu cổ tức bằng vnstock-js
+
+```typescript
+import { company } from "vnstock-js";
+
+const events = await company.events({ ticker: "VNM" });
+// Lọc sự kiện cổ tức
+const dividends = events.filter(e =>
+  e.eventName?.includes("cổ tức") || e.eventName?.includes("dividend")
+);
+```
+
+## Chiến lược đầu tư cổ tức
+
+1. **Dividend investing**: Tập trung vào cổ phiếu có tỷ suất cổ tức cao và ổn định (REE, GAS, VNM)
+2. **Dividend growth**: Chọn công ty tăng cổ tức đều hàng năm
+3. **DRIP (Dividend Reinvestment)**: Dùng cổ tức để mua thêm cổ phiếu → hiệu ứng lãi kép
+
+## Lưu ý
+
+1. Cổ tức cao không phải lúc nào cũng tốt — kiểm tra **payout ratio** và **dòng tiền tự do**
+2. Giá cổ phiếu **giảm đúng bằng cổ tức** vào ngày Ex-date
+3. Cổ tức cổ phiếu **pha loãng** giá — không phải "được thêm tiền"
+4. So sánh yield với lãi suất tiền gửi để đánh giá hấp dẫn

@@ -1,0 +1,65 @@
+---
+title: Chia Tách Cổ Phiếu (Stock Split)
+description: Cơ chế chia tách cổ phiếu, tác động lên giá và khối lượng giao dịch
+---
+
+## Chia tách cổ phiếu là gì?
+
+**Chia tách cổ phiếu (Stock Split)** là việc công ty tăng số lượng cổ phiếu đang lưu hành bằng cách chia nhỏ mỗi cổ phiếu hiện có thành nhiều cổ phiếu mới, **không làm thay đổi tổng giá trị vốn hóa**.
+
+Ví dụ: chia tách **5:1** nghĩa là mỗi 1 cổ phiếu cũ được tách thành 5 cổ phiếu mới.
+
+## Trước và sau chia tách
+
+| | Trước | Sau (5:1) |
+|---|-------|-----------|
+| Số cổ phiếu | 100 cp | 500 cp |
+| Giá mỗi cp | 500,000đ | 100,000đ |
+| Tổng giá trị | 50,000,000đ | 50,000,000đ |
+
+<Note>
+Giá trị danh mục **không thay đổi**. Bạn chỉ có nhiều cổ phiếu hơn với giá thấp hơn.
+</Note>
+
+## Tại sao công ty chia tách?
+
+1. **Tăng thanh khoản**: giá thấp hơn → nhiều nhà đầu tư nhỏ có thể mua
+2. **Tâm lý thị trường**: giá 20,000đ "rẻ" hơn giá 100,000đ (dù cùng 1 công ty)
+3. **Đạt tiêu chí niêm yết**: một số sàn yêu cầu giá trong khoảng nhất định
+4. **Thu hút nhà đầu tư cá nhân**: lô giao dịch nhỏ hơn, dễ tiếp cận hơn
+
+## Gộp cổ phiếu (Reverse Split)
+
+Ngược lại với chia tách, **gộp cổ phiếu** giảm số lượng cổ phiếu và tăng giá tương ứng.
+
+Ví dụ gộp **1:5**: 500 cổ phiếu giá 2,000đ → 100 cổ phiếu giá 10,000đ.
+
+Công ty gộp cổ phiếu thường để:
+- Tránh bị hủy niêm yết (giá quá thấp)
+- Cải thiện hình ảnh cổ phiếu
+
+## Ảnh hưởng trên biểu đồ kỹ thuật
+
+Sau chia tách, dữ liệu giá lịch sử cần được **điều chỉnh (adjusted)** để biểu đồ liên tục:
+
+```typescript
+import { stock } from "vnstock-js";
+// Dữ liệu đã được điều chỉnh tự động
+const data = await stock.quote({
+  ticker: "VNM",
+  start: "2024-01-01",
+});
+```
+
+## Các chia tách đáng chú ý tại Việt Nam
+
+- **VNM**: chia tách nhiều lần, cổ phiếu phổ biến nhất sàn HOSE
+- **FPT**: chia tách kết hợp thưởng cổ phiếu
+- **HPG**: chia tách để tăng thanh khoản
+
+## Lưu ý khi giao dịch quanh ngày chia tách
+
+1. **Không có lời/lỗ thực** từ bản thân việc chia tách
+2. Giá thường **biến động mạnh** trước/sau ngày chia tách do tâm lý
+3. Kiểm tra **tỷ lệ chia tách** chính xác trước khi đặt lệnh
+4. Các chỉ báo kỹ thuật (SMA, RSI) cần được tính lại trên giá adjusted

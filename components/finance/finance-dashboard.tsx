@@ -9,6 +9,7 @@ import { FinanceChart } from "./finance-chart";
 import { SymbolLink } from "@/components/stock-widget/stock-chart-dialog";
 import { StockLookup } from "./stock-lookup";
 import { WatchlistPanel } from "./watchlist-panel";
+import { AcademyPanel } from "./academy-panel";
 
 interface IndexSummary {
   name: string;
@@ -39,6 +40,12 @@ interface TopStock {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GoldPrice = any;
+
+interface FuelPrice {
+  name: string;
+  price: string;
+  change: string;
+}
 
 function getPriceColor(change: number) {
   if (change > 0) return "text-green-500";
@@ -181,6 +188,74 @@ function GoldMiniCard({ gold }: { gold: GoldPrice[] }) {
               </span>
             </div>
           ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function FuelPriceCard({ fuelPrices, forecastDate }: { fuelPrices: FuelPrice[]; forecastDate?: string }) {
+  if (!fuelPrices || fuelPrices.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-display uppercase tracking-wider">
+          <div className="flex items-center justify-between">
+            <span>Dự báo giá xăng dầu</span>
+            <a
+              href="https://chogia.vn/du-bao-gia-xang-dau-37804/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[0.6rem] font-normal text-muted-foreground hover:text-foreground"
+            >
+              chogia.vn
+            </a>
+          </div>
+          {forecastDate && (
+            <p className="text-[0.65rem] font-normal normal-case text-muted-foreground mt-0.5">
+              Ngày {forecastDate}
+            </p>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="space-y-2">
+          {fuelPrices.map((fuel, i) => {
+            const isUp = fuel.change.toLowerCase().includes("tăng");
+            const isDown = fuel.change.toLowerCase().includes("giảm");
+            return (
+              <div
+                key={i}
+                className="flex items-center justify-between text-sm py-1 border-b last:border-b-0"
+              >
+                <span className="text-muted-foreground truncate max-w-[140px]">
+                  {fuel.name}
+                </span>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-xs">
+                    {fuel.price}
+                  </span>
+                  {fuel.change && (
+                    <Badge
+                      variant="outline"
+                      className={`text-[0.6rem] px-1.5 py-0 ${
+                        isUp
+                          ? "text-green-500 border-green-500/20"
+                          : isDown
+                            ? "text-red-500 border-red-500/20"
+                            : ""
+                      }`}
+                    >
+                      {isUp && <TrendingUp className="w-2.5 h-2.5 mr-0.5" />}
+                      {isDown && <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
+                      {fuel.change}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
@@ -366,6 +441,8 @@ export function FinanceDashboard({
   losers,
   gold,
   news,
+  fuelPrices,
+  fuelForecastDate,
 }: {
   indices: IndexSummary[];
   chartData: ChartDataPoint[];
@@ -373,6 +450,8 @@ export function FinanceDashboard({
   losers: TopStock[];
   gold: GoldPrice[];
   news: NewsArticle[];
+  fuelPrices?: FuelPrice[];
+  fuelForecastDate?: string;
 }) {
   const [selectedIndex] = useState("VNINDEX");
 
@@ -423,9 +502,14 @@ export function FinanceDashboard({
 
         <div className="space-y-4">
           <WatchlistPanel />
+          {fuelPrices && fuelPrices.length > 0 && (
+            <FuelPriceCard fuelPrices={fuelPrices} forecastDate={fuelForecastDate} />
+          )}
           <TopMoversCard gainers={gainers} losers={losers} />
         </div>
       </div>
+
+      <AcademyPanel />
 
       <NewsSection news={news} />
     </div>

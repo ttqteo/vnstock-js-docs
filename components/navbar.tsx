@@ -1,11 +1,11 @@
 import { ModeToggle } from "@/components/theme-toggle";
+import { MobileMenu } from "@/components/mobile-menu";
 import { SheetClose } from "@/components/ui/sheet";
 import { page_routes } from "@/lib/routes-config";
 import { Github } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import Anchor from "./anchor";
-import { SheetLeftbar } from "./leftbar";
 import Search from "./search";
 
 export const NAVLINKS = [
@@ -25,6 +25,10 @@ export const NAVLINKS = [
     title: "Tài Chính",
     href: "/finance",
   },
+  {
+    title: "Lịch Sự Kiện",
+    href: "/calendar",
+  },
 ];
 
 export function Navbar() {
@@ -32,7 +36,7 @@ export function Navbar() {
     <nav className="w-full border-b h-16 sticky top-0 z-50 bg-background dark:bg-background/80 dark:backdrop-blur-xl">
       <div className="sm:container mx-auto w-[95vw] h-full flex items-center justify-between md:gap-2">
         <div className="flex items-center gap-5">
-          <SheetLeftbar />
+          <MobileMenu />
           <div className="flex items-center gap-6">
             <div className="sm:flex hidden">
               <Logo />
