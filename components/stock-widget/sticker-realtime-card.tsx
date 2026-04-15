@@ -98,20 +98,70 @@ export function StickerRealtimeCard({
       })
       .catch(() => {});
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbols]);
+  }, [symbols, priceboard]);
 
+  const [wsStatus, setWsStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
+
+  // Connect once when market is open; reuse the same socket across symbol changes
   useEffect(() => {
-    if (mode !== "realtime") return;
+    if (mode !== "realtime") {
+      setWsStatus("idle");
+      return;
+    }
+    setWsStatus("connecting");
     const client = realtime.create({ symbols });
+    client.on("connected", () => {
+      console.log("[realtime] connected to SSI");
+      setWsStatus("connected");
+    });
+    client.on("disconnected", (reason) => {
+      console.log("[realtime] disconnected:", reason);
+      setWsStatus("connecting");
+    });
+    client.on("reconnecting", (attempt) => {
+      console.log("[realtime] reconnecting attempt", attempt);
+    });
+    client.on("error", (err) => {
+      console.error("[realtime] error:", err);
+      setWsStatus("error");
+    });
     client.on("quote", (parsed) => {
       if (!parsed?.symbol) return;
       setQuotes((prev) => ({ ...prev, [parsed.symbol]: parsed }));
     });
     client.connect();
     clientRef.current = client;
-    return () => client.disconnect();
-  }, [mode, symbols]);
+    return () => {
+      client.disconnect();
+      clientRef.current = null;
+      setWsStatus("idle");
+    };
+    // symbols dùng cho seed ban đầu; thay đổi về sau xử lý qua subscribe/unsubscribe effect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  // Apply symbol diffs via subscribe/unsubscribe instead of reconnecting
+  const prevSymbolsRef = useRef<string[]>(symbols);
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!client || mode !== "realtime") {
+      prevSymbolsRef.current = symbols;
+      return;
+    }
+    const prev = prevSymbolsRef.current;
+    const added = symbols.filter((s) => !prev.includes(s));
+    const removed = prev.filter((s) => !symbols.includes(s));
+    if (added.length > 0) client.subscribe(added);
+    if (removed.length > 0) {
+      client.unsubscribe(removed);
+      setQuotes((q) => {
+        const next = { ...q };
+        removed.forEach((s) => delete next[s]);
+        return next;
+      });
+    }
+    prevSymbolsRef.current = symbols;
+  }, [symbols, mode]);
 
   const handleAddSymbol = () => {
     const s = input.toUpperCase().trim();
@@ -154,8 +204,16 @@ export function StickerRealtimeCard({
 
       <div className="mb-2">
         {mode === "realtime" ? (
-          <Badge variant="outline" className="text-green-600">
-            Dữ liệu realtime
+          <Badge variant="outline" className={
+            wsStatus === "connected" ? "text-green-600" :
+            wsStatus === "connecting" ? "text-yellow-500" :
+            wsStatus === "error" ? "text-red-600" :
+            "text-muted-foreground"
+          }>
+            {wsStatus === "connected" ? "● Realtime (SSI)" :
+             wsStatus === "connecting" ? "○ Đang kết nối..." :
+             wsStatus === "error" ? "✕ Lỗi kết nối" :
+             "Realtime"}
           </Badge>
         ) : mode === "lunch" ? (
           <Badge variant="outline" className="text-orange-500">

@@ -74,7 +74,7 @@ const results = await stock.screening({
   exchange: "HOSE",
   filters: [
     { field: "pe", operator: "<", value: 15 },
-    { field: "roe", operator: ">", value: 0.10 },
+    { field: "roe", operator: ">", value: 0.1 },
   ],
   sortBy: "roe",
   order: "desc",
@@ -113,13 +113,6 @@ Nâng cấp khá nhanh:
 2. Đổi `import vnstock from "vnstock-js"` thành `import { stock } from "vnstock-js"`
 3. Đổi `symbols: ["FPT"]` thành `ticker: "FPT"`
 4. Bỏ đường dẫn dài: `vnstock.stock.quote.history(...)` thành `stock.quote(...)`
-
-## Kế hoạch tiếp theo
-
-- Hỗ trợ thêm nguồn dữ liệu
-- Cải thiện WebSocket reconnect
-- Thêm indicators (MACD, Bollinger Bands, ...)
-- Viết thêm ví dụ và widget mẫu
 
 ## Lời kết
 

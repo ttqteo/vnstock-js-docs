@@ -6,7 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Star, X, RefreshCw } from "lucide-react";
 import { SymbolLink } from "@/components/stock-widget/stock-chart-dialog";
 import { TickerSearch } from "@/components/stock-widget/ticker-search";
-import { VnstockTypes } from "vnstock-js";
+import { VnstockTypes, realtime } from "vnstock-js";
+
+type MarketStatus = "open" | "lunch" | "closed";
+
+function getMarketStatus(): MarketStatus {
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const vn = new Date(utcMs + 7 * 60 * 60000);
+  const day = vn.getDay();
+  if (day === 0 || day === 6) return "closed";
+  const t = vn.getHours() * 60 + vn.getMinutes();
+  if (t >= 540 && t <= 690) return "open";
+  if (t > 690 && t < 780) return "lunch";
+  if (t >= 780 && t <= 900) return "open";
+  return "closed";
+}
 
 const STORAGE_KEY = "vnstock-watchlist";
 const DEFAULT_SYMBOLS = ["FPT", "VNM", "VCB", "HPG", "MWG"];
@@ -134,6 +149,81 @@ export function WatchlistPanel() {
     saveSymbols(symbols);
   }, [symbols, fetchPrices, hydrated]);
 
+  // Realtime WebSocket: subscribe to watchlist during market hours
+  const [marketMode, setMarketMode] = useState<MarketStatus>("closed");
+  const [wsLive, setWsLive] = useState(false);
+  const clientRef = useRef<ReturnType<typeof realtime.create> | null>(null);
+  const prevSymsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    const tick = () => setMarketMode(getMarketStatus());
+    tick();
+    const id = setInterval(tick, 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || marketMode !== "open") return;
+    const client = realtime.create({ symbols: [] });
+    client.on("connected", () => setWsLive(true));
+    client.on("disconnected", () => setWsLive(false));
+    client.on("error", (e) => console.error("[watchlist realtime]", e));
+    client.on("quote", (q) => {
+      if (!q?.symbol) return;
+      const price = q.matched?.price ?? 0;
+      if (price <= 0) return;
+      const prev = prevPrices.current[q.symbol];
+      if (prev != null && price !== prev) {
+        const dir: "up" | "down" = price > prev ? "up" : "down";
+        setFlash((f) => ({ ...f, [q.symbol]: dir }));
+        setTimeout(() => {
+          setFlash((f) => ({ ...f, [q.symbol]: null }));
+        }, 600);
+      }
+      prevPrices.current[q.symbol] = price;
+      setItems((prev) => {
+        const cur = prev[q.symbol];
+        if (!cur) return prev;
+        const ref = cur.refPrice;
+        const change = ref > 0 ? price - ref : cur.change;
+        const changePct = ref > 0 ? (change / ref) * 100 : cur.changePct;
+        return {
+          ...prev,
+          [q.symbol]: {
+            ...cur,
+            price,
+            change,
+            changePct,
+            volume: q.totalVolume ?? cur.volume,
+          },
+        };
+      });
+    });
+    client.connect();
+    clientRef.current = client;
+    prevSymsRef.current = [];
+    return () => {
+      client.disconnect();
+      clientRef.current = null;
+      setWsLive(false);
+    };
+  }, [hydrated, marketMode]);
+
+  // Subscribe/unsubscribe as watchlist changes
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!client || marketMode !== "open") {
+      prevSymsRef.current = symbols;
+      return;
+    }
+    const prev = prevSymsRef.current;
+    const added = symbols.filter((s) => !prev.includes(s));
+    const removed = prev.filter((s) => !symbols.includes(s));
+    if (added.length > 0) client.subscribe(added);
+    if (removed.length > 0) client.unsubscribe(removed);
+    prevSymsRef.current = symbols;
+  }, [symbols, marketMode]);
+
   const handleAdd = (ticker: string) => {
     const s = ticker.toUpperCase().trim();
     if (s && !symbols.includes(s)) {
@@ -157,6 +247,27 @@ export function WatchlistPanel() {
           <CardTitle className="text-sm font-display uppercase tracking-wider flex items-center gap-1.5">
             <Star className="w-3.5 h-3.5" />
             Theo dõi
+            {marketMode === "open" && wsLive && (
+              <span className="text-[0.55rem] font-normal normal-case tracking-normal text-green-500 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                live
+              </span>
+            )}
+            {marketMode === "open" && !wsLive && (
+              <span className="text-[0.55rem] font-normal normal-case tracking-normal text-yellow-500">
+                đang kết nối...
+              </span>
+            )}
+            {marketMode === "lunch" && (
+              <span className="text-[0.55rem] font-normal normal-case tracking-normal text-muted-foreground">
+                nghỉ trưa
+              </span>
+            )}
+            {marketMode === "closed" && (
+              <span className="text-[0.55rem] font-normal normal-case tracking-normal text-muted-foreground">
+                ngoài giờ
+              </span>
+            )}
           </CardTitle>
           <Button
             variant="ghost"

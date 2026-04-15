@@ -1,0 +1,153 @@
+---
+title: "vnstock-js v1.3 — CLI và Realtime trên browser"
+description: "Tra cứu giá từ terminal bằng vài phím gõ. Stream giá realtime vào React component không cần proxy. v1.3 biến vnstock-js từ thư viện thành công cụ hàng ngày."
+date: 15-04-2026
+authors:
+  - avatar: "https://avatars.githubusercontent.com/ttqteo"
+    handle: ttqteo
+    username: Tran Tu Quang
+    handleUrl: "https://github.com/ttqteo"
+cover: "/vnstock.png"
+---
+
+Sau v1.2 (Symbol Directory + Market Calendar), mình nhận được feedback từ hai phía người dùng rất khác nhau:
+
+- **Trader / hobbyist**: "Tôi chỉ muốn gõ 1 lệnh biết giá VCB hôm nay, viết script Node dài quá."
+- **Frontend dev**: "Tôi muốn giá cổ phiếu nhảy trên dashboard, nhưng setup WebSocket proxy qua backend mệt lắm."
+
+v1.3 trả lời cả hai.
+
+## CLI — `vnstock quote VCB`
+
+Cài global một lần:
+
+```bash
+npm install -g vnstock-js
+```
+
+Sau đó gõ bất kỳ đâu:
+
+```bash
+$ vnstock quote VCB
+
+VCB   HOSE
+Giá       85.50   (+0.50  +0.59%)
+Trần      91.50
+Sàn       79.50
+TC        85.00
+KL        1,234,567
+```
+
+Không cần mở editor, không cần viết script. Trong 1 tuần dùng, mình nhận ra CLI thay đổi cách mình làm việc với data thị trường hoàn toàn.
+
+### Các command chính
+
+- **`vnstock quote <SYMBOL>`** — snapshot 1 mã
+- **`vnstock history <SYMBOL> --range 30d`** — OHLCV
+- **`vnstock search "ngân hàng"`** — tìm mã theo tên
+- **`vnstock symbols --exchange HOSE`** — liệt kê mã theo sàn
+
+Mọi command hỗ trợ `--json` và `--csv` để pipe ra file hoặc các tool khác:
+
+```bash
+# Export 1 năm giá ra CSV
+vnstock history VCB --from 1y --csv > vcb-1y.csv
+
+# Pipe qua jq
+vnstock quote FPT --json | jq '.price'
+```
+
+Xem [hướng dẫn CLI đầy đủ](/docs/getting-started/cli).
+
+### Không thích global? `npx`
+
+```bash
+npx vnstock-js quote VCB
+```
+
+Dùng xong, máy sạch, không lem vào `PATH`.
+
+## Realtime — WebSocket trực tiếp trong React
+
+Trước v1.3, nếu bạn muốn giá nhảy live trên web, phải:
+
+1. Viết backend API proxy WebSocket SSI (vì CORS)
+2. Kết nối lại từ client
+3. Tự code reconnect, parse message, heartbeat, ...
+
+Nhức đầu chỉ để show 1 cái giá nhảy.
+
+**Thực ra SSI WebSocket không có CORS** (mình cũng vừa phát hiện khi build realtime v2). Nghĩa là browser gọi thẳng được. Vấn đề chỉ còn là: API phải đủ gọn để dev cảm thấy "đáng làm".
+
+v1.3 dùng `EventEmitter` pattern:
+
+```tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import { realtime } from "vnstock-js";
+
+export function LivePrice() {
+  const [price, setPrice] = useState<number | null>(null);
+
+  useEffect(() => {
+    const client = realtime.create({ symbols: ["FPT"] });
+    client.on("quote", (q) => {
+      if (q.symbol === "FPT") setPrice(q.matched.price);
+    });
+    client.connect();
+    return () => client.disconnect();
+  }, []);
+
+  return (
+    <div>FPT: {price != null ? (price * 1000).toLocaleString() : "..."}</div>
+  );
+}
+```
+
+Đó là toàn bộ setup. Không backend, không proxy, không build config đặc biệt.
+
+### Thêm/bớt mã không reconnect
+
+Watchlist thực tế thay đổi liên tục (user thêm/xoá mã). Reconnect mỗi lần là lãng phí:
+
+```tsx
+client.subscribe(["VNM"]); // thêm mã mới vào sub hiện tại
+client.unsubscribe(["FPT"]); // bỏ mã khỏi sub
+```
+
+Socket giữ nguyên, chỉ gửi message sub/unsub tương ứng.
+
+### Dead-man's switch thay heartbeat
+
+v1.0 realtime dùng WebSocket `ping()` để giữ kết nối. Bug: browser không expose `ping()` API nên về bản chất là no-op, mà server lại reset connection mỗi ~40s vì tưởng client chết.
+
+v1.3 bỏ ping, dùng **dead-man's switch**: nếu trong `deadManTimeout` (mặc định 60s) không nhận bất kỳ message nào, coi như chết và reconnect. Đơn giản hơn, đúng hơn, chạy ở cả Node lẫn browser.
+
+Xem [docs realtime đầy đủ](/docs/key-features/advanced/realtime) có luôn ví dụ chỉ connect trong giờ giao dịch và hiển thị trạng thái kết nối.
+
+## Breaking change cần biết
+
+### `await init()` bắt buộc
+
+Từ v1.3, data symbols và holidays không còn bundle trong npm package — fetch runtime từ raw GitHub, cache disk 24h. Lợi: update symbols mới không cần bump version, package nhẹ hơn. Cost: gọi `init()` một lần ở entrypoint:
+
+```typescript
+import { init } from "vnstock-js";
+
+await init(); // gọi 1 lần ở app start
+```
+
+Các API truy vấn trực tiếp (`quote`, `history`, `company`, `financials`) vẫn không cần `init()`. Chỉ bắt buộc khi dùng `stock.search`, `listing.*`, `market.calendar.*`.
+
+## Patch v1.3.1 — CLI sạch sẽ hơn
+
+Sau 1 tuần dùng CLI, mình tìm ra kha khá bug nhỏ, fix gọn trong v1.3.1:
+
+- `--range 7d` giờ trả đúng ~7 phiên (trước đây trả ~365 do VCI API bỏ qua `start`)
+- Hiển thị giá làm tròn 2 chữ số (không còn `56.291760000000004k`)
+- `--exchange HOSE` hoạt động (auto map HOSE → HSX)
+- `symbols` mặc định trả đầy đủ, `--limit` chỉ khi cần
+- `vnstock -v` cho version
+
+Feedback vẫn mở ở [GitHub Issues](https://github.com/ttqteo/vnstock-js/issues). Cám ơn mọi người đã dùng và góp ý ❤️

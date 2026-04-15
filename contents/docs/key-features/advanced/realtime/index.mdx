@@ -1,0 +1,221 @@
+---
+title: Realtime - Dữ liệu thời gian thực
+description: Kết nối WebSocket SSI để nhận giá cổ phiếu live ở client-side
+---
+
+Realtime module dùng `EventEmitter` pattern, kết nối trực tiếp tới WebSocket SSI (`wss://iboard-pushstream.ssi.com.vn/realtime`). **Không bị CORS** nên có thể gọi thẳng từ browser, không cần proxy qua API route.
+
+## Cài đặt nhanh
+
+```tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import { realtime } from "vnstock-js";
+
+export function LivePrice() {
+  const [price, setPrice] = useState<number | null>(null);
+
+  useEffect(() => {
+    const client = realtime.create({ symbols: ["FPT"] });
+
+    client.on("quote", (q) => {
+      if (q.symbol === "FPT") setPrice(q.matched.price);
+    });
+
+    client.connect();
+    return () => client.disconnect();
+  }, []);
+
+  return <div>FPT: {price != null ? (price * 1000).toLocaleString() : "..."}</div>;
+}
+```
+
+<Note type="note">
+Dữ liệu chỉ có trong **giờ giao dịch**: thứ 2 - thứ 6, 9:00-11:30 và 13:00-15:00 (giờ VN). Ngoài giờ WebSocket vẫn connect được nhưng sẽ không nhận message nào.
+</Note>
+
+## API
+
+### `realtime.create(options)`
+
+Trả về `RealtimeClient` (extends `EventEmitter`).
+
+```typescript
+interface RealtimeClientOptions {
+  symbols?: string[];         // Danh sách mã subscribe khi connect
+  url?: string;               // Custom WS URL (mặc định: SSI)
+  autoReconnect?: boolean;    // Tự động reconnect khi mất kết nối (mặc định: true)
+  reconnectInterval?: number; // ms giữa các lần retry (mặc định: 3000)
+  maxReconnectAttempts?: number; // Mặc định: 10
+  deadManTimeout?: number;    // ms không nhận message → reconnect (mặc định: 60000)
+}
+```
+
+### Methods
+
+| Method | Mô tả |
+|--------|-------|
+| `client.connect()` | Mở WebSocket, subscribe các `symbols` khởi tạo |
+| `client.disconnect()` | Đóng socket, hủy reconnect |
+| `client.subscribe(symbols)` | Thêm mã sub (không cần reconnect) |
+| `client.unsubscribe(symbols)` | Bỏ sub mã (không cần reconnect) |
+
+### Events
+
+| Event | Payload | Mô tả |
+|-------|---------|-------|
+| `quote` | `RealtimeQuote` | Nhận tick giá mới |
+| `connected` | `-` | Socket mở thành công |
+| `disconnected` | `reason: string` | Mất kết nối (chưa bao gồm intentional) |
+| `reconnecting` | `attempt: number` | Đang retry lần thứ N |
+| `error` | `Error` | Lỗi parse / connection / server |
+
+## Ví dụ nâng cao
+
+### Theo dõi nhiều mã, dynamic add/remove
+
+```tsx
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { realtime } from "vnstock-js";
+
+export function Watchlist() {
+  const [symbols, setSymbols] = useState<string[]>(["FPT", "VNM"]);
+  const [quotes, setQuotes] = useState<Record<string, number>>({});
+  const clientRef = useRef<ReturnType<typeof realtime.create> | null>(null);
+  const prevSymbolsRef = useRef<string[]>(symbols);
+
+  // Connect 1 lần khi mount
+  useEffect(() => {
+    const client = realtime.create({ symbols });
+    client.on("quote", (q) => {
+      if (!q?.symbol || !q.matched?.price) return;
+      setQuotes((prev) => ({ ...prev, [q.symbol]: q.matched.price }));
+    });
+    client.connect();
+    clientRef.current = client;
+    return () => client.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Áp diff khi user đổi watchlist, không reconnect
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!client) return;
+    const prev = prevSymbolsRef.current;
+    const added = symbols.filter((s) => !prev.includes(s));
+    const removed = prev.filter((s) => !symbols.includes(s));
+    if (added.length) client.subscribe(added);
+    if (removed.length) client.unsubscribe(removed);
+    prevSymbolsRef.current = symbols;
+  }, [symbols]);
+
+  return (
+    <ul>
+      {symbols.map((s) => (
+        <li key={s}>
+          {s}: {quotes[s] ? (quotes[s] * 1000).toLocaleString() : "..."}
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Chỉ connect trong giờ giao dịch
+
+```tsx
+function getMarketStatus() {
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const vn = new Date(utcMs + 7 * 60 * 60000);
+  const day = vn.getDay();
+  if (day === 0 || day === 6) return "closed";
+  const t = vn.getHours() * 60 + vn.getMinutes();
+  if ((t >= 540 && t <= 690) || (t >= 780 && t <= 900)) return "open";
+  if (t > 690 && t < 780) return "lunch";
+  return "closed";
+}
+
+// Trong component
+const [mode, setMode] = useState(getMarketStatus());
+useEffect(() => {
+  const id = setInterval(() => setMode(getMarketStatus()), 60000);
+  return () => clearInterval(id);
+}, []);
+
+useEffect(() => {
+  if (mode !== "open") return;
+  const client = realtime.create({ symbols: ["FPT"] });
+  client.on("quote", handleQuote);
+  client.connect();
+  return () => client.disconnect();
+}, [mode]);
+```
+
+### Hiển thị trạng thái kết nối
+
+```tsx
+const [status, setStatus] = useState<"idle" | "connecting" | "live" | "error">("idle");
+
+useEffect(() => {
+  const client = realtime.create({ symbols: ["FPT"] });
+  setStatus("connecting");
+  client.on("connected", () => setStatus("live"));
+  client.on("disconnected", () => setStatus("connecting"));
+  client.on("error", () => setStatus("error"));
+  client.on("quote", handleQuote);
+  client.connect();
+  return () => { client.disconnect(); setStatus("idle"); };
+}, []);
+```
+
+## Cấu trúc `RealtimeQuote`
+
+Xem chi tiết tại [RealtimeQuote](/docs/data/RealtimeQuote).
+
+Các field quan trọng:
+
+| Field | Mô tả |
+|-------|-------|
+| `symbol` | Mã cổ phiếu |
+| `matched.price` | Giá khớp (chia 1000, nhân lại để ra VND) |
+| `matched.volume` | KL khớp phiên này |
+| `matched.change` | Thay đổi so với tham chiếu |
+| `matched.changePercent` | % thay đổi (decimal, vd 0.025 = 2.5%) |
+| `bidPrices` / `askPrices` | Top 3 mức giá mua/bán |
+| `totalVolume` | Tổng KL giao dịch trong ngày |
+| `side` | `"buy"` hoặc `"sell"` (bên khớp) |
+
+## Lỗi thường gặp
+
+### "Max reconnect attempts reached"
+
+Sau 10 lần retry fail, client sẽ emit `error`. Kiểm tra:
+- Firewall / VPN có chặn WebSocket
+- URL SSI có đổi không (check [vnstock-js repo](https://github.com/ttqteo/vnstock-js))
+- Tăng `maxReconnectAttempts` nếu cần
+
+### Không nhận được quote ngoài giờ giao dịch
+
+Đây là hành vi bình thường — SSI chỉ stream trong giờ. Dùng `stock.priceBoard()` để lấy snapshot cuối ngày.
+
+### Quote có giá = 0 hoặc ngoài range trần/sàn
+
+Vài tick đầu có thể noisy. Validate bằng `priceBoard` lấy reference/ceiling/floor, rồi filter:
+
+```typescript
+const isValid = price >= floor && price <= ceiling;
+```
+
+## So sánh với API cũ
+
+| v1.0.x (cũ) | v1.1.0+ (hiện tại) |
+|-------------|-------------------|
+| `stock.realtime.connect({onMessage})` | `realtime.create({symbols})` |
+| `stock.realtime.subscribe(socket, {...})` | `client.subscribe([...])` |
+| `stock.realtime.parseData(raw)` | `client.on("quote", handler)` |
+
+API v1 đã bị xóa hoàn toàn từ v1.1.0 (xem [changelog](/docs/getting-started/changelog)).
