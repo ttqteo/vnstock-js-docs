@@ -9,11 +9,14 @@ import {
   Github,
   ArrowRight,
   Gauge,
+  Star,
+  Package,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { stock } from "vnstock-js";
 import { MarketTicker } from "@/components/market-ticker";
+import Copy from "@/components/markdown/copy";
 
 export const revalidate = 3600;
 
@@ -58,7 +61,45 @@ const prices = await stock.quote({
 // Tính SMA 20 ngày
 const sma20 = sma(prices, { period: 20 });`;
 
+async function fetchGithubStars(): Promise<number | null> {
+  try {
+    const res = await fetch(
+      "https://api.github.com/repos/ttqteo/vnstock-js",
+      { next: { revalidate: 3600 } },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.stargazers_count === "number" ? data.stargazers_count : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchNpmVersion(): Promise<string | null> {
+  try {
+    const res = await fetch(
+      "https://registry.npmjs.org/vnstock-js/latest",
+      { next: { revalidate: 3600 } },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.version === "string" ? data.version : null;
+  } catch {
+    return null;
+  }
+}
+
+function formatStars(n: number): string {
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+  return String(n);
+}
+
 export default async function Home() {
+  const [stars, npmVersion] = await Promise.all([
+    fetchGithubStars(),
+    fetchNpmVersion(),
+  ]);
+
   let indexData: {
     symbol: string;
     value: number;
@@ -123,9 +164,10 @@ export default async function Home() {
         </p>
 
         {/* Install command */}
-        <div className="flex items-center gap-2 bg-muted px-5 py-3 mb-10 font-mono text-sm dark:bg-accent">
+        <div className="flex items-center gap-3 bg-muted pl-8 pr-2 py-2 mb-10 font-mono text-sm dark:bg-accent">
           <Terminal className="w-4 h-4 text-muted-foreground shrink-0" />
           <code>npm install vnstock-js</code>
+          <Copy content="npm install vnstock-js" />
         </div>
 
         {/* CTA buttons */}
@@ -155,12 +197,35 @@ export default async function Home() {
           <Link
             href="https://github.com/ttqteo/vnstock-js"
             target="_blank"
+            rel="noopener noreferrer"
             className={buttonVariants({
-              variant: "ghost",
+              variant: "outline",
               size: "lg",
+              className: "gap-2 px-5",
             })}
           >
             <Github className="w-5 h-5" />
+            {stars != null && (
+              <>
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                <span className="font-mono text-sm">{formatStars(stars)}</span>
+              </>
+            )}
+          </Link>
+          <Link
+            href="https://www.npmjs.com/package/vnstock-js"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonVariants({
+              variant: "outline",
+              size: "lg",
+              className: "gap-2 px-5",
+            })}
+          >
+            <Package className="w-5 h-5" />
+            <span className="font-mono text-sm">
+              {npmVersion ? `v${npmVersion}` : "npm"}
+            </span>
           </Link>
         </div>
       </section>
