@@ -15,6 +15,8 @@ import Link from "next/link";
 import { stock } from "vnstock-js";
 import { MarketTicker } from "@/components/market-ticker";
 
+export const revalidate = 3600;
+
 const FEATURES = [
   {
     icon: Zap,
@@ -74,7 +76,7 @@ export default async function Home() {
       indices.map((idx) =>
         stock.index({
           index: idx,
-          start: new Date(Date.now() - 7 * 86400000)
+          start: new Date(Date.now() - 14 * 86400000)
             .toISOString()
             .split("T")[0],
         }),

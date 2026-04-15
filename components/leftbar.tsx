@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
@@ -23,6 +26,17 @@ export function Leftbar() {
 }
 
 export function SheetLeftbar() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon" className="md:hidden flex" aria-label="Mở menu">
+        <AlignLeftIcon />
+      </Button>
+    );
+  }
+
   return (
     <Sheet>
       <SheetTrigger asChild>
