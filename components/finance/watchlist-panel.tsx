@@ -9,6 +9,7 @@ import { TickerSearch } from "@/components/stock-widget/ticker-search";
 import { VnstockTypes, realtime } from "vnstock-js";
 
 type MarketStatus = "open" | "lunch" | "closed";
+type SparkMode = "1D" | "30D";
 
 function getMarketStatus(): MarketStatus {
   const now = new Date();
@@ -52,6 +53,7 @@ interface WatchlistItem {
   ceiling: number;
   floor: number;
   volume: number;
+  totalValue: number;
 }
 
 function getPriceColor(
@@ -67,21 +69,81 @@ function getPriceColor(
   return "text-yellow-500";
 }
 
+function formatVndValue(value: number) {
+  if (value <= 0) return "—";
+  if (value >= 1e12) return (value / 1e12).toFixed(1) + " nghìn tỷ";
+  if (value >= 1e9) return (value / 1e9).toFixed(1) + " tỷ";
+  if (value >= 1e6) return (value / 1e6).toFixed(1) + " tr";
+  if (value >= 1e3) return (value / 1e3).toFixed(0) + "K";
+  return value.toLocaleString();
+}
+
+// ── SVG Sparkline ──────────────────────────────────────────────
+function MiniSparkline({
+  values,
+  color,
+  width = 56,
+  height = 22,
+}: {
+  values: number[];
+  color: string;
+  width?: number;
+  height?: number;
+}) {
+  if (values.length < 2) return null;
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const pad = 1; // 1px padding top/bottom
+
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * width;
+    const y = pad + (height - 2 * pad) - ((v - min) / range) * (height - 2 * pad);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+
+  return (
+    <svg width={width} height={height} className="block">
+      <polyline
+        points={points.join(" ")}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────
 export function WatchlistPanel() {
   const [symbols, setSymbols] = useState<string[]>([]);
   const [items, setItems] = useState<Record<string, WatchlistItem>>({});
   const [loading, setLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  // "up" | "down" | null per symbol, cleared after animation
   const [flash, setFlash] = useState<Record<string, "up" | "down" | null>>({});
   const prevPrices = useRef<Record<string, number>>({});
 
-  // Load from localStorage on mount — single source of truth
+  // Sparkline state
+  const [sparkMode, setSparkMode] = useState<SparkMode>("1D");
+  // 30D: daily close prices per symbol
+  const [spark30D, setSpark30D] = useState<Record<string, number[]>>({});
+  // 1D: intraday price ticks per symbol (from realtime quotes)
+  const [spark1D, setSpark1D] = useState<Record<string, number[]>>({});
+
+  // Load from localStorage on mount
   useEffect(() => {
     setSymbols(loadSymbols());
+    try {
+      const stored = localStorage.getItem("vnstock-spark-mode");
+      if (stored === "1D" || stored === "30D") setSparkMode(stored);
+    } catch {}
     setHydrated(true);
   }, []);
 
+  // ── Fetch priceboard prices ──────────────────────────────────
   const fetchPrices = useCallback(
     async (syms: string[]) => {
       if (syms.length === 0) return;
@@ -93,7 +155,6 @@ export function WatchlistPanel() {
         const arr = await res.json();
         if (!Array.isArray(arr)) return;
 
-        // Detect price changes for flash
         const newFlash: Record<string, "up" | "down" | null> = {};
         arr.forEach((pb: VnstockTypes.PriceBoardItem) => {
           const price = pb.price ?? 0;
@@ -122,6 +183,8 @@ export function WatchlistPanel() {
             const price = pb.price ?? 0;
             const change = ref > 0 ? price - ref : 0;
             const changePct = ref > 0 ? (change / ref) * 100 : 0;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const totalVal = ((pb as any).totalValue as number) ?? 0;
             next[pb.symbol] = {
               symbol: pb.symbol,
               price,
@@ -131,7 +194,24 @@ export function WatchlistPanel() {
               ceiling: pb.ceilingPrice ?? 0,
               floor: pb.floorPrice ?? 0,
               volume: pb.totalVolume ?? 0,
+              // totalValue from API is in millions VND → convert to VND
+              totalValue:
+                totalVal > 0
+                  ? totalVal * 1e6
+                  : price * (pb.totalVolume ?? 0) * 1e6,
             };
+          });
+          return next;
+        });
+
+        // Seed 1D sparkline with current price as first point
+        setSpark1D((prev) => {
+          const next = { ...prev };
+          arr.forEach((pb: VnstockTypes.PriceBoardItem) => {
+            const price = pb.price ?? 0;
+            if (price > 0 && !next[pb.symbol]?.length) {
+              next[pb.symbol] = [price * 1000];
+            }
           });
           return next;
         });
@@ -142,14 +222,36 @@ export function WatchlistPanel() {
     []
   );
 
-  // Fetch on mount & when symbols change
   useEffect(() => {
     if (!hydrated) return;
     fetchPrices(symbols);
     saveSymbols(symbols);
   }, [symbols, fetchPrices, hydrated]);
 
-  // Realtime WebSocket: subscribe to watchlist during market hours
+  // ── Fetch 30D sparkline data ─────────────────────────────────
+  const fetch30D = useCallback(async (syms: string[]) => {
+    const results: Record<string, number[]> = {};
+    await Promise.allSettled(
+      syms.map(async (ticker) => {
+        const res = await fetch(`/api/stock/quote?ticker=${ticker}`);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const recent = data.slice(-30);
+          results[ticker] = recent.map(
+            (d: { close: number }) => d.close * 1000
+          );
+        }
+      })
+    );
+    setSpark30D((prev) => ({ ...prev, ...results }));
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || symbols.length === 0) return;
+    fetch30D(symbols);
+  }, [symbols, fetch30D, hydrated]);
+
+  // ── Realtime WebSocket ───────────────────────────────────────
   const [marketMode, setMarketMode] = useState<MarketStatus>("closed");
   const [wsLive, setWsLive] = useState(false);
   const clientRef = useRef<ReturnType<typeof realtime.create> | null>(null);
@@ -172,6 +274,8 @@ export function WatchlistPanel() {
       if (!q?.symbol) return;
       const price = q.matched?.price ?? 0;
       if (price <= 0) return;
+
+      // Flash animation
       const prev = prevPrices.current[q.symbol];
       if (prev != null && price !== prev) {
         const dir: "up" | "down" = price > prev ? "up" : "down";
@@ -181,6 +285,8 @@ export function WatchlistPanel() {
         }, 600);
       }
       prevPrices.current[q.symbol] = price;
+
+      // Update price data
       setItems((prev) => {
         const cur = prev[q.symbol];
         if (!cur) return prev;
@@ -195,8 +301,18 @@ export function WatchlistPanel() {
             change,
             changePct,
             volume: q.totalVolume ?? cur.volume,
+            totalValue: q.totalValue ?? cur.totalValue,
           },
         };
+      });
+
+      // Append to 1D sparkline (cap at 200 points to avoid memory bloat)
+      const priceVnd = price * 1000;
+      setSpark1D((prev) => {
+        const arr = prev[q.symbol] ?? [];
+        const next = [...arr, priceVnd];
+        if (next.length > 200) next.shift();
+        return { ...prev, [q.symbol]: next };
       });
     });
     client.connect();
@@ -240,6 +356,17 @@ export function WatchlistPanel() {
     });
   };
 
+  // Pick sparkline data based on mode
+  // 1D: use realtime ticks, fallback to 30D if < 2 points (ngoài giờ)
+  function getSparkValues(symbol: string): number[] {
+    if (sparkMode === "1D") {
+      const intraday = spark1D[symbol] ?? [];
+      if (intraday.length >= 2) return intraday;
+      return spark30D[symbol] ?? [];
+    }
+    return spark30D[symbol] ?? [];
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -269,17 +396,36 @@ export function WatchlistPanel() {
               </span>
             )}
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={() => fetchPrices(symbols)}
-            disabled={loading}
-          >
-            <RefreshCw
-              className={`w-3 h-3 ${loading ? "animate-spin" : ""}`}
-            />
-          </Button>
+          <div className="flex items-center gap-1">
+            {/* Spark mode toggle */}
+            {(["1D", "30D"] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => {
+                  setSparkMode(mode);
+                  try { localStorage.setItem("vnstock-spark-mode", mode); } catch {}
+                }}
+                className={`px-1.5 py-0.5 text-[0.55rem] uppercase tracking-wider transition-colors ${
+                  sparkMode === mode
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {mode}
+              </button>
+            ))}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => fetchPrices(symbols)}
+              disabled={loading}
+            >
+              <RefreshCw
+                className={`w-3 h-3 ${loading ? "animate-spin" : ""}`}
+              />
+            </Button>
+          </div>
         </div>
         <div className="mt-2">
           <TickerSearch
@@ -289,32 +435,30 @@ export function WatchlistPanel() {
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="flex items-center text-[0.6rem] text-muted-foreground uppercase tracking-wider pb-1.5 border-b mb-1">
-          <span className="flex-1">Mã</span>
-          <span className="w-16 text-right">Giá</span>
-          <span className="w-16 text-right">%</span>
-          <span className="w-16 text-right hidden sm:block">KL</span>
+        {/* Header */}
+        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center text-[0.6rem] text-muted-foreground uppercase tracking-wider pb-1.5 border-b mb-1">
+          <span>Tên / KLGD</span>
+          <span className="w-20 text-right">Giá</span>
+          <span className="w-14 text-right">%</span>
           <span className="w-5" />
         </div>
 
-        <div className="space-y-0.5 max-h-[360px] overflow-y-auto">
+        <div className="max-h-[420px] overflow-y-auto divide-y divide-border/50">
           {symbols.map((symbol) => {
             const item = items[symbol];
+            const sparkValues = getSparkValues(symbol);
             if (!item) {
               return (
-                <div
-                  key={symbol}
-                  className="flex items-center py-1.5 text-sm"
-                >
-                  <span className="flex-1 font-medium">
+                <div key={symbol} className="flex items-center py-3">
+                  <span className="font-medium">
                     <SymbolLink symbol={symbol} className="text-xs" />
                   </span>
-                  <span className="text-xs text-muted-foreground italic">
+                  <span className="ml-2 text-xs text-muted-foreground italic">
                     Đang tải...
                   </span>
                   <button
                     onClick={() => handleRemove(symbol)}
-                    className="ml-2 text-muted-foreground hover:text-foreground"
+                    className="ml-auto text-muted-foreground hover:text-foreground"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -329,6 +473,13 @@ export function WatchlistPanel() {
               item.floor
             );
 
+            const sparkColor =
+              item.change > 0
+                ? "#22c55e"
+                : item.change < 0
+                  ? "#ef4444"
+                  : "#eab308";
+
             const fl = flash[symbol];
             const flashClass =
               fl === "up"
@@ -340,30 +491,43 @@ export function WatchlistPanel() {
             return (
               <div
                 key={symbol}
-                className={`flex items-center py-1.5 text-sm group hover:bg-muted/50 rounded-sm px-0.5 -mx-0.5 transition-colors ${flashClass}`}
+                className={`grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center py-2.5 group hover:bg-muted/50 rounded-sm px-0.5 -mx-0.5 transition-colors ${flashClass}`}
               >
-                <span className="flex-1 font-medium">
-                  <SymbolLink symbol={symbol} className="text-xs" />
-                </span>
-                <span className={`w-16 text-right font-mono text-xs ${color}`}>
+                {/* Left: Name + sparkline + volume */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="shrink-0">
+                    <SymbolLink
+                      symbol={symbol}
+                      className="text-sm font-bold"
+                    />
+                    <p className="text-[0.6rem] text-muted-foreground leading-tight">
+                      KL:{formatVndValue(item.totalValue)}
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    <MiniSparkline key={`${symbol}-${sparkMode}`} values={sparkValues} color={sparkColor} />
+                  </div>
+                </div>
+
+                {/* Price */}
+                <span
+                  className={`w-20 text-right font-mono text-xs tabular-nums ${color}`}
+                >
                   {(item.price * 1000).toLocaleString()}
                 </span>
+
+                {/* Change % */}
                 <span
-                  className={`w-16 text-right font-mono text-xs ${color}`}
+                  className={`w-14 text-right font-mono text-xs tabular-nums ${color}`}
                 >
                   {item.changePct > 0 ? "+" : ""}
                   {item.changePct.toFixed(2)}%
                 </span>
-                <span className="w-16 text-right font-mono text-xs text-muted-foreground hidden sm:block">
-                  {item.volume > 1e6
-                    ? (item.volume / 1e6).toFixed(1) + "M"
-                    : item.volume > 1e3
-                      ? (item.volume / 1e3).toFixed(0) + "K"
-                      : item.volume.toLocaleString()}
-                </span>
+
+                {/* Delete */}
                 <button
                   onClick={() => handleRemove(symbol)}
-                  className="ml-1 w-5 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="w-5 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <X className="w-3 h-3" />
                 </button>

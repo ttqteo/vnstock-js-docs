@@ -38,6 +38,7 @@ export default async function FinancePage() {
     gainersResult,
     losersResult,
     goldResult,
+    exchangeResult,
   ] = await Promise.allSettled([
     stock.index({ index: "VNINDEX", start: daysAgo(90) }),
     stock.index({ index: "HNXIndex", start: daysAgo(7) }),
@@ -45,6 +46,7 @@ export default async function FinancePage() {
     stock.topGainers(),
     stock.topLosers(),
     commodity.gold.priceGiaVangNet(),
+    commodity.exchange(),
   ]);
 
   const vnindex = vnindexResult.status === "fulfilled" ? vnindexResult.value : [];
@@ -53,6 +55,7 @@ export default async function FinancePage() {
   const gainers = gainersResult.status === "fulfilled" ? gainersResult.value : [];
   const losers = losersResult.status === "fulfilled" ? losersResult.value : [];
   const gold = goldResult.status === "fulfilled" ? goldResult.value : [];
+  const exchangeRates = exchangeResult.status === "fulfilled" ? exchangeResult.value : [];
 
   // Build index summary cards
   const indices = [
@@ -83,13 +86,30 @@ export default async function FinancePage() {
     volume: d.volume,
   }));
 
+  // Index sparkline data (last 30 days close prices)
+  const indexSparklines = [
+    { name: "VNINDEX", data: vnindex },
+    { name: "HNX", data: hnx },
+    { name: "UPCOM", data: upcom },
+  ].map(({ name, data }) => ({
+    name,
+    closes: data.slice(-30).map((d) => d.close * 1000),
+  }));
+
   // Fetch fuel price forecast from chogia.vn
   let fuelPrices: { name: string; price: string; change: string }[] = [];
   let fuelForecastDate = "";
   try {
     const fuelRes = await fetch(
       "https://chogia.vn/du-bao-gia-xang-dau-37804/",
-      { next: { revalidate: 3600 } },
+      {
+        next: { revalidate: 3600 },
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml",
+          "Accept-Language": "vi-VN,vi;q=0.9,en;q=0.8",
+        },
+      },
     );
     if (fuelRes.ok) {
       const html = await fuelRes.text();
@@ -150,6 +170,8 @@ export default async function FinancePage() {
       news={newsArticles.slice(0, 15)}
       fuelPrices={fuelPrices}
       fuelForecastDate={fuelForecastDate}
+      exchangeRates={exchangeRates}
+      indexSparklines={indexSparklines}
     />
   );
 }

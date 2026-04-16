@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, LayoutDashboard, BarChart3 } from "lucide-react";
 import { FinanceChart } from "./finance-chart";
 import { SymbolLink } from "@/components/stock-widget/stock-chart-dialog";
 import { StockLookup } from "./stock-lookup";
@@ -45,6 +45,161 @@ interface FuelPrice {
   name: string;
   price: string;
   change: string;
+}
+
+interface ExchangeRate {
+  currencyCode: string;
+  currencyName: string;
+  buyCash: string;
+  buyTransfer: string;
+  sell: string;
+}
+
+interface IndexSparkline {
+  name: string;
+  closes: number[];
+}
+
+// ── SVG Sparkline (reusable) ───────────────────────────────────
+function Sparkline({
+  values,
+  color,
+  width = 80,
+  height = 28,
+}: {
+  values: number[];
+  color: string;
+  width?: number;
+  height?: number;
+}) {
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const pad = 1;
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * width;
+    const y = pad + (height - 2 * pad) - ((v - min) / range) * (height - 2 * pad);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  return (
+    <svg width={width} height={height} className="block">
+      <polyline
+        points={points.join(" ")}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+// ── Exchange Rate Card ─────────────────────────────────────────
+const FEATURED_CURRENCIES = ["USD", "EUR", "JPY", "GBP", "CNY", "KRW", "SGD", "THB"];
+
+function ExchangeRateCard({ rates }: { rates: ExchangeRate[] }) {
+  if (!rates || rates.length === 0) return null;
+  const featured = rates.filter((r) =>
+    FEATURED_CURRENCIES.includes(r.currencyCode)
+  );
+  if (featured.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-display uppercase tracking-wider">
+            Tỷ Giá Ngoại Tệ
+          </CardTitle>
+          <span className="text-[0.55rem] text-muted-foreground uppercase tracking-wider">
+            Vietcombank
+          </span>
+        </div>
+        <div className="flex items-center text-[0.55rem] text-muted-foreground uppercase tracking-wider mt-1">
+          <span className="flex-1">Ngoại tệ</span>
+          <span className="w-20 text-right">Mua CK</span>
+          <span className="w-20 text-right">Bán</span>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="divide-y divide-border/50">
+          {featured.map((rate) => (
+            <div
+              key={rate.currencyCode}
+              className="flex items-center py-1.5 text-sm"
+            >
+              <div className="flex-1">
+                <span className="font-bold text-xs">{rate.currencyCode}</span>
+              </div>
+              <span className="w-20 text-right font-mono text-xs">
+                {parseFloat(rate.buyTransfer).toLocaleString()}
+              </span>
+              <span className="w-20 text-right font-mono text-xs">
+                {parseFloat(rate.sell).toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Index Sparkline Card ───────────────────────────────────────
+function IndexSparklineCard({
+  indices,
+  sparklines,
+}: {
+  indices: IndexSummary[];
+  sparklines: IndexSparkline[];
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-display uppercase tracking-wider">
+          Chỉ Số Thị Trường
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="divide-y divide-border/50">
+          {indices.map((idx) => {
+            const spark = sparklines.find((s) => s.name === idx.name);
+            const color = idx.change > 0 ? "#22c55e" : idx.change < 0 ? "#ef4444" : "#eab308";
+            return (
+              <div
+                key={idx.name}
+                className="flex items-center gap-3 py-2.5"
+              >
+                <div className="w-16 shrink-0">
+                  <p className="text-xs font-bold">{idx.name}</p>
+                  <p className={`text-[0.6rem] font-mono ${getPriceColor(idx.change)}`}>
+                    {idx.changePct > 0 ? "+" : ""}
+                    {idx.changePct.toFixed(2)}%
+                  </p>
+                </div>
+                <div className="flex-1">
+                  {spark && spark.closes.length >= 2 ? (
+                    <Sparkline values={spark.closes} color={color} width={120} height={28} />
+                  ) : null}
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-mono font-bold">
+                    {idx.value.toFixed(2)}
+                  </p>
+                  <p className={`text-[0.6rem] font-mono ${getPriceColor(idx.change)}`}>
+                    {idx.change > 0 ? "+" : ""}
+                    {idx.change.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function getPriceColor(change: number) {
@@ -465,6 +620,8 @@ export function FinanceDashboard({
   news,
   fuelPrices,
   fuelForecastDate,
+  exchangeRates,
+  indexSparklines,
 }: {
   indices: IndexSummary[];
   chartData: ChartDataPoint[];
@@ -474,8 +631,19 @@ export function FinanceDashboard({
   news: NewsArticle[];
   fuelPrices?: FuelPrice[];
   fuelForecastDate?: string;
+  exchangeRates?: ExchangeRate[];
+  indexSparklines?: IndexSparkline[];
 }) {
   const [selectedIndex] = useState("VNINDEX");
+  const [showChart, setShowChart] = useState(true);
+
+  // Load layout preference from localStorage after hydration
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("vnstock-layout");
+      if (stored === "compact") setShowChart(false);
+    } catch {}
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -483,14 +651,38 @@ export function FinanceDashboard({
         <h1 className="font-display text-2xl sm:text-3xl font-extrabold uppercase tracking-tight">
           Thị trường
         </h1>
-        <p className="text-xs text-muted-foreground">
-          {new Date().toLocaleDateString("vi-VN", {
-            weekday: "long",
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          })}
-        </p>
+        <div className="flex items-center gap-2">
+          <div className="flex border rounded-sm overflow-hidden">
+            <button
+              onClick={() => {
+                setShowChart(true);
+                try { localStorage.setItem("vnstock-layout", "chart"); } catch {}
+              }}
+              className={`p-1.5 transition-colors ${showChart ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              title="Hiển thị biểu đồ"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => {
+                setShowChart(false);
+                try { localStorage.setItem("vnstock-layout", "compact"); } catch {}
+              }}
+              className={`p-1.5 transition-colors ${!showChart ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              title="Ẩn biểu đồ"
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {new Date().toLocaleDateString("vi-VN", {
+              weekday: "long",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            })}
+          </p>
+        </div>
       </div>
 
       <StockLookup />
@@ -502,34 +694,54 @@ export function FinanceDashboard({
         <GoldMiniCard gold={gold} />
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_340px] gap-6">
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-display uppercase tracking-wider">
-                Biểu đồ {selectedIndex}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {chartData.length > 0 ? (
-                <FinanceChart data={chartData} />
-              ) : (
-                <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-                  Không có dữ liệu
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+      {showChart ? (
+        /* Layout 1: Chart + Sidebar */
+        <div className="grid lg:grid-cols-[1fr_340px] gap-6">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-display uppercase tracking-wider">
+                  Biểu đồ {selectedIndex}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {chartData.length > 0 ? (
+                  <FinanceChart data={chartData} />
+                ) : (
+                  <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                    Không có dữ liệu
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-        <div className="space-y-4">
-          <WatchlistPanel />
-          {fuelPrices && fuelPrices.length > 0 && (
-            <FuelPriceCard fuelPrices={fuelPrices} forecastDate={fuelForecastDate} />
-          )}
-          {/* <TopMoversCard gainers={gainers} losers={losers} /> */}
+          <div className="space-y-4">
+            <WatchlistPanel />
+            {fuelPrices && fuelPrices.length > 0 && (
+              <FuelPriceCard fuelPrices={fuelPrices} forecastDate={fuelForecastDate} />
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Layout 2: No chart — watchlist + market info */
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <WatchlistPanel />
+          <div className="space-y-4">
+            {indexSparklines && indexSparklines.length > 0 && (
+              <IndexSparklineCard indices={indices} sparklines={indexSparklines} />
+            )}
+            {exchangeRates && exchangeRates.length > 0 && (
+              <ExchangeRateCard rates={exchangeRates} />
+            )}
+          </div>
+          <div className="space-y-4">
+            {fuelPrices && fuelPrices.length > 0 && (
+              <FuelPriceCard fuelPrices={fuelPrices} forecastDate={fuelForecastDate} />
+            )}
+          </div>
+        </div>
+      )}
 
       <AcademyPanel />
 
