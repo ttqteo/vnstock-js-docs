@@ -10,28 +10,39 @@ import { SheetClose } from "@/components/ui/sheet";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { VersionBadge } from "./version-badge";
 
 export default function SubLink({
   title,
   href,
   items,
   noLink,
+  since,
+  releasedAt,
   level,
   isSheet,
 }: EachRoute & { level: number; isSheet: boolean }) {
   const path = usePathname();
-  const [isOpen, setIsOpen] = useState(level == 0);
+  // Mặc định expand tất cả section khi load lần đầu
+  const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
     if (path == href || path.includes(href)) setIsOpen(true);
   }, [href, path]);
+
+  const labelWithBadge = (
+    <>
+      {title}
+      <VersionBadge since={since} releasedAt={releasedAt} />
+    </>
+  );
 
   const Comp = (
     <Anchor
       activeClassName="text-primary dark:font-medium font-bold"
       href={href}
     >
-      {title}
+      {labelWithBadge}
     </Anchor>
   );
 
@@ -42,7 +53,7 @@ export default function SubLink({
       Comp
     )
   ) : (
-    <h4 className="font-medium sm:text-sm text-primary">{title}</h4>
+    <h4 className="font-medium sm:text-sm text-primary">{labelWithBadge}</h4>
   );
 
   if (!items) {

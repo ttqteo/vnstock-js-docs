@@ -1,0 +1,219 @@
+---
+title: MCP Server - Hỏi Claude về Cổ Phiếu VN
+description: vnstock-js đi kèm MCP server expose 11 tools cho Claude Desktop / Cursor / VS Code / Claude Code CLI
+---
+
+Từ v1.4, vnstock-js đi kèm **MCP (Model Context Protocol) server** — Claude/Cursor/VS Code có thể gọi 11 tools để query thị trường VN qua natural language.
+
+## 11 tools
+
+### Data tools (8)
+
+- `get_quote(symbol)` — priceBoard snapshot
+- `get_history(symbol, from?, to?, limit?)` — OHLCV history
+- `search_symbols(query, limit?)` — fuzzy search
+- `list_symbols(exchange?, limit?)` — by exchange
+- `top_movers(limit?)` — gainers + losers
+- `is_trade_day(date?)` — calendar check
+- `get_trading_calendar(year)` — holidays
+- `get_company_info(symbol)` — profile
+
+### AI tools (3)
+
+- `get_ai_context(symbol, lookback?)` — structured technical analysis JSON
+- `to_ai_prompt(symbol, lang?)` — plain-text format
+- `compare_symbols(symbols)` — side-by-side multi-symbol
+
+## Claude Desktop
+
+Edit `claude_desktop_config.json`:
+
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "vnstock": {
+      "command": "npx",
+      "args": ["-y", "vnstock-js", "mcp"]
+    }
+  }
+}
+```
+
+Reload Claude Desktop.
+
+## Claude Code CLI
+
+User-scope (toàn cục, mọi project dùng):
+
+```bash
+claude mcp add --scope user vnstock npx -y vnstock-js mcp
+claude mcp list
+# Expected: "vnstock: ... - ✓ Connected"
+```
+
+Project-scope (commit `.mcp.json` chia sẻ team):
+
+```bash
+claude mcp add --scope project vnstock npx -y vnstock-js mcp
+```
+
+<Note type="warning">
+Project-scope MCP yêu cầu **approve** trong session đầu tiên. Trong Claude Code gõ `/mcp` → approve `vnstock`. User-scope không cần.
+</Note>
+
+## Cursor / VS Code
+
+Cùng config schema. Xem docs MCP của từng client cho path file config cụ thể.
+
+## Test queries
+
+Sau khi setup, gõ trong Claude:
+
+| Query | Tool Claude gọi |
+|---|---|
+| `giá VCB hôm nay` | `get_quote` |
+| `phân tích kỹ thuật VCB` | `get_ai_context` |
+| `xuất context VCB sang text để dán GPT` | `to_ai_prompt` |
+| `so sánh VCB và TCB` | `compare_symbols` |
+| `top mover hôm nay` | `top_movers` |
+| `FPT 30 phiên qua` | `get_history` |
+| `tìm mã ngân hàng` | `search_symbols` |
+| `30/4/2026 có giao dịch không` | `is_trade_day` |
+| `ngày nghỉ chứng khoán 2026` | `get_trading_calendar` |
+| `FPT là công ty gì` | `get_company_info` |
+| `5 mã HOSE` | `list_symbols` |
+
+## Architecture
+
+```
+Claude Desktop / Cursor / VS Code / Claude Code
+        │  stdio JSON-RPC
+        ▼
+vnstock mcp  (Node subprocess)
+        │  @modelcontextprotocol/sdk
+        ▼
+vnstock-js SDK (Indicators v2, AI context, REST adapter)
+        │
+        ▼
+VCI REST (+ session cache + retry)
+```
+
+- **Session cache** 30s cho quote, 60s cho aiContext — Claude spam tool calls không hit rate limit.
+- **Lazy init** `await init()` chỉ cho tools cần symbols/calendar. `get_quote`/`get_history` skip → startup <500ms.
+- **Bilingual descriptions** Vi + En giúp Claude pick tool đúng cho cả query tiếng Việt và tiếng Anh.
+
+## Troubleshooting
+
+### "vnstock not found" sau khi `npm i -g`
+
+Verify global symlink:
+
+```bash
+which vnstock          # macOS/Linux
+where.exe vnstock      # Windows
+npm ls -g vnstock-js
+```
+
+### MCP server không kết nối
+
+Trong Claude Code:
+
+```bash
+claude mcp list        # check status
+```
+
+Test MCP server thủ công:
+
+```bash
+vnstock mcp
+# Stdout sẽ idle. Stderr: "[vnstock-js mcp] Server started (v1.4.0), 11 tools registered."
+```
+
+### Cloudflare 1015 rate-limited
+
+Khi Claude spam quá nhanh → VCI throttle. Session cache (30s/60s) đã giảm pressure, nhưng nếu vẫn hit: chờ 5-15 phút. Issue [#10](https://github.com/ttqteo/vnstock-js/issues/10) tracking auto-backoff.
+
+## Use case — Portfolio review với personal context
+
+Một trong những lợi ích lớn nhất của MCP là Claude **kết hợp được dữ liệu cá nhân bạn cung cấp** với data từ `vnstock` tool. SDK chỉ provide raw context, Claude tự reason.
+
+### Pattern 1 — Inline (1 mã)
+
+Trong Claude Code session, gõ prompt có chứa context:
+
+```
+Phân tích VCB hôm nay. Giá vốn 50, KL 100, NAV tổng 100 triệu.
+Recommend hold/buy/trim/sell.
+```
+
+Claude tự động:
+
+1. Gọi `mcp__vnstock__get_ai_context("VCB")` lấy trend/indicators/S-R/volume/performance
+2. Tính PnL cá nhân: `(currentPrice - 50) × 100`
+3. Tính % position trong NAV
+4. Reasoning kết hợp technical signal + position size → recommend với rationale
+
+Output dạng:
+
+```
+VCB — current 63.5k, PnL +13.5k/cp (+27%), value ~6.35M (~6.4% NAV)
+Trend: neutral (EMA chain mixed), RSI 60, ATR 1.66
+Support: 62.6 / 59.2  Resistance: 65.2 / 66.7 / volume signal: normal
+
+Recommend: HOLD
+- Đã có lãi tốt nhưng chưa chạm resistance gần (65.2)
+- Trend chưa rõ → tránh add thêm
+- Đặt trailing stop quanh support 62.6 để bảo vệ lợi nhuận
+```
+
+### Pattern 2 — CSV portfolio
+
+Tạo file `portfolio.csv`:
+
+```csv
+symbol,cost,quantity
+VCB,50.0,100
+FPT,80.0,50
+HPG,28.0,200
+```
+
+Prompt Claude:
+
+```
+Đọc portfolio.csv. Với mỗi mã, gọi get_ai_context, tính PnL hiện tại + %,
+so với NAV tổng 100 triệu, đưa recommend hold/buy/trim/sell và giải thích.
+Output dạng bảng markdown.
+```
+
+Claude:
+
+1. `Read` tool đọc CSV
+2. Loop từng row → `mcp__vnstock__get_ai_context(symbol)` (parallel khi có thể)
+3. Compute PnL per position + % NAV
+4. Apply heuristic recommendation:
+   - Trend bullish + RSI < 70 + chưa chạm R → **hold/add**
+   - Trend bearish + RSI > 70 + PnL > 30% → **trim**
+   - Trend bearish + PnL âm + RSI < 30 → **stop-loss hoặc DCA tùy conviction**
+5. Output bảng kèm portfolio-level summary
+
+### Pattern 3 — Daily report multi-symbol
+
+```
+Cho tôi snapshot watchlist banks hôm nay. Mỗi mã: trend, RSI, % change 7d,
+volume signal. Highlight mã có volume spike hoặc breakout.
+```
+
+Claude tự gọi tool cho từng mã trong watchlist, format bảng concise, tag mã đáng chú ý.
+
+<Note type="warning">
+**Không phải lời khuyên đầu tư.** Pattern trên là cách dùng MCP làm research assistant — Claude reason trên rules-based technical signal + position context. User judgment vẫn quyết định cuối.
+
+Số liệu trong ví dụ (giá vốn 50, KL 100, NAV 100 triệu) là **placeholder minh hoạ**, không phải khuyến nghị mua/bán mã cụ thể.
+</Note>
+
+<Note type="note">
+Bạn có thể request format output bất kỳ — markdown table, JSON cho parse downstream, plain text để paste sang Telegram/Slack. Claude flexible với prompt.
+</Note>

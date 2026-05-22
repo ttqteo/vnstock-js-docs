@@ -1,0 +1,94 @@
+---
+title: Watchlist - Danh Sách Mã Yêu Thích
+description: Quản lý nhiều watchlist, persist ~/.vnstock-js/watchlist.json, fetch quotes batch
+---
+
+Từ v1.4, vnstock-js có module `watchlist` đơn giản để track nhiều danh sách mã (banks, tech, watchlist riêng...) — persist local trên Node, browser opt-in adapter.
+
+```typescript
+import { watchlist } from 'vnstock-js';
+```
+
+## CRUD cơ bản
+
+```typescript
+// Tạo watchlist
+await watchlist.create('banks');
+
+// Thêm 1 mã hoặc nhiều mã
+await watchlist.add('banks', 'VCB');
+await watchlist.add('banks', ['TCB', 'MBB', 'ACB']);
+
+// Liệt kê
+const symbols = await watchlist.list('banks');
+// → ['VCB', 'TCB', 'MBB', 'ACB']
+
+const allNames = await watchlist.listAll();
+// → ['banks', 'tech', ...]
+
+// Xoá mã
+await watchlist.remove('banks', 'ACB');
+
+// Xoá watchlist
+await watchlist.delete('banks');
+
+// Check tồn tại
+const exists = await watchlist.has('banks');
+```
+
+## Auto-uppercase + dedup
+
+```typescript
+await watchlist.add('mixed', ['vcb', 'TCB', 'vcb', 'tcb']);
+await watchlist.list('mixed');
+// → ['VCB', 'TCB']  (dedup, uppercase)
+```
+
+## Persist
+
+**Node**: `~/.vnstock-js/watchlist.json`, atomic rename khi write.
+
+```json
+{
+  "banks": { "symbols": ["VCB","TCB","MBB"], "createdAt": "2026-05-14" },
+  "tech":  { "symbols": ["FPT","CMG"],       "createdAt": "2026-05-14" }
+}
+```
+
+**Browser**: default no-op + warn console. Inject custom adapter để dùng localStorage / IndexedDB:
+
+```typescript
+import { Watchlist, WatchlistStorage } from 'vnstock-js';
+
+const localStorageAdapter: WatchlistStorage = {
+  async read() {
+    return localStorage.getItem('vnstock_watchlist');
+  },
+  async write(json) {
+    localStorage.setItem('vnstock_watchlist', json);
+  },
+};
+
+const wl = new Watchlist(localStorageAdapter);
+await wl.add('myList', 'VCB');
+```
+
+## Fetch quotes batch
+
+Combine với easy-mode `compareSymbols` để fetch giá toàn watchlist:
+
+```typescript
+import { watchlist, compareSymbols } from 'vnstock-js';
+
+const symbols = await watchlist.list('banks');
+const quotes = await compareSymbols(symbols);
+// → [{ symbol: 'VCB', price: 59.3, change: 0.17, ... }, ...]
+```
+
+<Note type="note">
+Watchlist là **local-only** — không sync cloud. Nếu cần multi-device, build adapter trên cloud DB của bạn.
+</Note>
+
+<Note type="warning">
+2 process cùng ghi watchlist file có thể race (last-wins). Nếu chạy nhiều agent song song, tự lock hoặc dùng 1 writer duy nhất.
+</Note>

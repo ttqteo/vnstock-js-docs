@@ -1,0 +1,102 @@
+---
+title: AI Context - Phân Tích Kỹ Thuật cho LLM
+description: aiContext() trả structured JSON, toAIPrompt() trả plain-text cho Claude/GPT/Gemini
+---
+
+Từ v1.4, vnstock-js cung cấp 2 helper để build **bối cảnh phân tích kỹ thuật pre-computed** cho AI/LLM reasoning — không phải dump raw OHLCV.
+
+```typescript
+import vnstock from 'vnstock-js';
+```
+
+## `stock.aiContext(symbol, options?)`
+
+Trả về structured JSON gồm:
+
+- **trend** — direction (bullish/bearish/neutral), strength (0..1), rationale tiếng Việt
+- **indicators** — RSI14, MACD (line/signal/histogram/crossover), SMA/EMA 20/50/200, Bollinger (upper/middle/lower/percentB), ATR14
+- **levels** — support + resistance dạng pivot points
+- **volume** — today, avg20, signal (above_average/below_average/normal), z-score
+- **performance** — change 1d/7d/30d/90d
+
+```typescript
+const ctx = await vnstock.stock.aiContext('VCB');
+
+console.log(ctx.trend);
+// { direction: "bullish", strength: 0.72, rationale: "EMA20 > EMA50 > EMA200, slope EMA20 dương 5 phiên" }
+
+console.log(ctx.indicators.rsi14);   // 62.3
+console.log(ctx.indicators.macd);    // { line, signal, histogram, crossover }
+console.log(ctx.levels.support);     // [56.5, 54.2, 52.0]
+console.log(ctx.levels.resistance);  // [60.0, 62.5, 64.0]
+console.log(ctx.volume.signal);      // "above_average"
+console.log(ctx.performance);        // { change1d: 0.0017, change30d: 0.058, ... }
+```
+
+### Options
+
+```typescript
+await vnstock.stock.aiContext('VCB', { lookback: 200 }); // default 200 phiên
+```
+
+## `stock.toAIPrompt(symbol, options?)`
+
+Trả về plain-text format optimize cho LLM context window. Dùng khi user export sang GPT/Gemini bên ngoài.
+
+```typescript
+const text = await vnstock.stock.toAIPrompt('VCB', { lang: 'vi' });
+console.log(text);
+```
+
+Output:
+
+```
+=== VCB — 2026-05-22 ===
+Trend: bullish (strength 72%) — EMA20 > EMA50 > EMA200, slope EMA20 dương 5 phiên
+RSI(14): 62.3
+MACD: line 0.420, signal 0.310, histogram 0.110, crossover: bullish
+SMA: 20=58.40, 50=56.10, 200=52.80
+EMA: 20=58.90, 50=56.50, 200=52.60
+Bollinger %B: 0.62 (upper=61.20, lower=55.60)
+ATR(14): 1.340
+Volume: 5,550,000 (avg 4,120,000, z-score 1.85, above_average)
+Support: 56.50 / 54.20 / 52.00
+Resistance: 60.00 / 62.50 / 64.00
+Change: 1d +0.17% · 7d +2.34% · 30d +5.80% · 90d +14.20%
+```
+
+### Options
+
+```typescript
+await vnstock.stock.toAIPrompt('VCB', { lang: 'en' }); // English version
+await vnstock.stock.toAIPrompt('VCB', { lookback: 100 });
+```
+
+## Use case — AI agent integration
+
+```typescript
+import vnstock from 'vnstock-js';
+import { Anthropic } from '@anthropic-ai/sdk';
+
+const text = await vnstock.stock.toAIPrompt('VCB');
+
+const client = new Anthropic();
+const response = await client.messages.create({
+  model: 'claude-opus-4-7',
+  max_tokens: 1024,
+  messages: [
+    {
+      role: 'user',
+      content: `Phân tích VCB dựa trên context sau và đưa ra nhận định kỹ thuật:\n\n${text}`,
+    },
+  ],
+});
+```
+
+<Note type="note">
+**Không phải lời khuyên đầu tư.** Output là pre-computed indicators + rules-based classifier. LLM reasoning trên context vẫn cần user judgment.
+</Note>
+
+<Note type="warning">
+Trend classifier hiện tại **rules-based** (EMA chain + slope), không phải ML. Có thể mis-classify trong sideway market. `neutral` là fallback safe.
+</Note>

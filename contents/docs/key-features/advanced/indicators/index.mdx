@@ -1,12 +1,12 @@
 ---
 title: Chỉ Báo Kỹ Thuật - Indicators
-description: SMA, EMA, RSI
+description: SMA, EMA, RSI, MACD, Bollinger Bands, ATR
 ---
 
-Các chỉ báo kỹ thuật là pure functions, nhận `QuoteHistory[]` và trả kết quả.
+Các chỉ báo kỹ thuật là pure functions, nhận `QuoteHistory[]` và trả kết quả. Từ v1.4 có thêm MACD, Bollinger Bands, ATR.
 
 ```typescript
-import { sma, ema, rsi } from 'vnstock-js';
+import { sma, ema, rsi, macd, bollinger, atr } from 'vnstock-js';
 ```
 
 ## SMA - Simple Moving Average
@@ -39,6 +39,38 @@ const rsi14 = rsi(history); // period mặc định = 14
 const rsi7 = rsi(history, { period: 7 });
 ```
 
+## MACD — Moving Average Convergence Divergence (v1.4+)
+
+```typescript
+const macdData = macd(history); // default fast=12, slow=26, signal=9
+// → [{ date, macd, signal, histogram }]
+
+const fast = macd(history, { fast: 5, slow: 13, signal: 5 });
+```
+
+`histogram > 0` đang bullish, `histogram < 0` đang bearish. Crossover khi histogram đổi dấu.
+
+## Bollinger Bands (v1.4+)
+
+```typescript
+const bb = bollinger(history); // default period=20, stddev=2
+// → [{ date, upper, middle, lower, percentB }]
+
+const bb10 = bollinger(history, { period: 10, stddev: 1.5 });
+```
+
+- `percentB` = vị trí giá trong band (0..1+). 1.0 = chạm upper, 0.0 = chạm lower.
+- `middle` = SMA(period). `upper`/`lower` = middle ± stddev × σ.
+
+## ATR — Average True Range (v1.4+)
+
+```typescript
+const atr14 = atr(history, 14); // Wilder smoothing
+// → [{ date, atr }]
+```
+
+Đo biên độ dao động trung bình. Dùng cho stop-loss dynamic, position sizing theo volatility.
+
 <Note type="note">
-Giá trị `null` ở đầu mảng là do chưa đủ dữ liệu để tính. Ví dụ SMA(20) cần tối thiểu 20 điểm dữ liệu.
+Giá trị `null` ở đầu mảng là do chưa đủ dữ liệu để tính. Ví dụ SMA(20) cần tối thiểu 20 điểm dữ liệu, MACD cần ≥26 phiên.
 </Note>

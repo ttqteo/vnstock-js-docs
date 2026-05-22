@@ -4,8 +4,13 @@ export type EachRoute = {
   title: string;
   href: string;
   noLink?: true; // noLink will create a route segment (section) but cannot be navigated
+  since?: string; // version đầu tiên có feature này (vd "1.4")
+  releasedAt?: string; // ngày release "YYYY-MM-DD" — badge "Mới" auto-hiện trong NEW_BADGE_DAYS ngày
   items?: EachRoute[];
 };
+
+// Số ngày sau release còn hiện badge "Mới". Sau đó chỉ giữ badge version.
+export const NEW_BADGE_DAYS = 90;
 
 export const ROUTES: EachRoute[] = [
   {
@@ -35,6 +40,7 @@ export const ROUTES: EachRoute[] = [
       {
         title: "Nâng Cao",
         href: "/advanced",
+        releasedAt: "2026-05-22",
         items: [
           {
             title: "Giao Dịch - Trading",
@@ -44,6 +50,9 @@ export const ROUTES: EachRoute[] = [
           { title: "Niêm Yết - Listing", href: "/listing" },
           { title: "Tài Chính - Financials", href: "/financials" },
           { title: "Chỉ Báo - Indicators", href: "/indicators" },
+          { title: "AI Context", href: "/ai-context", since: "1.4", releasedAt: "2026-05-22" },
+          { title: "MCP Server", href: "/mcp", since: "1.4", releasedAt: "2026-05-22" },
+          { title: "Watchlist", href: "/watchlist", since: "1.4", releasedAt: "2026-05-22" },
           { title: "Sàng Lọc - Screening", href: "/screening" },
           { title: "Tìm Kiếm - Search", href: "/search" },
           { title: "Lịch Giao Dịch - Calendar", href: "/calendar" },
