@@ -4,8 +4,8 @@ import { promises as fs } from "fs";
 import remarkGfm from "remark-gfm";
 import rehypePrism from "rehype-prism-plus";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
-import rehypeSlug from "rehype-slug";
 import rehypeCodeTitles from "rehype-code-titles";
+import rehypeSlug from "rehype-slug";
 import { page_routes, ROUTES } from "./routes-config";
 import { visit } from "unist-util-visit";
 import matter from "gray-matter";
@@ -34,6 +34,40 @@ const components = {
   Outlet,
 };
 
+function sluggify(text: string) {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // Remove Vietnamese diacritics
+    .replace(/\s+/g, '-') // Replace spaces
+    .replace(/[^a-z0-9-]/g, '') // Remove non-alphanumeric
+    .replace(/-+/g, '-') // Collapse multiple dashes
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing dashes
+}
+
+// Configure rehypeSlug with Vietnamese support
+const rehypeSlugWithVietnamese = () => {
+  const base = rehypeSlug();
+  return (tree: any) => {
+    // First apply base rehypeSlug
+    base(tree);
+    // Then fix Vietnamese slugs
+    visit(tree, 'element', (node) => {
+      if (node.tagName && ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(node.tagName)) {
+        const text = node.children
+          .filter((child: any) => child.type === 'text')
+          .map((child: any) => child.value)
+          .join('');
+
+        if (text && node.properties) {
+          node.properties.id = sluggify(text);
+        }
+      }
+    });
+    return tree;
+  };
+};
+
 // can be used for other pages like blogs, Guides etc
 async function parseMdx<Frontmatter>(rawMdx: string) {
   return await compileMDX<Frontmatter>({
@@ -45,7 +79,7 @@ async function parseMdx<Frontmatter>(rawMdx: string) {
           preProcess,
           rehypeCodeTitles,
           rehypePrism,
-          rehypeSlug,
+          rehypeSlugWithVietnamese, // Use rehypeSlug with Vietnamese support
           rehypeAutolinkHeadings,
           postProcess,
         ],
@@ -99,11 +133,6 @@ export function getPreviousNext(path: string) {
     prev: page_routes[index - 1],
     next: page_routes[index + 1],
   };
-}
-
-function sluggify(text: string) {
-  const slug = text.toLowerCase().replace(/\s+/g, "-");
-  return slug.replace(/[^a-z0-9-]/g, "");
 }
 
 function getDocsContentPath(slug: string) {

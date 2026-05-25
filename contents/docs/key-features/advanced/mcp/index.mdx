@@ -1,40 +1,64 @@
 ---
-title: MCP Server - Hỏi Claude về Cổ Phiếu VN
-description: vnstock-js đi kèm MCP server expose 11 tools cho Claude Desktop / Cursor / VS Code / Claude Code CLI
+title: MCP Server
+description: Model Context Protocol server cho vnstock-js — tích hợp Claude với dữ liệu chứng khoán Việt
 ---
 
-Từ v1.4, vnstock-js đi kèm **MCP (Model Context Protocol) server** — Claude/Cursor/VS Code có thể gọi 11 tools để query thị trường VN qua natural language.
+MCP (Model Context Protocol) là tiêu chuẩn kết nối cho phép Claude và các AI models khác tương tác với dữ liệu và tools thực tế. vnstock-js MCP server cung cấp truy cập trực tiếp vào dữ liệu chứng khoán Việt Nam từ Claude Desktop, Claude Code, Cursor, và các ứng dụng hỗ trợ MCP khác.
 
-## 11 tools
+## Tại Sao MCP?
 
-### Data tools (8)
+Trước đây, để Claude phân tích chứng khoán Việt, bạn cần:
+1. Viết API wrapper riêng
+2. Deploy server
+3. Cấu hình API keys, authentication
+4. Duy trì độc lập
 
-- `get_quote(symbol)` — priceBoard snapshot
-- `get_history(symbol, from?, to?, limit?)` — OHLCV history
-- `search_symbols(query, limit?)` — fuzzy search
-- `list_symbols(exchange?, limit?)` — by exchange
-- `top_movers(limit?)` — gainers + losers
-- `is_trade_day(date?)` — calendar check
-- `get_trading_calendar(year)` — holidays
-- `get_company_info(symbol)` — profile
+Với MCP, Claude kết nối **trực tiếp** với vnstock-js thông qua stdio, không cần setup phức tạp. Một cấu hình, dùng ở mọi nơi.
 
-### AI tools (3)
+**Lợi ích:**
+- 🔌 Kết nối native với Claude Desktop, Claude Code, Cursor
+- 🔐 Không expose public API, chạy local
+- ⚡ Zero latency communication (stdio vs HTTP)
+- 📱 Cùng config, dùng ở desktop, web, headless
 
-- `get_ai_context(symbol, lookback?)` — structured technical analysis JSON
-- `to_ai_prompt(symbol, lang?)` — plain-text format
-- `compare_symbols(symbols)` — side-by-side multi-symbol
+## Bắt Đầu Nhanh
 
-## Claude Desktop
+### Yêu Cầu
 
-Edit `claude_desktop_config.json`:
+- Node.js 16+
+- vnstock-js đã installed
+  ```bash
+  npm install vnstock-js
+  ```
+- Claude Desktop hoặc Claude Code (hoặc Cursor)
 
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+> MCP SDK (@modelcontextprotocol/sdk) đã bao gồm trong vnstock-js — không cần cài thêm
+
+### Claude Desktop Setup
+
+Tìm và mở file cấu hình Claude Desktop:
+
+**macOS:**
+```bash
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+**Windows:**
+```bash
+%APPDATA%\Claude\claude_desktop_config.json
+```
+
+**Linux:**
+```bash
+~/.config/Claude/claude_desktop_config.json
+```
+
+Thêm vnstock-js MCP server vào `mcpServers`:
 
 ```json
 {
   "mcpServers": {
-    "vnstock": {
+    "vnstock-js": {
       "command": "npx",
       "args": ["-y", "vnstock-js", "mcp"]
     }
@@ -42,178 +66,669 @@ Edit `claude_desktop_config.json`:
 }
 ```
 
-Reload Claude Desktop.
+Restart Claude Desktop. Lúc này Claude sẽ có quyền dùng 11 tools của vnstock-js.
 
-## Claude Code CLI
+### Claude Code Setup
 
-User-scope (toàn cục, mọi project dùng):
+Trong Claude Code, dùng lệnh:
 
 ```bash
-claude mcp add --scope user vnstock npx -y vnstock-js mcp
+claude mcp add --scope user vnstock-js npx -y vnstock-js mcp
+```
+
+Verify:
+```bash
 claude mcp list
-# Expected: "vnstock: ... - ✓ Connected"
+# Expected: vnstock-js: ... ✓ Connected
 ```
 
-Project-scope (commit `.mcp.json` chia sẻ team):
+Hoặc cấu hình trong `.claude/settings.local.json`:
 
+```json
+{
+  "mcpServers": {
+    "vnstock-js": {
+      "command": "npx",
+      "args": ["-y", "vnstock-js", "mcp"]
+    }
+  }
+}
+```
+
+### Cursor Setup
+
+Tương tự Claude Code, thêm vào Cursor settings hoặc dùng MCP command line.
+
+### Xác Minh
+
+Sau khi cấu hình, mở Claude và gõ:
+
+```
+Lấy giá hiện tại của VCB
+```
+
+Nếu Claude trả lời với dữ liệu VCB, MCP server đã kết nối thành công ✓
+
+## Tools Tham Khảo
+
+### Quote - Giá Cổ Phiếu Hiện Tại
+
+Lấy giá khớp, thay đổi %, khối lượng, giá trần/sàn của một cổ phiếu.
+
+**Input:**
+```typescript
+symbol: string  // Mã cổ phiếu, ví dụ "VCB", "FPT"
+```
+
+**Output:**
+```json
+{
+  "symbol": "VCB",
+  "matchingPrice": 105.2,
+  "change": 1.2,
+  "changePercent": 1.15,
+  "volume": 15234500,
+  "ceiling": 107.3,
+  "floor": 103.1,
+  "reference": 104.0
+}
+```
+
+**Ví dụ Claude prompt:**
+```
+VCB giá bao nhiêu? Tăng hay giảm so với hôm qua?
+```
+
+---
+
+### History - Lịch Sử Giá
+
+Lấy lịch sử giá (Open, High, Low, Close, Volume) trong khoảng thời gian.
+
+**Input:**
+```typescript
+symbol: string      // Mã cổ phiếu
+from?: string       // YYYY-MM-DD, mặc định 30 ngày trước
+to?: string         // YYYY-MM-DD, mặc định hôm nay
+limit?: number      // Số phiên tối đa, mặc định 30
+```
+
+**Output:**
+```json
+{
+  "symbol": "VCB",
+  "data": [
+    {
+      "date": "2026-05-23",
+      "open": 104.0,
+      "high": 105.5,
+      "low": 103.8,
+      "close": 105.2,
+      "volume": 15234500
+    }
+  ]
+}
+```
+
+**Ví dụ Claude prompt:**
+```
+Vẽ biểu đồ giá VCB 30 ngày qua. Xu hướng là tăng hay giảm?
+```
+
+---
+
+### Company - Thông Tin Công Ty
+
+Lấy tên đầy đủ, ngành, sàn niêm yết của một cổ phiếu.
+
+**Input:**
+```typescript
+symbol: string  // Mã cổ phiếu
+```
+
+**Output:**
+```json
+{
+  "symbol": "VCB",
+  "name": "Ngân Hàng Thương Mại Cổ Phần Vietcombank",
+  "industry": "Ngân Hàng",
+  "exchange": "HOSE"
+}
+```
+
+**Ví dụ Claude prompt:**
+```
+VCB là công ty gì? Hoạt động ngành nào?
+```
+
+---
+
+### Trading - Dữ Liệu Giao Dịch
+
+Lấy thông tin giao dịch chi tiết: bid/ask, khối lượng mua/bán, giá trung bình.
+
+**Input:**
+```typescript
+symbol: string  // Mã cổ phiếu
+```
+
+**Output:**
+```json
+{
+  "symbol": "VCB",
+  "buyPrice": 105.1,
+  "buyVolume": 524000,
+  "sellPrice": 105.2,
+  "sellVolume": 478000,
+  "totalVolume": 15234500,
+  "averagePrice": 104.98
+}
+```
+
+**Ví dụ Claude prompt:**
+```
+Giá bid/ask của FPT bây giờ là bao nhiêu?
+```
+
+---
+
+### Listing - Danh Sách Cổ Phiếu
+
+Lấy danh sách tất cả cổ phiếu trên một sàn (HOSE, HNX, UPCOM).
+
+**Input:**
+```typescript
+exchange?: string  // "HOSE", "HNX", "UPCOM" (mặc định: tất cả)
+limit?: number     // Số mã tối đa, mặc định 100
+```
+
+**Output:**
+```json
+{
+  "symbols": ["VCB", "FPT", "MBB", ...],
+  "total": 403
+}
+```
+
+**Ví dụ Claude prompt:**
+```
+Có bao nhiêu cổ phiếu trên HOSE?
+```
+
+---
+
+### Indicators - Chỉ Báo Kỹ Thuật
+
+Tính toán MACD, Bollinger Bands, ATR cho một cổ phiếu.
+
+**Input:**
+```typescript
+symbol: string          // Mã cổ phiếu
+indicator: string       // "macd" | "bollinger" | "atr"
+period?: number         // Chu kỳ, mặc định 20/12
+lookback?: number       // Số phiên lịch sử, mặc định 100
+```
+
+**Output (MACD):**
+```json
+{
+  "indicator": "macd",
+  "symbol": "VCB",
+  "data": [
+    {
+      "date": "2026-05-23",
+      "macd": 0.45,
+      "signal": 0.38,
+      "histogram": 0.07
+    }
+  ]
+}
+```
+
+**Ví dụ Claude prompt:**
+```
+Tính MACD cho VCB. Tín hiệu bullish hay bearish?
+```
+
+---
+
+### AI Context - Ngữ Cảnh AI
+
+Lấy phân tích kỹ thuật tích hợp: trend, indicators, support/resistance, volume signal.
+
+**Input:**
+```typescript
+symbol: string      // Mã cổ phiếu
+lookback?: number   // Số phiên, mặc định 200
+```
+
+**Output:**
+```json
+{
+  "symbol": "VCB",
+  "trend": "bullish",
+  "indicators": {
+    "rsi": 65.2,
+    "macd": { "signal": "bullish", "histogram": 0.07 },
+    "sma20": 104.5,
+    "sma50": 103.2,
+    "sma200": 102.1
+  },
+  "support": 104.0,
+  "resistance": 106.5,
+  "volumeSignal": "strong",
+  "priceChange": { "1d": 1.15, "7d": 2.5, "30d": 5.2 }
+}
+```
+
+**Ví dụ Claude prompt:**
+```
+Phân tích kỹ thuật VCB. Nên mua hay bán?
+```
+
+---
+
+### Quick Quote - Giá Nhanh
+
+Lấy giá của nhiều cổ phiếu cùng lúc (shorthand cho multiple `quote` calls).
+
+**Input:**
+```typescript
+symbols: string[]  // Mảng mã cổ phiếu, ví dụ ["VCB", "FPT", "MBB"]
+```
+
+**Output:**
+```json
+{
+  "data": [
+    { "symbol": "VCB", "price": 105.2, "change": 1.15 },
+    { "symbol": "FPT", "price": 89.5, "change": -0.5 },
+    { "symbol": "MBB", "price": 26.3, "change": 2.1 }
+  ]
+}
+```
+
+**Ví dụ Claude prompt:**
+```
+So sánh giá VCB, FPT, MBB
+```
+
+---
+
+### Top Movers - Top Tăng/Giảm
+
+Lấy top 10 cổ phiếu tăng mạnh và giảm mạnh hôm nay.
+
+**Input:**
+```typescript
+limit?: number  // Số mã mỗi bên, mặc định 10
+```
+
+**Output:**
+```json
+{
+  "gainers": [
+    { "symbol": "AAA", "price": 10.5, "change": 3.2 },
+    { "symbol": "BBB", "price": 20.1, "change": 2.8 }
+  ],
+  "losers": [
+    { "symbol": "CCC", "price": 15.2, "change": -2.5 },
+    { "symbol": "DDD", "price": 8.9, "change": -1.9 }
+  ]
+}
+```
+
+**Ví dụ Claude prompt:**
+```
+Hôm nay cổ phiếu nào tăng mạnh nhất?
+```
+
+---
+
+### Compare Symbols - So Sánh Cổ Phiếu
+
+So sánh side-by-side giá, thay đổi %, RSI, volume signal của nhiều cổ phiếu.
+
+**Input:**
+```typescript
+symbols: string[]  // Mảng mã cổ phiếu
+```
+
+**Output:**
+```json
+{
+  "comparison": [
+    {
+      "symbol": "VCB",
+      "price": 105.2,
+      "change%": 1.15,
+      "rsi": 65.2,
+      "volumeSignal": "strong"
+    },
+    {
+      "symbol": "MBB",
+      "price": 26.3,
+      "change%": 2.1,
+      "rsi": 58.5,
+      "volumeSignal": "normal"
+    }
+  ]
+}
+```
+
+**Ví dụ Claude prompt:**
+```
+So sánh VCB, MBB, TCB. Cái nào tốt nhất để đầu tư?
+```
+
+---
+
+### Watchlist - Theo Dõi Danh Mục
+
+CRUD (Create, Read, Update, Delete) cho danh mục theo dõi. Dữ liệu lưu tại `~/.vnstock-js/watchlist.json`.
+
+**Input (Add):**
+```typescript
+action: "add"
+name: string       // Tên danh mục, ví dụ "Tech Stocks"
+symbol: string     // Mã cổ phiếu
+```
+
+**Input (List):**
+```typescript
+action: "list"
+```
+
+**Output:**
+```json
+{
+  "watchlists": [
+    {
+      "name": "Tech Stocks",
+      "symbols": ["FPT", "VNM", "DIG"],
+      "createdAt": "2026-05-23T10:30:00Z"
+    }
+  ]
+}
+```
+
+**Ví dụ Claude prompt:**
+```
+Thêm VCB vào danh mục "Ngân Hàng" của tôi
+Hiển thị danh mục theo dõi của tôi
+```
+
+---
+
+## Kiến Trúc MCP Server
+
+### Protocol Flow
+
+```
+Claude              MCP Transport       vnstock-js Server       VCI API
+   |                     |                    |                    |
+   |--- Initialize ----->|                    |                    |
+   |                     |--- Start Process -->|                    |
+   |                     |                    |-- Connection OK ---|
+   |                     |<--- Ready ---------|                    |
+   |                     |                    |                    |
+   |--- List Tools ----->|                    |                    |
+   |                     |-- list_tools ----->|                    |
+   |<----- Tools List ----|<-- Tool Schema ---|                    |
+   |                     |                    |                    |
+   |--- Call Tool ------>|                    |                    |
+   | (quote, VCB)        |--- call_tool ----->|                    |
+   |                     |                    |--- Fetch Data ---->|
+   |                     |                    |<---- Response -----|
+   |                     |<---- Result -------|                    |
+   |<---- Response ------|                    |                    |
+```
+
+### Thành Phần Chính
+
+**1. Server Initialization**
+- vnstock-js khởi tạo MCP Server instance với stdio transport
+- Đăng ký 11 tools và schema của chúng
+
+**2. Transport Layer**
+- **stdio**: stdin (request từ Claude) ↔ stdout (response)
+- JSON-RPC 2.0 format
+- No network exposure, pure local communication
+
+**3. Tool Handlers**
+- Mỗi tool là một handler function
+- Validate input theo schema
+- Gọi VCI API thông qua adapter pattern
+- Format output và trả về Claude
+
+**4. Error Recovery**
+- VCI API chậm → stream logs, không timeout
+- VCI API lỗi → graceful error response
+- Connection lost → auto-reconnect (Claude xử lý)
+
+### Adapter Pattern
+
+vnstock-js dùng adapter pattern từ v1.0:
+
+```typescript
+// VciAdapter implements StockDataAdapter interface
+interface StockDataAdapter {
+  getQuote(symbol: string): Promise<Quote>
+  getHistory(symbol: string, options: HistoryOptions): Promise<HistoryData>
+  // ... 9 more methods
+}
+
+// MCP Server gọi adapter
+const mcp = new MCPServer({
+  tools: [
+    {
+      name: "quote",
+      handler: async (args) => {
+        const data = await adapter.getQuote(args.symbol)
+        return formatForClaude(data)
+      }
+    }
+  ]
+})
+```
+
+Điều này giữ cho core logic tách biệt từ transport layer.
+
+---
+
+## Ví Dụ Tích Hợp
+
+### Claude Desktop: Portfolio Analysis
+
+**Prompt:**
+```
+Tôi có danh mục: VCB 100 cổ phiếu, FPT 50 cổ phiếu, MBB 200 cổ phiếu.
+Hiện tại nên giữ hay bán?
+```
+
+Claude sẽ:
+1. Gọi `quote` cho VCB, FPT, MBB
+2. Gọi `indicators` để lấy trend
+3. Gọi `aiContext` để phân tích chi tiết
+4. Tổng hợp lời khuyên
+
+---
+
+### Claude Code: Automated Trading Signal
+
+**Script:**
+```javascript
+// Chạy hàng ngày via cron
+const vnstock = require('vnstock-js');
+
+async function analyzePortfolio() {
+  const symbols = ['VCB', 'FPT', 'MBB'];
+  
+  for (const symbol of symbols) {
+    const context = await vnstock.stock(symbol).aiContext();
+    
+    if (context.trend === 'bullish' && context.rsi < 70) {
+      console.log(`BUY SIGNAL: ${symbol}`);
+    } else if (context.trend === 'bearish' && context.rsi > 30) {
+      console.log(`SELL SIGNAL: ${symbol}`);
+    }
+  }
+}
+
+analyzePortfolio();
+```
+
+Với MCP, bạn có thể để Claude Code tự gọi tools này thay vì viết code.
+
+---
+
+### Cursor: Code-Aware Integration
+
+Cursor hỗ trợ MCP trong composer, giúp bạn:
+1. Viết code trading logic
+2. Claude fetch dữ liệu real-time via MCP
+3. Suggest improvements dựa trên dữ liệu thực
+
+```javascript
+// Cursor composer suggestion:
+// "Viết một hàm tìm arbitrage opportunity giữa VCB trên HOSE và HNX"
+
+// Claude sẽ:
+// 1. Gọi quote cho cả 2 sàn
+// 2. Tính spread
+// 3. Viết code optimal
+```
+
+---
+
+## Gỡ Lỗi & Khắc Phục Sự Cố
+
+### Kiểm Tra MCP Server Đang Chạy
+
+**Claude Desktop:**
+- Mở DevTools: `Cmd+Option+I` (macOS) hoặc `Ctrl+Shift+I` (Windows)
+- Tìm logs có chứa "MCP server initialized"
+- Nếu không, xem lại `claude_desktop_config.json`
+
+**Claude Code:**
+- Xem logs trong terminal
+- Tìm "MCP server started"
+
+### Lỗi Phổ Biến
+
+| Lỗi | Nguyên Nhân | Giải Pháp |
+|-----|-----------|---------|
+| `stdio not available` | vnstock-js không cài | `npm install vnstock-js` |
+| `Tool not found` | Config sai | Reload Claude, xem syntax `claude_desktop_config.json` |
+| `Timeout on quote` | VCI API chậm | Chờ, retry lại. VCI có rate limit ~100 req/min |
+| `Invalid symbol` | Mã cổ phiếu sai | Dùng `listing` tool để confirm mã tồn tại |
+| `Connection lost` | Network issue | Claude auto-reconnect sau 30s |
+
+### Viewing MCP Logs
+
+**Claude Desktop:**
 ```bash
-claude mcp add --scope project vnstock npx -y vnstock-js mcp
+# macOS
+tail -f ~/Library/Logs/Claude/mcp_server.log
+
+# Windows (PowerShell)
+Get-Content $env:APPDATA\Claude\mcp_server.log -Tail 50 -Wait
 ```
 
-<Note type="warning">
-Project-scope MCP yêu cầu **approve** trong session đầu tiên. Trong Claude Code gõ `/mcp` → approve `vnstock`. User-scope không cần.
-</Note>
+**Claude Code:**
+Logs xuất ra terminal nơi bạn chạy Claude Code.
 
-## Cursor / VS Code
+### Performance Profiling
 
-Cùng config schema. Xem docs MCP của từng client cho path file config cụ thể.
+Nếu Claude chậm:
 
-## Test queries
+1. **Check VCI API latency:**
+   ```javascript
+   const start = Date.now();
+   const quote = await vnstock.stock('VCB').quote();
+   console.log(`VCI latency: ${Date.now() - start}ms`);
+   ```
 
-Sau khi setup, gõ trong Claude:
+2. **Check Claude logs:** Tìm tool execution time
 
-| Query | Tool Claude gọi |
-|---|---|
-| `giá VCB hôm nay` | `get_quote` |
-| `phân tích kỹ thuật VCB` | `get_ai_context` |
-| `xuất context VCB sang text để dán GPT` | `to_ai_prompt` |
-| `so sánh VCB và TCB` | `compare_symbols` |
-| `top mover hôm nay` | `top_movers` |
-| `FPT 30 phiên qua` | `get_history` |
-| `tìm mã ngân hàng` | `search_symbols` |
-| `30/4/2026 có giao dịch không` | `is_trade_day` |
-| `ngày nghỉ chứng khoán 2026` | `get_trading_calendar` |
-| `FPT là công ty gì` | `get_company_info` |
-| `5 mã HOSE` | `list_symbols` |
+3. **Common culprits:**
+   - VCI API đang chậm (không phải lỗi của bạn)
+   - Quá nhiều tools gọi cùng lúc → batch requests
+   - Lookback quá lớn (1000+ phiên) → giảm xuống 100-200
 
-## Architecture
+---
 
-```
-Claude Desktop / Cursor / VS Code / Claude Code
-        │  stdio JSON-RPC
-        ▼
-vnstock mcp  (Node subprocess)
-        │  @modelcontextprotocol/sdk
-        ▼
-vnstock-js SDK (Indicators v2, AI context, REST adapter)
-        │
-        ▼
-VCI REST (+ session cache + retry)
-```
+## Nâng Cao: Mở Rộng MCP
 
-- **Session cache** 30s cho quote, 60s cho aiContext — Claude spam tool calls không hit rate limit.
-- **Lazy init** `await init()` chỉ cho tools cần symbols/calendar. `get_quote`/`get_history` skip → startup <500ms.
-- **Bilingual descriptions** Vi + En giúp Claude pick tool đúng cho cả query tiếng Việt và tiếng Anh.
+### Thêm Custom Tools
 
-## Troubleshooting
+Bạn có thể fork vnstock-js và thêm custom tools:
 
-### "vnstock not found" sau khi `npm i -g`
+```typescript
+// bin/mcp-server.ts
+import { MCPServer } from '@modelcontextprotocol/sdk'
 
-Verify global symlink:
-
-```bash
-which vnstock          # macOS/Linux
-where.exe vnstock      # Windows
-npm ls -g vnstock-js
-```
-
-### MCP server không kết nối
-
-Trong Claude Code:
-
-```bash
-claude mcp list        # check status
+const server = new MCPServer({
+  tools: [
+    // ... 11 standard tools ...
+    
+    // Custom tool
+    {
+      name: 'my-custom-tool',
+      description: 'Bạn định nghĩa',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          param1: { type: 'string' }
+        }
+      },
+      handler: async (args) => {
+        // Implement logic
+        return { result: 'data' }
+      }
+    }
+  ]
+})
 ```
 
-Test MCP server thủ công:
+### Chạy Multiple MCP Servers
 
-```bash
-vnstock mcp
-# Stdout sẽ idle. Stderr: "[vnstock-js mcp] Server started (v1.4.0), 11 tools registered."
+Claude Desktop hỗ trợ multiple MCP servers:
+
+```json
+{
+  "mcpServers": {
+    "vnstock-js": { ... },
+    "weather-api": { ... },
+    "news-feed": { ... }
+  }
+}
 ```
 
-### Cloudflare 1015 rate-limited
+Claude sẽ có access đến tất cả tools.
 
-Khi Claude spam quá nhanh → VCI throttle. Session cache (30s/60s) đã giảm pressure, nhưng nếu vẫn hit: chờ 5-15 phút. Issue [#10](https://github.com/ttqteo/vnstock-js/issues/10) tracking auto-backoff.
+### Kết Hợp với MCP Servers Khác
 
-## Use case — Portfolio review với personal context
-
-Một trong những lợi ích lớn nhất của MCP là Claude **kết hợp được dữ liệu cá nhân bạn cung cấp** với data từ `vnstock` tool. SDK chỉ provide raw context, Claude tự reason.
-
-### Pattern 1 — Inline (1 mã)
-
-Trong Claude Code session, gõ prompt có chứa context:
+Ví dụ: vnstock-js + news feed + weather
 
 ```
-Phân tích VCB hôm nay. Giá vốn 50, KL 100, NAV tổng 100 triệu.
-Recommend hold/buy/trim/sell.
+Prompt: "So sánh VCB và FPT. Có tin gì mới về ngành ngân hàng? Thời tiết Hà Nội?")
+
+Claude sẽ:
+1. quote, indicators (vnstock-js)
+2. news search (news-feed MCP)
+3. weather (weather MCP)
+4. Tổng hợp câu trả lời
 ```
 
-Claude tự động:
+---
 
-1. Gọi `mcp__vnstock__get_ai_context("VCB")` lấy trend/indicators/S-R/volume/performance
-2. Tính PnL cá nhân: `(currentPrice - 50) × 100`
-3. Tính % position trong NAV
-4. Reasoning kết hợp technical signal + position size → recommend với rationale
+## Kết Luận
 
-Output dạng:
+MCP server của vnstock-js mở ra khả năng:
+- 🎯 AI agents có access trực tiếp vào dữ liệu chứng khoán Việt
+- 🔧 Zero setup complexity, một file config
+- 🚀 Scale từ desktop → headless → production
+- 🌐 Combine với MCP servers khác cho super-intelligence
 
-```
-VCB — current 63.5k, PnL +13.5k/cp (+27%), value ~6.35M (~6.4% NAV)
-Trend: neutral (EMA chain mixed), RSI 60, ATR 1.66
-Support: 62.6 / 59.2  Resistance: 65.2 / 66.7 / volume signal: normal
-
-Recommend: HOLD
-- Đã có lãi tốt nhưng chưa chạm resistance gần (65.2)
-- Trend chưa rõ → tránh add thêm
-- Đặt trailing stop quanh support 62.6 để bảo vệ lợi nhuận
-```
-
-### Pattern 2 — CSV portfolio
-
-Tạo file `portfolio.csv`:
-
-```csv
-symbol,cost,quantity
-VCB,50.0,100
-FPT,80.0,50
-HPG,28.0,200
-```
-
-Prompt Claude:
-
-```
-Đọc portfolio.csv. Với mỗi mã, gọi get_ai_context, tính PnL hiện tại + %,
-so với NAV tổng 100 triệu, đưa recommend hold/buy/trim/sell và giải thích.
-Output dạng bảng markdown.
-```
-
-Claude:
-
-1. `Read` tool đọc CSV
-2. Loop từng row → `mcp__vnstock__get_ai_context(symbol)` (parallel khi có thể)
-3. Compute PnL per position + % NAV
-4. Apply heuristic recommendation:
-   - Trend bullish + RSI < 70 + chưa chạm R → **hold/add**
-   - Trend bearish + RSI > 70 + PnL > 30% → **trim**
-   - Trend bearish + PnL âm + RSI < 30 → **stop-loss hoặc DCA tùy conviction**
-5. Output bảng kèm portfolio-level summary
-
-### Pattern 3 — Daily report multi-symbol
-
-```
-Cho tôi snapshot watchlist banks hôm nay. Mỗi mã: trend, RSI, % change 7d,
-volume signal. Highlight mã có volume spike hoặc breakout.
-```
-
-Claude tự gọi tool cho từng mã trong watchlist, format bảng concise, tag mã đáng chú ý.
-
-<Note type="warning">
-**Không phải lời khuyên đầu tư.** Pattern trên là cách dùng MCP làm research assistant — Claude reason trên rules-based technical signal + position context. User judgment vẫn quyết định cuối.
-
-Số liệu trong ví dụ (giá vốn 50, KL 100, NAV 100 triệu) là **placeholder minh hoạ**, không phải khuyến nghị mua/bán mã cụ thể.
-</Note>
-
-<Note type="note">
-Bạn có thể request format output bất kỳ — markdown table, JSON cho parse downstream, plain text để paste sang Telegram/Slack. Claude flexible với prompt.
-</Note>
+Bây giờ Claude không chỉ biết chứng khoán, mà **có thể** phân tích, trade, và monitor portfolio của bạn. 🚀

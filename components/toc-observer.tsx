@@ -49,20 +49,30 @@ export default function TocObserver({ data }: Props) {
   return (
     <div className="flex flex-col gap-2.5 text-sm dark:text-stone-300/85 text-stone-800 ml-0.5">
       {data.map(({ href, level, text }, index) => {
+        const anchorId = href.slice(1); // Remove # from href
         return (
-          <Link
+          <a
             key={href + text + level + index}
             href={href}
+            onClick={(e) => {
+              e.preventDefault();
+              const element = document.getElementById(anchorId);
+              if (element) {
+                element.scrollIntoView({ behavior: "smooth", block: "start" });
+                setActiveId(anchorId);
+              }
+            }}
             className={clsx({
               "pl-0": level == 2,
               "pl-4": level == 3,
               "pl-8 ": level == 4,
               "dark:font-medium font-semibold text-primary":
-                activeId == href.slice(1),
+                activeId == anchorId,
+              "cursor-pointer hover:text-primary transition-colors": true,
             })}
           >
             {text}
-          </Link>
+          </a>
         );
       })}
     </div>
