@@ -66,7 +66,7 @@ Thêm vnstock-js MCP server vào `mcpServers`:
 }
 ```
 
-Restart Claude Desktop. Lúc này Claude sẽ có quyền dùng 11 tools của vnstock-js.
+Restart Claude Desktop. Lúc này Claude sẽ có quyền dùng 13 tools của vnstock-js.
 
 ### Claude Code Setup
 
@@ -199,6 +199,44 @@ symbol: string  // Mã cổ phiếu
 **Ví dụ Claude prompt:**
 ```
 VCB là công ty gì? Hoạt động ngành nào?
+```
+
+---
+
+### Dividends - Cổ Tức (v1.4.2+)
+
+Lấy lịch sử & lịch chia cổ tức (tiền mặt + cổ phiếu): loại cổ tức, tỉ lệ/giá trị, ngày giao dịch không hưởng quyền (GDKHQ), ngày chốt danh sách.
+
+**Tool:** `get_dividends`
+
+**Input:**
+```typescript
+symbol: string  // Mã cổ phiếu
+```
+
+**Output:** mảng `CorporateEvent` đã lọc cổ tức, mỗi phần tử gồm `eventType`, `ratio`, `value`, `exRightDate`, `recordDate`.
+
+**Ví dụ Claude prompt:**
+```
+ACB chia cổ tức khi nào? Tỉ lệ bao nhiêu?
+```
+
+---
+
+### Corporate Events - Sự Kiện Doanh Nghiệp (v1.4.2+)
+
+Lấy tất cả sự kiện doanh nghiệp: cổ tức, ĐHCĐ, phát hành thêm, niêm yết, giao dịch nội bộ.
+
+**Tool:** `get_corporate_events`
+
+**Input:**
+```typescript
+symbol: string  // Mã cổ phiếu
+```
+
+**Ví dụ Claude prompt:**
+```
+HPG có sự kiện gì sắp tới?
 ```
 
 ---
@@ -488,7 +526,7 @@ Claude              MCP Transport       vnstock-js Server       VCI API
 
 **1. Server Initialization**
 - vnstock-js khởi tạo MCP Server instance với stdio transport
-- Đăng ký 11 tools và schema của chúng
+- Đăng ký 13 tools và schema của chúng
 
 **2. Transport Layer**
 - **stdio**: stdin (request từ Claude) ↔ stdout (response)
