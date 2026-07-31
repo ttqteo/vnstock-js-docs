@@ -11,6 +11,16 @@ export const metadata: Metadata = {
   title: "Ví Dụ",
 };
 
+/**
+ * Render theo từng request thay vì dựng sẵn lúc build.
+ *
+ * Trang này lấy dữ liệu thật từ VCI. Khi dựng sẵn, nguồn chậm hoặc trả 429 là
+ * cả build vỡ, dù nội dung site không liên quan gì tới VCI. Riêng fetchWithRetry
+ * đã có thể mất gần một phút cho một lời gọi khi bị chặn, vượt hạn 60 giây của
+ * Next. Đổi sang render theo request thì build không còn phụ thuộc nguồn ngoài.
+ */
+export const dynamic = "force-dynamic";
+
 const CODE_SNIPPETS = {
   goldPrice: `import { commodity } from "vnstock-js";
 
@@ -69,45 +79,52 @@ const { data } = await vnstock.stock.financials
   .incomeStatement({ symbol: ticker, period: "quarter" });`,
 };
 
+/**
+ * Trang này gọi API thật lúc prerender. Nguồn chậm hoặc chặn là cả build vỡ,
+ * dù nội dung không liên quan. Mọi lời gọi phải tự chịu lỗi và trả về rỗng,
+ * giống cách trang chủ đã làm với badge npm và số sao GitHub.
+ */
+async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch {
+    return fallback;
+  }
+}
+
+const explorerTicker = "FPT";
+
 export default async function ExamplesPage() {
-  const goldPrice = await commodity.gold.priceGiaVangNet();
+  // Chạy song song. Gọi tuần tự thì tổng thời gian cộng dồn và vượt hạn 60 giây
+  // sinh trang tĩnh của Next, làm hỏng build dù từng lời gọi đều bình thường.
+  const [goldPrice, gainers, losers, screened, indexData, explorerHistory] =
+    await Promise.all([
+      safe(() => commodity.gold.priceGiaVangNet(), []),
+      safe(() => stock.topGainers(), []),
+      safe(() => stock.topLosers(), []),
+      safe(
+        () =>
+          stock.screening({
+            exchange: "HOSE",
+            filters: [
+              { field: "pe", operator: "<", value: 15 },
+              { field: "roe", operator: ">", value: 0.1 },
+            ],
+            sortBy: "roe",
+            order: "desc",
+            limit: 15,
+          }),
+        [] as Awaited<ReturnType<typeof stock.screening>>
+      ),
+      safe(() => stock.index({ index: "VNINDEX", start: "2023-01-01" }), []),
+      safe(() => stock.quote({ ticker: explorerTicker, start: "2024-01-01" }), []),
+    ]);
 
-  const gainers = await stock.topGainers();
-  const losers = await stock.topLosers();
-
-  let screened: Awaited<ReturnType<typeof stock.screening>> = [];
-  try {
-    screened = await stock.screening({
-      exchange: "HOSE",
-      filters: [
-        { field: "pe", operator: "<", value: 15 },
-        { field: "roe", operator: ">", value: 0.1 },
-      ],
-      sortBy: "roe",
-      order: "desc",
-      limit: 15,
-    });
-  } catch {}
-
-  let drawdownData: { date: string; close: number; drawdown: number }[] = [];
-  try {
-    const indexData = await stock.index({
-      index: "VNINDEX",
-      start: "2023-01-01",
-    });
-    let peak = 0;
-    drawdownData = indexData.map((d) => {
-      const price = d.close * 1000;
-      if (price > peak) peak = price;
-      const drawdown = ((peak - price) / peak) * 100;
-      return { date: d.date, close: price, drawdown };
-    });
-  } catch {}
-
-  const explorerTicker = "FPT";
-  const explorerHistory = await stock.quote({
-    ticker: explorerTicker,
-    start: "2024-01-01",
+  let peak = 0;
+  const drawdownData = indexData.map((d) => {
+    const price = d.close * 1000;
+    if (price > peak) peak = price;
+    return { date: d.date, close: price, drawdown: ((peak - price) / peak) * 100 };
   });
   const explorerSma = sma(explorerHistory, { period: 20 });
   const explorerRsi = rsi(explorerHistory);

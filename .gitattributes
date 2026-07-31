@@ -1,0 +1,4 @@
+# Chuan hoa xuong dong ve LF cho moi checkout.
+# Khong co dong nay, core.autocrlf tren Windows canh bao moi lan git add, va moi
+# nen tang sinh ra mot kieu xuong dong khac nhau nen PR de mang diff toan whitespace.
+* text=auto eol=lf

@@ -1,83 +1,55 @@
 ---
-title: "v1.4 — AI-Native Foundation: MCP Server cho Cổ Phiếu Việt"
-description: "vnstock-js v1.4 ship MCP Server — Claude giờ có truy cập native vào dữ liệu thị trường chứng khoán Việt real-time. Đây là cách chúng tôi xây dựng nó."
-date: "2026-05-24"
+title: "vnstock-js v1.4: MCP Server cho cổ phiếu Việt"
+description: "Claude đọc thẳng dữ liệu chứng khoán Việt Nam qua MCP. Một file config, không cần tự dựng API. Bài này ghi lại vì sao làm, làm được gì, và làm thế nào."
+date: 24-05-2026
 authors:
-  - handle: "@ttqteo"
-    username: "Quang Tran"
+  - avatar: "https://avatars.githubusercontent.com/ttqteo"
+    handle: ttqteo
+    username: Tran Tu Quang
     handleUrl: "https://github.com/ttqteo"
-cover: "/blog-v1.4.jpg"
+cover: "/vnstock.png"
 ---
 
-# v1.4 — AI-Native Foundation: MCP cho Cổ Phiếu Việt
+# vnstock-js v1.4: MCP Server cho cổ phiếu Việt
 
-Ba tuần trước, tôi ship vnstock-js v1.4.0. Đó không phải chỉ là một version bump. Đó là khoảnh khắc khi AI trở thành native với thị trường chứng khoán Việt Nam.
+v1.4.0 thêm một MCP server vào vnstock-js. Nói ngắn gọn: Claude đọc được dữ liệu chứng khoán Việt Nam mà bạn không phải dán tay, cũng không phải tự dựng API.
 
-Cho đến bây giờ, nếu bạn muốn Claude phân tích VCB hay so sánh FPT vs MBB, bạn có hai lựa chọn:
+Trước đó, muốn nhờ Claude phân tích VCB hay so sánh FPT với MBB thì chỉ có hai đường. Một là tự lấy dữ liệu rồi dán vào khung chat, làm lại mỗi lần hỏi. Hai là tự viết API riêng, kèm deploy và bảo trì.
 
-1. **Paste dữ liệu thủ công** — Chậm, dễ sai, phá vỡ flow trò chuyện
-2. **Xây dựng API riêng** — Hàng tuần công việc, deploy, maintain, secure, rate-limit
+Bài này ghi lại vì sao tôi chọn MCP, dùng được vào việc gì, và phần kỹ thuật bên dưới.
 
-Với v1.4, có một lựa chọn thứ ba: **MCP Server**. Claude giờ có truy cập trực tiếp vào dữ liệu chứng khoán Việt mà không cần bất kỳ sự phức tạp nào. Một file config. 11 tools. Dữ liệu real-time.
+## Vấn đề
 
-Bài post này đi sâu vào **tại sao** chúng tôi xây dựng nó, **cái gì** bạn có thể xây dựng giờ, và **cách** chúng tôi làm nó từ kỹ thuật.
-
----
-
-## Part 1: Tại Sao MCP? Vấn đề Gì Chúng Tôi Giải Quyết?
-
-### Thời Đại Operating System AI
-
-Claude không chỉ là chatbot nữa. Nó đang trở thành hệ điều hành cho AI workflows. Mọi người đang dùng Claude để:
-- Nghiên cứu và quyết định
-- Thực thi và monitor
-- Khám phá và phân tích
-
-Nhưng Claude không thể thấy dữ liệu thực tế. Nó có knowledge cutoff. Nó không thể fetch portfolio của bạn. Nó không thể check giá chứng khoán hôm nay. Cho đến bây giờ, nếu bạn muốn Claude truy cập dữ liệu real-time, bạn phải xây dựng một cây cầu.
-
-### Vấn Đề Cây Cầu
-
-Cây cầu đó thường trông như:
+Claude có giới hạn dữ liệu huấn luyện, nên không biết giá cổ phiếu hôm nay. Muốn nó biết thì phải có đường dẫn dữ liệu vào, và trước MCP thì đường đó thường là chính bạn:
 
 ```
-Bạn → Prompt Claude → Claude nói "Tôi cần dữ liệu" → Bạn fetch dữ liệu → Bạn paste dữ liệu → Claude phân tích
+Hỏi Claude, Claude bảo cần dữ liệu, bạn đi lấy, bạn dán vào, Claude phân tích
 ```
 
-Điều này tệ vì:
-- **Công việc thủ công**: Mỗi câu hỏi mới đòi hỏi bạn fetch dữ liệu mới
-- **Context switching**: Bạn không đang trò chuyện với Claude, bạn đang là người vận chuyển dữ liệu
-- **Phân mảnh**: Bạn dùng Claude Desktop ở nhà, Claude Code ở công ty, Cursor trong IDE — mỗi cái cần tích hợp riêng
-- **Latency**: Khi nào bạn paste dữ liệu xong, nó đã 5 phút tuổi rồi
+Cách này có mấy chỗ bất tiện. Mỗi câu hỏi mới lại phải lấy dữ liệu mới. Bạn không thực sự đang trò chuyện mà đang làm người vận chuyển. Dùng Claude Desktop ở nhà, Claude Code ở công ty, Cursor trong IDE thì mỗi nơi phải tích hợp riêng. Và tới lúc dán xong thì số liệu đã cũ vài phút.
 
-### MCP: Cây Cầu Tiêu Chuẩn
+## MCP giải quyết thế nào
 
-MCP (Model Context Protocol) là câu trả lời của Anthropic. Nó là một protocol nói:
+MCP (Model Context Protocol) là chuẩn kết nối do Anthropic đưa ra, cho phép mô hình AI gọi tới nguồn dữ liệu và công cụ bên ngoài mà không cần dựng riêng cho từng ứng dụng.
 
-> "Đây là cách AI models kết nối với nguồn dữ liệu và tools mà không cần bất kỳ setup đặc biệt nào."
+Với vnstock-js, điều đó có nghĩa là:
 
-Với vnstock-js, MCP có nghĩa:
-- Claude Desktop nói chuyện với vnstock-js qua **stdio** (không expose port, không có network)
-- Claude Code dùng **config** giống nhau (không phải implement lại)
-- Cursor dùng **config** giống nhau (một setup, ở mọi nơi)
-- Dữ liệu **real-time** (bạn luôn phân tích bây giờ, không phải hôm qua)
-- Nó **local** (không internet dependency, không lo security)
+- Claude Desktop nói chuyện với vnstock-js qua stdio, không mở cổng, không qua mạng
+- Claude Code và Cursor dùng chung một file config, viết một lần
+- Dữ liệu lấy trực tiếp lúc hỏi, không phải bản đã cũ
+- Chạy cục bộ trên máy bạn
 
-### Tại Sao Cổ Phiếu Việt Cần Cái Này
+## Vì sao thị trường Việt Nam cần
 
-Thị trường chứng khoán Việt Nam là độc nhất:
+Thị trường Việt Nam không có API mở chính thức. VCI là nguồn dữ liệu nhưng thiết kế cho web của họ, không phải cho AI đọc.
 
-1. **Không có OpenAPI chính thức** — VCI (Vietnam Index) là nguồn dữ liệu, nhưng nó không được design cho AI consumption
-2. **Dữ liệu phong phú** — Quote, history, indicators, company info, trading signals — chúng ta muốn tất cả
-3. **Nhu cầu real-time** — Giá cổ phiếu thay đổi mỗi giây; dữ liệu cũ là vô dụng
-4. **AI-first tools** — Cursor, Claude Desktop, Claude Code — những cái này đang trở thành tools mặc định cho trading và research
+Trong khi đó dữ liệu cần dùng thì nhiều: báo giá, lịch sử, chỉ báo, thông tin doanh nghiệp. Giá lại thay đổi liên tục nên số liệu cũ gần như vô dụng.
 
-Chúng tôi nhận ra: thay vì xây dựng 10 cái API wrapper khác nhau, chúng ta nên xây dựng **một MCP server** hoạt động ở mọi nơi Claude đi.
+Thay vì viết mười cái wrapper cho mười ứng dụng, tôi viết một MCP server chạy được ở mọi nơi Claude có mặt.
 
----
+## Dùng được vào việc gì
 
-## Part 2: Giờ Bạn Có Thể Xây Dựng Cái Gì?
-
-### Use Case 1: AI Portfolio Analyzer
+### AI Portfolio Analyzer
 
 Bạn: "Phân tích portfolio của tôi. Tôi có VCB 100 cổ phiếu @ giá vốn 50k, FPT 50 cổ phiếu @ 80k, MBB 200 cổ phiếu @ 28k."
 
@@ -90,11 +62,9 @@ Claude:
 
 Output: Lời khuyên có cấu trúc với rationale.
 
-Đây là **phân tích thực**, không hallucination. Claude có dữ liệu, Claude reason trên dữ liệu.
+Claude phân tích trên số liệu lấy được lúc đó, không phải trên trí nhớ.
 
----
-
-### Use Case 2: Automated Trading Signals
+### Automated Trading Signals
 
 Claude Code có thể chạy hàng ngày và email cho bạn trading opportunities:
 
@@ -129,11 +99,9 @@ async function dailyAnalysis() {
 dailyAnalysis();
 ```
 
-Không cần API wrapper. MCP server handle tất cả data fetching.
+Không phải viết API wrapper, MCP server lo phần lấy dữ liệu.
 
----
-
-### Use Case 3: Research Assistant
+### Research Assistant
 
 Bạn: "Tìm cho tôi 3 ngân hàng có trend bullish và RSI < 60. Hiển thị level support/resistance của chúng."
 
@@ -147,9 +115,7 @@ Hoặc: "Track watchlist của tôi hàng ngày và alert tôi nếu bất kỳ 
 
 Claude lưu watchlist trong `~/.vnstock-js/watchlist.json`, check hàng ngày, gửi alerts.
 
----
-
-### Use Case 4: Integration với Cursor
+### Integration với Cursor
 
 Bạn đang viết trading bot trong Cursor. Bạn nói với Claude:
 
@@ -162,21 +128,19 @@ Claude:
 4. Viết optimized code
 5. Suggest improvements dựa trên dữ liệu thực
 
-Claude có **dữ liệu thực**, vậy suggestions của nó grounded.
+Gợi ý của Claude dựa trên số liệu thật chứ không phải phỏng đoán.
 
----
+## Bên dưới nó hoạt động thế nào
 
-## Part 3: Technical Deep-Dive — Cách Chúng Tôi Xây Dựng MCP Server
+### Vì sao dùng stdio
 
-### Aspect 1: Chọn stdio Transport
+Có ba lựa chọn:
 
-Chúng tôi có các lựa chọn:
+1. **HTTP API**: Standard, widely understood, heavy
+2. **WebSocket**: Real-time, persistent, overkill cho request-response
+3. **stdio**: Lightweight, secure by default, không expose port
 
-1. **HTTP API** — Standard, widely understood, heavy
-2. **WebSocket** — Real-time, persistent, overkill cho request-response
-3. **stdio** — Lightweight, secure by default, không expose port
-
-Chúng tôi chọn **stdio** vì:
+Tôi chọn stdio vì:
 
 - **Security by default**: MCP server chạy trên máy của bạn, nói chuyện với Claude trên máy của bạn. Không expose port, không network roundtrip.
 - **Claude Desktop native**: Claude Desktop được design để launch subprocesses và communicate qua stdin/stdout.
@@ -214,13 +178,11 @@ Protocol là JSON-RPC 2.0:
 }
 ```
 
-Simple. Efficient. Stateless.
+Giao thức đơn giản, không giữ trạng thái giữa các lần gọi.
 
----
+### Khai báo tool
 
-### Aspect 2: Tool Registration & Schema
-
-vnstock-js MCP server cần declare 11 tools cho Claude. Mỗi tool là một schema + handler:
+Ở v1.4, MCP server khai báo 11 tool cho Claude. Con số này đã tăng ở các bản sau. Mỗi tool là một schema + handler:
 
 ```typescript
 interface Tool {
@@ -266,9 +228,7 @@ Schema nói cho Claude:
 
 Claude đọc schema và quyết định khi nào gọi tools dựa trên prompt của bạn.
 
----
-
-### Aspect 3: Adapter Pattern
+### Adapter Pattern
 
 vnstock-js có adapter pattern từ v1.0:
 
@@ -305,9 +265,7 @@ const tools = [
 
 **Đây là sức mạnh của architecture**: Transport layer (HTTP, MCP, CLI) riêng biệt từ business logic. Một implementation, nhiều frontends.
 
----
-
-### Aspect 4: Hỗ Trợ Bilingual
+### Hỗ Trợ Bilingual
 
 Developers Việt phải có thể dùng tools bằng tiếng Việt. Developers nói tiếng Anh phải dùng bằng tiếng Anh.
 
@@ -337,9 +295,7 @@ Test:
 - English prompt: "Get the price of VCB" → Gọi `quote` ✓
 - Vietnamese prompt: "Lấy giá VCB" → Gọi `quote` ✓
 
----
-
-### Aspect 5: Error Handling & Resilience
+### Error Handling & Resilience
 
 VCI API không luôn nhanh. Network có thể chậm. Chúng tôi cần MCP server resilient:
 
@@ -397,26 +353,24 @@ VCI có rate limit ~100 req/min. Session caching (30-60s) đảm bảo Claude c�
 
 MCP protocol handle reconnection ở transport layer. Nếu stdout break, Claude Desktop tự động restart subprocess.
 
----
+### Bộ công cụ
 
-### Aspect 6: 11 Tools
+v1.4 có 11 tool, chia hai nhóm:
 
-Chúng tôi shipped 11 tools. Hãy group chúng:
+**Nhóm dữ liệu (8 tool)**, gọi thẳng API VCI:
+- `quote`: giá hiện tại, change, volume
+- `history`: OHLCV history cho charting
+- `company`: company info, industry, exchange
+- `trading`: bid/ask, average price
+- `listing`: tất cả stocks trên exchange
+- `topMovers`: gainers + losers
+- `quickQuote`: multiple quotes trong một call
+- `watchlist`: CRUD cho watchlists
 
-**Data Tools (8)** — direct VCI API passthrough:
-- `quote` — giá hiện tại, change, volume
-- `history` — OHLCV history cho charting
-- `company` — company info, industry, exchange
-- `trading` — bid/ask, average price
-- `listing` — tất cả stocks trên exchange
-- `topMovers` — gainers + losers
-- `quickQuote` — multiple quotes trong một call
-- `watchlist` — CRUD cho watchlists
-
-**Analysis Tools (3)** — computation layer:
-- `indicators` — MACD, Bollinger, ATR
-- `aiContext` — trend, RSI, support/resistance, volume
-- `compareSymbols` — side-by-side comparison
+**Nhóm phân tích (3 tool)**, tính toán tại chỗ:
+- `indicators`: MACD, Bollinger, ATR
+- `aiContext`: trend, RSI, support/resistance, volume
+- `compareSymbols`: side-by-side comparison
 
 Tại sao separate? Vì Claude cần **cả hai**:
 - Raw data cho exploration ("Cho tôi MACD cho VCB")
@@ -443,9 +397,7 @@ Tại sao separate? Vì Claude cần **cả hai**:
 
 Claude lấy trong một call cái mà cần 5 queries riêng lẻ.
 
----
-
-### Aspect 7: Testing — Biết Nó Hoạt Động
+### Kiểm thử
 
 Chúng tôi thêm 27 tests cho MCP server:
 
@@ -485,9 +437,7 @@ describe('MCP Server', () => {
 
 **Tests hit real VCI API** (không mock) để đảm bảo MCP server works với dữ liệu thực, không imaginary responses.
 
----
-
-### Aspect 8: Performance Profile
+### Performance Profile
 
 Chúng tôi benchmark mỗi tool:
 
@@ -502,17 +452,15 @@ Chúng tôi benchmark mỗi tool:
 Claude có patience để chờ 1s cho analysis, nhưng sẽ frustrated với 5s latency.
 
 Chúng tôi optimize:
-- **Caching** — 30s cache cho quote, 60s cho aiContext
-- **Parallel requests** — `compareSymbols` fetch multiple symbols in parallel
-- **Lazy init** — symbols list chỉ load trên first `listing` call
+- **Caching**: 30s cache cho quote, 60s cho aiContext
+- **Parallel requests**: `compareSymbols` fetch multiple symbols in parallel
+- **Lazy init**: symbols list chỉ load trên first `listing` call
 
 Result: Hầu hết calls finish dưới 300ms ngay cả slow network.
 
----
+## Vài tình huống dùng thật
 
-## Part 4: Real Usage Patterns
-
-### Pattern 1: Investment Decision
+### Investment Decision
 
 ```
 Bạn: Đang cân nhắc mua VCB. Nên không?
@@ -526,9 +474,7 @@ Claude:
 
 Đây là information, không phải advice. Claude là research assistant, không phải broker.
 
----
-
-### Pattern 2: Portfolio Rebalancing
+### Portfolio Rebalancing
 
 ```
 Bạn: Đây là portfolio của tôi.
@@ -550,9 +496,7 @@ Claude:
 
 Lại là suggestion, không prescription.
 
----
-
-### Pattern 3: Automated Watchlist
+### Automated Watchlist
 
 ```
 Bạn: Monitor watchlist của tôi hàng ngày lúc 4pm.
@@ -569,41 +513,15 @@ Claude Code (scheduled):
 
 Đây là automation. MCP server supply data, Claude Code supply logic.
 
----
+## Thay đổi thực tế
 
-## Tại Sao Điều Này Quan Trọng
+Trước v1.4, muốn Claude tra cứu dữ liệu chứng khoán thì bạn phải tự viết API wrapper, tự host, tự giữ cho nó chạy, tự lo bảo mật. Đó là việc vận hành, và nó đứng chắn giữa bạn với thứ bạn thực sự muốn làm.
 
-Trước v1.4, nếu bạn muốn Claude làm research trading cho bạn, bạn phải:
-- Xây dựng API wrappers
-- Host nó ở đâu đó
-- Keep it running
-- Secure it
-- Monitor it
+MCP biến việc đó thành một file cấu hình. vnstock-js lo phần dữ liệu, MCP lo phần kết nối, còn bạn chỉ cần đặt câu hỏi.
 
-Đó là DevOps problem. Chúng tôi giải quyết nó với **protocol problem** — MCP.
+## Sắp tới
 
-Giờ:
-- vnstock-js là SDK
-- MCP server là cây cầu
-- Claude là brain
-- Bạn viết prompts, không APIs
-
-Barrier to entry drop từ tuần xuống phút.
-
----
-
-## Kế Tiếp?
-
-v1.5 (Power Workflow) sẽ focus trên:
-- **Agent loops** — Claude phân tích, propose trade, chờ approve, execute
-- **Historical backtesting** — "Nếu tôi follow signal này năm ngoái, ROI bao nhiêu?"
-- **Multi-symbol optimization** — "Recommend portfolio 10 stocks dựa trên risk tolerance của tôi"
-
-Bây giờ, v1.4 là foundation. Bạn có dữ liệu real-time. Bạn có analysis. Bạn có protocol hoạt động ở mọi nơi Claude đi.
-
-Next wave của AI trading tools sẽ không là closed platforms. Chúng sẽ là Claude + MCP + dữ liệu của bạn. Open. Composable. Yours.
-
----
+Bản kế tiếp tập trung vào dữ liệu mức thị trường: độ rộng, thanh khoản, khối ngoại, và bối cảnh thị trường cho AI đọc.
 
 ## Bắt Đầu
 
