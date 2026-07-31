@@ -1,0 +1,140 @@
+---
+title: "vnstock-js v1.5: dữ liệu mức thị trường"
+description: "Độ rộng, thanh khoản, khối ngoại, và bối cảnh thị trường cho AI. Bản này cũng sửa một lỗi đơn vị đã âm thầm trả sai số suốt nhiều tháng."
+date: 31-07-2026
+authors:
+  - avatar: "https://avatars.githubusercontent.com/ttqteo"
+    handle: ttqteo
+    username: Tran Tu Quang
+    handleUrl: "https://github.com/ttqteo"
+cover: "/vnstock.png"
+---
+
+Từ v1.4, thư viện trả lời tốt câu hỏi về một mã: giá bao nhiêu, xu hướng thế nào, RSI ra sao. Nhưng khi mình ngồi viết báo cáo thị trường thì phát hiện thiếu hẳn một tầng.
+
+Không có cách nào hỏi "hôm nay bao nhiêu mã tăng", "thanh khoản so với hôm qua thế nào", "khối ngoại mua hay bán". Mình phải mở web của công ty chứng khoán đọc bằng mắt rồi gõ tay vào báo cáo.
+
+v1.5 bổ sung tầng đó.
+
+## Tổng quan thị trường trong một lời gọi
+
+```typescript
+const ov = await vnstock.market.overview({ exchange: 'HOSE' });
+
+console.log(ov.index.close);       // 1749.54 điểm
+console.log(ov.liquidity.value);   // 8720.4 tỷ VND
+console.log(ov.breadth);           // { advancing: 130, declining: 180, ... }
+console.log(ov.foreign.netValue);  // -507.1 tỷ VND
+```
+
+Tách lẻ thì có `market.breadth()`, `market.liquidity()`, `market.foreignFlow()`, và `stock.foreignFlow(symbol)` cho một mã.
+
+Mọi trường tiền ở nhóm này tính bằng tỷ VND, đúng cách người trong ngành nói chuyện. Output mang kèm trường `unit` để không ai phải đoán.
+
+Trên CLI:
+
+```bash
+$ vnstock market
+VNINDEX  1748.86  +0.24% · 2026-07-31
+Thanh khoản 8.72k tỷ  -56.9%
+Độ rộng HOSE ▲ 130  ▼ 180  = 48  (trần 4, sàn 3 / 358 mã)
+Khối ngoại -507.1 tỷ  mua 1.04k tỷ · bán 1.55k tỷ
+
+$ vnstock foreign VCB
+```
+
+## Bối cảnh thị trường cho AI
+
+`market.aiContext()` là bản mức thị trường của `stock.aiContext()`:
+
+```typescript
+const ctx = await vnstock.market.aiContext();
+
+ctx.regime;     // "trending_down"
+ctx.liquidity;  // { value, avg20, ratio: 0.47, signal: "below_average" }
+ctx.breadth;
+ctx.foreign;
+```
+
+Điểm mình thấy hữu ích nhất là `liquidity.ratio`. Thanh khoản tuyệt đối khó đọc, nhưng "bằng 0.47 lần trung bình 20 phiên" thì rõ ngay là dòng tiền đang yếu.
+
+## Tính theo một phiên trong quá khứ
+
+Viết báo cáo trễ ngày là chuyện thường. Trước đây `aiContext` luôn lấy giá hiện tại, nên báo cáo cho phiên hôm qua lại lẫn số của hôm nay.
+
+```typescript
+const past = await vnstock.stock.aiContext('VCB', { asOf: '2026-07-20' });
+```
+
+Chỉ báo được tính như thể đang đứng ở cuối phiên 20/07. Ngày chỉ định được tính vào kết quả.
+
+Riêng `market.aiContext({ asOf })` với ngày quá khứ sẽ trả `breadth: null` và `foreign: null`, kèm lý do trong `notes`. Nguồn dữ liệu chỉ có độ rộng và khối ngoại của phiên hiện tại, không có lịch sử theo ngày. Mình chọn để trống và nói rõ, thay vì ghép chỉ số cũ với dữ liệu nội tại của hôm nay rồi để người đọc tưởng là khớp.
+
+## MCP từ 13 lên 22 tool
+
+Khi rà lại, mình phát hiện năm module của SDK chưa hề lộ ra MCP: tin tức, báo cáo tài chính, sàng lọc, hàng hoá, watchlist.
+
+Nghĩa là Claude tra được giá VCB nhưng không đọc được doanh thu. Đã bổ sung hết, cộng ba tool mức thị trường.
+
+## Lỗi đáng nói nhất
+
+Trong lúc khảo sát để làm phần chỉ số, mình gọi thử lịch sử VN-Index:
+
+```
+close: 1.66901
+```
+
+VN-Index thật khoảng 1669 điểm. Con số bị chia cho 1000.
+
+Nguyên nhân: thư viện có quy tắc chia giá cho 1000 để đổi từ VND sang nghìn VND. Quy tắc đó đúng với giá cổ phiếu, nhưng chỉ số tính bằng **điểm**, không phải tiền. Hằng số `INDEX_SYMBOLS` đã có sẵn từ lâu nhưng chỉ dùng để kiểm tra đầu vào, không dùng khi quy đổi.
+
+Điều làm mình chú ý hơn cả là vì sao nó lọt. Test cho VN-Index đã tồn tại, nhưng chỉ kiểm tra kiểu:
+
+```typescript
+expect(data[0]).toHaveProperty("close");
+```
+
+Trường có tồn tại thì test xanh, dù giá trị sai 1000 lần. Giờ test kiểm cả khoảng hợp lý.
+
+Một lỗi khác cùng loại: mọi lỗi mạng đều mang theo đối tượng lỗi của axios, mà đối tượng đó chứa socket trỏ vòng lại chính nó. Ai gọi `JSON.stringify(err)` để ghi log, hoặc đẩy lỗi qua Sentry, hoặc truyền lỗi qua worker, đều sập. Lỗi này nằm im từ lâu và chỉ lộ ra khi test chạy trên CI.
+
+## Sàng lọc chuyển sang REST
+
+`screening` là module cuối cùng còn dùng endpoint GraphQL của VCI. Endpoint đó nay trả HTTP 200 với body rỗng, nên `screen()` trả mảng rỗng và người dùng đọc thành "không mã nào khớp điều kiện".
+
+Đã viết lại bằng REST. Kèm theo một thay đổi phá vỡ tương thích: `screen()` bắt buộc phải có `group` hoặc `exchange`.
+
+Lý do là chỉ số tài chính phải lấy theo từng mã. Quét cả 2000 mã trong một lần gọi là cách chắc chắn bị chặn với lỗi 429. Bắt buộc chỉ định phạm vi thì trung thực về chi phí hơn.
+
+Thư viện cũng tự tách bộ lọc làm hai nhóm. Lọc theo giá và khối lượng thì miễn phí vì bảng giá trả một lần cho cả rổ. Chỉ những mã sống sót mới phải gọi thêm để lấy PE.
+
+```typescript
+// Lọc khối lượng trước, chỉ vài mã còn lại mới cần gọi thêm
+await vnstock.stock.screening.screen({
+  exchange: 'HOSE',
+  filters: [
+    { field: 'volume', operator: '>', value: 5000000 },
+    { field: 'pe', operator: '<', value: 12 },
+  ],
+});
+```
+
+HOSE hơn 400 mã, cách này chạy khoảng 1.5 giây thay vì 17 giây.
+
+Muốn nhanh hơn nữa thì bật `init({ ratios: true })`. Thư viện tải bộ chỉ số theo quý dựng sẵn từ GitHub và cache 24 giờ, lọc theo ROE hay biên lợi nhuận không gọi mạng lần nào. File đặt trên GitHub chứ không đóng gói vào npm, nên package vẫn nhẹ và dữ liệu cập nhật được mà không cần phát hành phiên bản mới.
+
+## Nâng cấp
+
+```bash
+npm install vnstock-js@1.5.0
+```
+
+Ba thay đổi phá vỡ tương thích:
+
+1. Giá chỉ số không còn chia 1000. Nếu code đang nhân 1000 để bù thì bỏ đi.
+2. `goldPriceGiaVangNet()` trả dữ liệu đã chuẩn hoá, field đổi tên.
+3. `screening.screen()` bắt buộc có phạm vi.
+
+Không dùng chỉ số, không dùng GiaVangNet, không sàng lọc thì không phải sửa gì.
+
+Chi tiết trong [changelog](/docs/getting-started/changelog) và [tài liệu thị trường](/docs/key-features/advanced/market).
