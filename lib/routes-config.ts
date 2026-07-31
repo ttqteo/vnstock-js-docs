@@ -51,6 +51,7 @@ export const ROUTES: EachRoute[] = [
           { title: "Tài Chính - Financials", href: "/financials" },
           { title: "Chỉ Báo - Indicators", href: "/indicators" },
           { title: "AI Context", href: "/ai-context", since: "1.4", releasedAt: "2026-05-22" },
+          { title: "Thị Trường - Market", href: "/market", since: "1.5", releasedAt: "2026-07-31" },
           { title: "MCP Server", href: "/mcp", since: "1.4", releasedAt: "2026-05-22" },
           { title: "Watchlist", href: "/watchlist", since: "1.4", releasedAt: "2026-05-22" },
           { title: "Sàng Lọc - Screening", href: "/screening" },

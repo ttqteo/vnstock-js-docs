@@ -1,0 +1,150 @@
+---
+title: Thị Trường - Market
+description: Độ rộng, thanh khoản, khối ngoại, và bối cảnh thị trường cho AI
+---
+
+Từ v1.5, `vnstock.market` trả dữ liệu ở mức toàn sàn thay vì từng mã: bao nhiêu mã tăng giảm, thanh khoản phiên này so với phiên trước, khối ngoại mua bán ròng bao nhiêu.
+
+```typescript
+import vnstock from 'vnstock-js';
+```
+
+## Đơn vị
+
+Mọi trường tiền ở nhóm này tính bằng **tỷ VND**, và output mang kèm trường `unit` để tự mô tả. Đây là đơn vị người trong ngành dùng khi nói "thanh khoản 20 nghìn tỷ".
+
+Toàn bộ quy ước đơn vị của thư viện:
+
+| Nơi dùng | Đơn vị |
+|---|---|
+| Giá cổ phiếu | nghìn VND |
+| Chỉ số (VNINDEX, VN30) | điểm, không chia |
+| `QuoteHistory.value` | triệu VND |
+| Mọi trường tiền mức thị trường | tỷ VND |
+
+## `market.overview(options?)`
+
+Gộp chỉ số, thanh khoản, độ rộng và khối ngoại trong một lời gọi. Dùng chung một lần lấy bảng giá thay vì kéo cả nghìn mã hai lần.
+
+```typescript
+const ov = await vnstock.market.overview({ exchange: 'HOSE' });
+
+console.log(ov.index.close);        // 1749.54 (điểm)
+console.log(ov.index.changePercent) // 0.26
+console.log(ov.liquidity.value);    // 8720.4 (tỷ VND)
+console.log(ov.breadth);            // { advancing: 130, declining: 180, unchanged: 48, ceiling: 4, floor: 3 }
+console.log(ov.foreign.netValue);   // -507.1 (tỷ VND)
+console.log(ov.foreign.topNetBuy);  // [{ symbol: "VCB", netValue: 178.3 }, ...]
+```
+
+### Params
+
+| Param | Type | Mô tả |
+|---|---|---|
+| `exchange` | string? | HOSE (mặc định), HNX, UPCOM, ALL |
+| `index` | string? | VNINDEX (mặc định), VN30, HNXIndex |
+| `top` | number? | Số mã trong top mua/bán ròng (mặc định 10) |
+
+## `market.breadth(options?)`
+
+Độ rộng thị trường: đếm số mã tăng, giảm, đứng giá, trần, sàn.
+
+```typescript
+const b = await vnstock.market.breadth({ exchange: 'HOSE' });
+// { exchange: "HOSE", date: "2026-07-31", advancing: 130, declining: 180,
+//   unchanged: 48, ceiling: 4, floor: 3, total: 358, advanceDeclineRatio: 0.722 }
+```
+
+Mã chưa khớp lệnh không tính vào thống kê. Nếu tính chúng là đứng giá thì nhóm đứng giá sẽ bị thổi phồng bằng các mã không giao dịch.
+
+`advanceDeclineRatio` trả `null` khi không mã nào giảm, thay vì `Infinity`.
+
+## `market.liquidity(options?)`
+
+Giá trị giao dịch toàn sàn của phiên, kèm phiên trước và phần trăm thay đổi.
+
+```typescript
+const liq = await vnstock.market.liquidity();
+// { index: "VNINDEX", date: "2026-07-31", value: 8720.4,
+//   valuePrevious: 20264.06, changePercent: -56.97, volume: 324735250, unit: "tyVND" }
+```
+
+## `market.foreignFlow(options?)`
+
+Khối ngoại mức thị trường: tổng mua, tổng bán, ròng, kèm danh sách top mua ròng và bán ròng.
+
+```typescript
+const f = await vnstock.market.foreignFlow({ exchange: 'HOSE', top: 5 });
+// { netValue: -507.1, buyValue: 1040.2, sellValue: 1547.3,
+//   topNetBuy: [...], topNetSell: [...], unit: "tyVND" }
+```
+
+## `stock.foreignFlow(symbol)`
+
+Khối ngoại của riêng một mã.
+
+```typescript
+const one = await vnstock.stock.foreignFlow('VCB');
+// { symbol: "VCB", date: "2026-07-31", buyVolume: 3606100, sellVolume: 671300,
+//   netVolume: 2934800, buyValue: 213.478, sellValue: 39.74, netValue: 173.738 }
+```
+
+<Note type="warning">
+Nguồn dữ liệu chỉ cung cấp khối ngoại của **phiên hiện tại**, không có lịch sử theo ngày. Muốn dựng chuỗi nhiều phiên thì phải tự ghi lại mỗi ngày.
+</Note>
+
+## `market.aiContext(options?)`
+
+Bối cảnh thị trường dạng structured cho LLM, tương đương `stock.aiContext` nhưng ở mức thị trường.
+
+```typescript
+const ctx = await vnstock.market.aiContext();
+
+console.log(ctx.regime);     // "trending_down"
+console.log(ctx.rationale);  // "Close 1752.94 below SMA20 1763.77 below SMA50 1810.09"
+console.log(ctx.liquidity);  // { value: 8149.6, avg20: 17334.6, ratio: 0.47, signal: "below_average" }
+console.log(ctx.breadth);    // { advancing: 136, declining: 170, ... }
+console.log(ctx.foreign);    // { netValue: -452.7, ... }
+```
+
+`regime` nhận một trong `trending_up`, `trending_down`, `sideways`, xác định bằng vị trí chỉ số so với SMA20 và SMA50.
+
+### Với ngày quá khứ
+
+```typescript
+const past = await vnstock.market.aiContext({ asOf: '2026-07-20' });
+console.log(past.breadth);  // null
+console.log(past.foreign);  // null
+console.log(past.notes);
+// ["breadth and foreign flow are omitted for asOf=2026-07-20: ..."]
+```
+
+Bảng giá luôn là phiên hiện tại, nên yêu cầu lùi ngày không thể có độ rộng và khối ngoại tương ứng. Thư viện trả `null` kèm lý do trong `notes` thay vì ghép chỉ số cũ với dữ liệu nội tại của hôm nay.
+
+## `market.index(symbol, options?)`
+
+Lịch sử chỉ số, đơn vị điểm.
+
+```typescript
+const bars = await vnstock.market.index('VNINDEX', { countBack: 30 });
+// [{ date: "2026-07-31", open: 1764.45, close: 1749.18, volume: ..., value: ... }]
+```
+
+<Note type="warning">
+Từ v1.5, giá chỉ số **không còn bị chia 1000**. VNINDEX trước trả `1.66901`, nay trả `1669.01` điểm. Nếu code cũ đang nhân 1000 để bù thì bỏ đi.
+</Note>
+
+## CLI
+
+```bash
+$ vnstock market
+VNINDEX  1748.86  +0.24% · 2026-07-31
+Thanh khoản 8.72k tỷ  -56.9%
+Độ rộng HOSE ▲ 130  ▼ 180  = 48  (trần 4, sàn 3 / 358 mã)
+Khối ngoại -507.1 tỷ  mua 1.04k tỷ · bán 1.55k tỷ
+
+$ vnstock foreign --top 3
+$ vnstock foreign VCB
+```
+
+Thêm `--verbose` để xem top mua bán ròng, `--json` hoặc `--csv` để lấy dữ liệu thô.

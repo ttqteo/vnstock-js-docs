@@ -66,7 +66,7 @@ Thêm vnstock-js MCP server vào `mcpServers`:
 }
 ```
 
-Restart Claude Desktop. Lúc này Claude sẽ có quyền dùng 13 tools của vnstock-js.
+Restart Claude Desktop. Lúc này Claude sẽ có quyền dùng 22 tools của vnstock-js.
 
 ### Claude Code Setup
 
@@ -498,6 +498,85 @@ Hiển thị danh mục theo dõi của tôi
 
 ---
 
+### Market - Dữ Liệu Thị Trường (v1.5+)
+
+**Tools:** `get_market_breadth`, `get_foreign_flow`, `get_market_context`
+
+Ba tool này trả dữ liệu ở mức toàn sàn thay vì từng mã.
+
+```
+User: thị trường hôm nay thế nào?
+
+Claude: [gọi get_market_context]
+VN-Index đóng cửa 1749.18 điểm, tăng 0.26%.
+
+Regime hiện tại là trending_down: chỉ số nằm dưới cả SMA20 và SMA50.
+
+Thanh khoản 8.7 nghìn tỷ, chỉ bằng 0.47 lần trung bình 20 phiên, tức là
+dòng tiền đang rất yếu.
+
+Độ rộng nghiêng về phía giảm: 127 mã tăng so với 181 mã giảm.
+
+Khối ngoại bán ròng 470 tỷ, bán mạnh nhất ở VHM.
+```
+
+```
+User: khối ngoại mua bán gì hôm nay?
+
+Claude: [gọi get_foreign_flow]
+Khối ngoại bán ròng 507 tỷ trên HOSE.
+Mua ròng nhiều nhất: VCB 178 tỷ, FPT 55 tỷ, VRE 51 tỷ.
+Bán ròng nhiều nhất: VHM 204 tỷ, TCB 47 tỷ, VPB 44 tỷ.
+```
+
+<Note type="warning">
+Nguồn chỉ có khối ngoại của phiên hiện tại, không có lịch sử theo ngày.
+</Note>
+
+### News - Tin Tức (v1.5+)
+
+**Tool:** `get_news`
+
+```
+User: có tin gì về thị trường hôm nay không?
+
+Claude: [gọi get_news]
+Tổng hợp từ Vietstock, VnExpress, Tin Nhanh Chứng Khoán...
+```
+
+Lọc được theo `source` hoặc `keyword`.
+
+### Financials - Báo Cáo Tài Chính (v1.5+)
+
+**Tool:** `get_financials`
+
+```
+User: doanh thu VCB quý này ra sao?
+
+Claude: [gọi get_financials với report=income_statement]
+```
+
+Nhận `report` là `balance_sheet`, `income_statement` hoặc `cash_flow`, và `period` là `quarter` hoặc `year`.
+
+### Screen Stocks - Sàng Lọc (v1.5+)
+
+**Tool:** `screen_stocks`
+
+```
+User: cổ phiếu VN30 nào PE dưới 12 mà ROE trên 20%?
+
+Claude: [gọi screen_stocks]
+VHM PE 7.6 ROE 33%, MWG PE 10.5 ROE 29%, FPT PE 11.4 ROE 26%.
+```
+
+Bắt buộc có `group` hoặc `exchange`.
+
+### Commodity - Vàng và Tỷ Giá (v1.5+)
+
+**Tools:** `get_gold_price`, `get_exchange_rate`
+
+`get_gold_price` tự chuyển sang GiaVang.net khi BTMC lỗi, và cho biết dữ liệu đến từ nguồn nào.
+
 ## Kiến Trúc MCP Server
 
 ### Protocol Flow
@@ -526,7 +605,7 @@ Claude              MCP Transport       vnstock-js Server       VCI API
 
 **1. Server Initialization**
 - vnstock-js khởi tạo MCP Server instance với stdio transport
-- Đăng ký 13 tools và schema của chúng
+- Đăng ký 22 tools và schema của chúng
 
 **2. Transport Layer**
 - **stdio**: stdin (request từ Claude) ↔ stdout (response)

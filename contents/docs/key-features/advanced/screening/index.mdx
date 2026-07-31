@@ -1,7 +1,15 @@
 ---
 title: Sàng Lọc - Screening
-description: Lọc cổ phiếu theo tiêu chí tài chính
+description: Lọc cổ phiếu theo tiêu chí tài chính trong một rổ chỉ định
 ---
+
+<Note type="warning">
+**Thay đổi ở v1.5.** `screen()` nay bắt buộc có `group` hoặc `exchange`. Không truyền thì ném `InvalidParameterError`.
+
+Lý do: chỉ số tài chính phải lấy theo từng mã, nên quét cả 2000 mã trong một lần gọi là cách chắc chắn bị nguồn chặn với lỗi 429.
+
+Kết quả cũng bỏ `eps`, `revenue`, `netProfit` vì nguồn REST mới không có. Cần số tuyệt đối thì dùng `stock.financials`.
+</Note>
 
 ## Sử dụng
 
@@ -9,11 +17,10 @@ description: Lọc cổ phiếu theo tiêu chí tài chính
 import vnstock from 'vnstock-js';
 
 const results = await vnstock.stock.screening.screen({
-  exchange: 'HOSE',
+  group: 'VN30',
   filters: [
     { field: 'pe', operator: '<', value: 15 },
     { field: 'roe', operator: '>', value: 0.15 },
-    { field: 'marketCap', operator: '>', value: 50000 },
   ],
   sortBy: 'roe',
   order: 'desc',
@@ -25,11 +32,15 @@ const results = await vnstock.stock.screening.screen({
 
 | Param | Type | Mô tả |
 |-------|------|--------|
-| `exchange` | string? | Lọc theo sàn (HOSE/HNX/UPCOM) |
+| `group` | string? | VN30, HNX30, VN100... Ưu tiên hơn `exchange` |
+| `exchange` | string? | HOSE, HNX, UPCOM |
 | `filters` | ScreenFilter[] | Danh sách điều kiện lọc |
 | `sortBy` | string? | Sắp xếp theo field |
 | `order` | "asc" \| "desc" | Thứ tự (mặc định: desc) |
 | `limit` | number? | Giới hạn kết quả |
+| `concurrency` | number? | Số request song song khi lấy chỉ số (mặc định 5) |
+
+Phải có `group` hoặc `exchange`.
 
 ### Filter operators
 
@@ -41,19 +52,85 @@ const results = await vnstock.stock.screening.screen({
 | `>=` | Lớn hơn hoặc bằng |
 | `=` | Bằng |
 
-### Filterable fields
+## Chi phí của từng nhóm field
+
+Không phải field nào cũng tốn như nhau. Biết điều này giúp viết bộ lọc nhanh hơn nhiều.
+
+**Miễn phí, lấy từ bảng giá.** Một request cho cả rổ.
+
+| Field | Mô tả |
+|-------|--------|
+| `price` | Giá hiện tại (nghìn VND) |
+| `priceChange` | Thay đổi so với tham chiếu |
+| `changePercent` | Phần trăm thay đổi |
+| `volume` | Khối lượng |
+| `value` | Giá trị giao dịch (tỷ VND) |
+| `exchange` | Sàn |
+
+**Miễn phí nếu bật `init({ ratios: true })`.** Xem mục bên dưới.
+
+| Field | Mô tả |
+|-------|--------|
+| `roe` | Return on Equity |
+| `roa` | Return on Assets |
+| `roic` | Return on Invested Capital |
+| `grossMargin` | Biên lợi nhuận gộp |
+| `ebitMargin` | Biên EBIT |
+| `currentRatio` | Thanh toán hiện hành |
+| `quickRatio` | Thanh toán nhanh |
+| `debtToEquity` | Nợ trên vốn chủ |
+| `dividendYield` | Tỷ suất cổ tức |
+| `shares` | Số cổ phiếu lưu hành |
+
+**Tốn một request cho mỗi mã.** Chúng phái sinh từ giá nên không dựng sẵn được.
 
 | Field | Mô tả |
 |-------|--------|
 | `pe` | Price/Earnings |
 | `pb` | Price/Book |
-| `eps` | Earnings Per Share |
-| `roe` | Return on Equity |
-| `roa` | Return on Assets |
-| `marketCap` | Vốn hóa |
-| `price` | Giá hiện tại |
-| `volume` | Khối lượng |
-| `debtToEquity` | Nợ/Vốn chủ |
+| `ps` | Price/Sales |
+| `marketCap` | Vốn hóa (tỷ VND) |
+
+### Bộ lọc rẻ chạy trước
+
+Thư viện tự tách bộ lọc làm hai nhóm và chạy nhóm rẻ trước, nên chỉ mã đã sống sót mới phải gọi thêm.
+
+```typescript
+// Lọc khối lượng trước, chỉ vài mã còn lại mới phải lấy PE
+await vnstock.stock.screening.screen({
+  exchange: 'HOSE',
+  filters: [
+    { field: 'volume', operator: '>', value: 5000000 },
+    { field: 'pe', operator: '<', value: 12 },
+  ],
+});
+```
+
+HOSE có hơn 400 mã. Cách viết trên chạy khoảng 1.5 giây. Lọc PE trên cả sàn mà không thu hẹp trước thì mất khoảng 17 giây và hơn 400 request.
+
+## Tăng tốc với `init({ ratios: true })`
+
+```typescript
+await vnstock.init({ ratios: true });
+
+const rows = await vnstock.stock.screening.screen({
+  group: 'VN30',
+  filters: [{ field: 'roe', operator: '>', value: 0.2 }],
+  sortBy: 'roe',
+});
+```
+
+`init({ ratios: true })` tải bộ chỉ số theo quý dựng sẵn từ GitHub và cache 24 giờ. Có file này thì lọc theo nhóm chỉ số quý không gọi mạng lần nào.
+
+Đo trên VN30: 416ms có file, 1413ms không có.
+
+Mặc định tắt vì phần lớn người dùng không sàng lọc và đây là thêm một lượt tải khoảng 400 kB. Tải lỗi thì `init()` vẫn chạy bình thường, screening tự quay về gọi theo từng mã.
+
+<Note type="warning">
+Nguồn trả `0` thay vì `null` cho chỉ số không áp dụng được với ngành đó, ví dụ `currentRatio` và `roic` của ngân hàng. Thư viện giữ nguyên số của nguồn, không tự suy diễn.
+
+Nghĩa là lọc `currentRatio < 1` sẽ dính cả nhóm ngân hàng. Cân nhắc lọc kèm `exchange` hoặc ngành.
+</Note>
 
 ### Output: `ScreenResult[]`
 
@@ -63,10 +140,16 @@ const results = await vnstock.stock.screening.screen({
   companyName: "CTCP FPT",
   industry: "Công nghệ",
   exchange: "HOSE",
-  pe: 12.3,
-  roe: 0.22,
-  marketCap: 95000,
-  price: 120,
-  // ...
+  price: 67.1,
+  changePercent: 0.15,
+  volume: 2611600,
+  value: 176.2,
+  pe: 11.42,
+  pb: 2.87,
+  roe: 0.265,
+  marketCap: 99312.5,
+  ratioPeriod: "2026Q2",
 }]
 ```
+
+`ratioPeriod` cho biết chỉ số lấy từ kỳ báo cáo nào, chỉ có khi bật `ratios: true`.

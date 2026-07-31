@@ -39,6 +39,19 @@ console.log(ctx.performance);        // { change1d: 0.0017, change30d: 0.058, ..
 await vnstock.stock.aiContext('VCB', { lookback: 200 }); // default 200 phiên
 ```
 
+### Tính theo một phiên trong quá khứ (v1.5+)
+
+```typescript
+const past = await vnstock.stock.aiContext('VCB', { asOf: '2026-07-20' });
+console.log(past.asOf);  // "2026-07-20"
+```
+
+`asOf` cắt chuỗi lịch sử tại ngày chỉ định rồi tính chỉ báo trên phần dữ liệu đó, như thể bạn đang đứng ở cuối phiên hôm ấy. Dùng khi viết báo cáo trễ ngày mà không muốn lẫn giá hiện tại.
+
+Ngày chỉ định được tính vào kết quả. `asOf: '2026-07-20'` bao gồm chính phiên 20/07.
+
+Áp dụng cho cả `toAIPrompt()`, và MCP nhận tham số `as_of`.
+
 ## `stock.toAIPrompt(symbol, options?)`
 
 Trả về plain-text format optimize cho LLM context window. Dùng khi user export sang GPT/Gemini bên ngoài.
