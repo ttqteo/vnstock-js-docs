@@ -5,7 +5,7 @@ import { MarketCalendar, CorporateEvent } from "@/components/calendar/market-cal
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Lịch Sự Kiện — vnstock-js",
+  title: "Lịch Sự Kiện | vnstock-js",
   description:
     "Tổng hợp sự kiện quyền, cổ tức, ĐHCĐ sắp diễn ra trên thị trường",
 };

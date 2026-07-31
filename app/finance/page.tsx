@@ -5,7 +5,7 @@ import { FinanceDashboard } from "@/components/finance/finance-dashboard";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Tài Chính — vnstock-js",
+  title: "Tài Chính | vnstock-js",
   description: "Tổng quan thị trường chứng khoán Việt Nam",
 };
 

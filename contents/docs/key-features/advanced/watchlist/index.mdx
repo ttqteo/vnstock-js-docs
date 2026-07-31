@@ -3,7 +3,7 @@ title: Watchlist - Danh Sách Mã Yêu Thích
 description: Quản lý nhiều watchlist, persist ~/.vnstock-js/watchlist.json, fetch quotes batch
 ---
 
-Từ v1.4, vnstock-js có module `watchlist` đơn giản để track nhiều danh sách mã (banks, tech, watchlist riêng...) — persist local trên Node, browser opt-in adapter.
+Từ v1.4, vnstock-js có module `watchlist` đơn giản để track nhiều danh sách mã (banks, tech, watchlist riêng...), persist local trên Node, browser opt-in adapter.
 
 ```typescript
 import { watchlist } from 'vnstock-js';
@@ -86,7 +86,7 @@ const quotes = await compareSymbols(symbols);
 ```
 
 <Note type="note">
-Watchlist là **local-only** — không sync cloud. Nếu cần multi-device, build adapter trên cloud DB của bạn.
+Watchlist là **local-only**: không sync cloud. Nếu cần multi-device, build adapter trên cloud DB của bạn.
 </Note>
 
 <Note type="warning">

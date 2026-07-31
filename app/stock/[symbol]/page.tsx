@@ -15,7 +15,7 @@ export async function generateMetadata({
   params: Params;
 }): Promise<Metadata> {
   const { symbol } = await params;
-  return { title: `${symbol.toUpperCase()} — vnstock-js` };
+  return { title: `${symbol.toUpperCase()} | vnstock-js` };
 }
 
 export default async function StockDetailPage({

@@ -285,7 +285,7 @@ export default async function Home() {
             sẵn, sẵn sàng render.
           </p>
 
-          {/* Code block — always dark */}
+          {/* Code block, luon nen toi */}
           <div className="overflow-hidden bg-[#141516] text-[#e5e2e1]">
             <div className="flex items-center gap-2 px-5 py-3 border-b border-white/10">
               <div className="flex gap-1.5">

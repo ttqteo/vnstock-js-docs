@@ -29,10 +29,10 @@ const ACADEMY_TOPICS = [
     icon: CircleDollarSign,
     title: "Cổ Tức (Dividend)",
     content: [
-      "**Cổ tức** là phần lợi nhuận công ty phân phối cho cổ đông — bằng tiền mặt, cổ phiếu, hoặc tài sản.",
+      "**Cổ tức** là phần lợi nhuận công ty phân phối cho cổ đông, bằng tiền mặt, cổ phiếu, hoặc tài sản.",
       "**Dividend Yield** = Cổ tức hàng năm / Giá hiện tại × 100%. Ví dụ: 3,000đ / 50,000đ = 6%.",
       "Thuế TNCN trên cổ tức tiền mặt tại VN: **5%**, khấu trừ tại nguồn.",
-      "Giá cổ phiếu **giảm đúng bằng cổ tức** vào ngày Ex-date — đây là điều chỉnh kỹ thuật.",
+      "Giá cổ phiếu **giảm đúng bằng cổ tức** vào ngày Ex-date, đây là điều chỉnh kỹ thuật.",
     ],
   },
   {
@@ -44,7 +44,7 @@ const ACADEMY_TOPICS = [
       "**Chia tách** là tăng số lượng cổ phiếu bằng cách chia nhỏ, **không thay đổi tổng vốn hóa**.",
       "Ví dụ 5:1: 100 cp giá 500,000đ → 500 cp giá 100,000đ. Tổng giá trị vẫn = 50 triệu.",
       "Mục đích: tăng thanh khoản, hạ giá để thu hút NĐT cá nhân, đạt tiêu chí niêm yết.",
-      "**Gộp cổ phiếu** (reverse split) là ngược lại — giảm số lượng, tăng giá tương ứng.",
+      "**Gộp cổ phiếu** (reverse split) thì ngược lại, giảm số lượng, tăng giá tương ứng.",
     ],
   },
   {
@@ -53,7 +53,7 @@ const ACADEMY_TOPICS = [
     icon: Users,
     title: "Đại Hội Cổ Đông (ĐHCĐ)",
     content: [
-      "**ĐHCĐ** là cuộc họp cao nhất của công ty cổ phần — nơi cổ đông biểu quyết các vấn đề quan trọng.",
+      "**ĐHCĐ** là cuộc họp cao nhất của công ty cổ phần, nơi cổ đông biểu quyết các vấn đề quan trọng.",
       "**Thường niên (AGM)**: mỗi năm 1 lần, Q1-Q2. **Bất thường (EGM)**: khi có vấn đề cấp bách.",
       "Nội dung chính: kế hoạch kinh doanh, chia cổ tức, phát hành thêm, bầu HĐQT.",
       "Cần nắm cổ phiếu **trước ngày ĐKCC** để tham dự và biểu quyết.",
@@ -67,7 +67,7 @@ const ACADEMY_TOPICS = [
     content: [
       "**Phát hành thêm** là phát hành cổ phiếu mới để huy động vốn, thường kèm quyền mua ưu đãi.",
       "Khi số CP tăng mà LN không tăng → **EPS giảm** = pha loãng. VD: thêm 20% CP → pha loãng ~16.7%.",
-      "**Quyền mua có giá trị** — không thực hiện = mất giá trị do pha loãng.",
+      "**Quyền mua có giá trị**: không thực hiện = mất giá trị do pha loãng.",
       "Phát hành riêng lẻ (private placement) gây pha loãng nhiều nhất vì cổ đông cũ không có quyền mua.",
     ],
   },
@@ -124,5 +124,5 @@ export const ACADEMY_TOOLTIPS: Record<string, string> = {
   split: "Chia tách cổ phiếu tăng số lượng CP mà không thay đổi tổng vốn hóa. Giá điều chỉnh tương ứng.",
   meeting: "Đại Hội Cổ Đông là cuộc họp để biểu quyết các vấn đề quan trọng: kế hoạch, cổ tức, phát hành thêm.",
   rights: "Phát hành thêm cổ phiếu để huy động vốn. Có thể gây pha loãng EPS cho cổ đông hiện hữu.",
-  other: "Sự kiện quyền — ngày Ex-date là ngày mua CP sẽ không được hưởng quyền lợi đã công bố.",
+  other: "Sự kiện quyền, ngày Ex-date là ngày mua CP sẽ không được hưởng quyền lợi đã công bố.",
 };

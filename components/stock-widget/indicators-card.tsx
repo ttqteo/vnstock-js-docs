@@ -46,7 +46,7 @@ export function IndicatorsCard({
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="text-lg">
-          Chỉ báo kỹ thuật — {ticker}
+          Chỉ báo kỹ thuật: {ticker}
         </CardTitle>
       </CardHeader>
       <CardContent>

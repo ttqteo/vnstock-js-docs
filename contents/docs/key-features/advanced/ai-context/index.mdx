@@ -3,7 +3,7 @@ title: AI Context - Phân Tích Kỹ Thuật cho LLM
 description: aiContext() trả structured JSON, toAIPrompt() trả plain-text cho Claude/GPT/Gemini
 ---
 
-Từ v1.4, vnstock-js cung cấp 2 helper để build **bối cảnh phân tích kỹ thuật pre-computed** cho AI/LLM reasoning — không phải dump raw OHLCV.
+Từ v1.4, vnstock-js cung cấp 2 helper để build **bối cảnh phân tích kỹ thuật pre-computed** cho AI/LLM reasoning, không phải dump raw OHLCV.
 
 ```typescript
 import vnstock from 'vnstock-js';
@@ -13,11 +13,11 @@ import vnstock from 'vnstock-js';
 
 Trả về structured JSON gồm:
 
-- **trend** — direction (bullish/bearish/neutral), strength (0..1), rationale tiếng Việt
-- **indicators** — RSI14, MACD (line/signal/histogram/crossover), SMA/EMA 20/50/200, Bollinger (upper/middle/lower/percentB), ATR14
-- **levels** — support + resistance dạng pivot points
-- **volume** — today, avg20, signal (above_average/below_average/normal), z-score
-- **performance** — change 1d/7d/30d/90d
+- **trend**: direction (bullish/bearish/neutral), strength (0..1), rationale tiếng Việt
+- **indicators**: RSI14, MACD (line/signal/histogram/crossover), SMA/EMA 20/50/200, Bollinger (upper/middle/lower/percentB), ATR14
+- **levels**: support + resistance dạng pivot points
+- **volume**: today, avg20, signal (above_average/below_average/normal), z-score
+- **performance**: change 1d/7d/30d/90d
 
 ```typescript
 const ctx = await vnstock.stock.aiContext('VCB');
@@ -64,8 +64,8 @@ console.log(text);
 Output:
 
 ```
-=== VCB — 2026-05-22 ===
-Trend: bullish (strength 72%) — EMA20 > EMA50 > EMA200, slope EMA20 dương 5 phiên
+=== VCB, 2026-05-22 ===
+Trend: bullish (strength 72%), EMA20 > EMA50 > EMA200, slope EMA20 dương 5 phiên
 RSI(14): 62.3
 MACD: line 0.420, signal 0.310, histogram 0.110, crossover: bullish
 SMA: 20=58.40, 50=56.10, 200=52.80
@@ -85,7 +85,7 @@ await vnstock.stock.toAIPrompt('VCB', { lang: 'en' }); // English version
 await vnstock.stock.toAIPrompt('VCB', { lookback: 100 });
 ```
 
-## Use case — AI agent integration
+## Use case, AI agent integration
 
 ```typescript
 import vnstock from 'vnstock-js';

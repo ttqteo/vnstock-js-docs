@@ -1,5 +1,5 @@
 ---
-title: "vnstock-js v1.3 — CLI và Realtime trên browser"
+title: "vnstock-js v1.3, CLI và Realtime trên browser"
 description: "Tra cứu giá từ terminal bằng vài phím gõ. Stream giá realtime vào React component không cần proxy. v1.3 biến vnstock-js từ thư viện thành công cụ hàng ngày."
 date: 15-04-2026
 authors:
@@ -17,7 +17,7 @@ Sau v1.2 (Symbol Directory + Market Calendar), mình nhận được feedback t�
 
 v1.3 trả lời cả hai.
 
-## CLI — `vnstock quote VCB`
+## CLI, `vnstock quote VCB`
 
 Cài global một lần:
 
@@ -42,10 +42,10 @@ Không cần mở editor, không cần viết script. Trong 1 tuần dùng, mìn
 
 ### Các command chính
 
-- **`vnstock quote <SYMBOL>`** — snapshot 1 mã
-- **`vnstock history <SYMBOL> --range 30d`** — OHLCV
-- **`vnstock search "ngân hàng"`** — tìm mã theo tên
-- **`vnstock symbols --exchange HOSE`** — liệt kê mã theo sàn
+- **`vnstock quote <SYMBOL>`**: snapshot 1 mã
+- **`vnstock history <SYMBOL> --range 30d`**: OHLCV
+- **`vnstock search "ngân hàng"`**: tìm mã theo tên
+- **`vnstock symbols --exchange HOSE`**: liệt kê mã theo sàn
 
 Mọi command hỗ trợ `--json` và `--csv` để pipe ra file hoặc các tool khác:
 
@@ -67,7 +67,7 @@ npx vnstock-js quote VCB
 
 Dùng xong, máy sạch, không lem vào `PATH`.
 
-## Realtime — WebSocket trực tiếp trong React
+## Realtime, WebSocket trực tiếp trong React
 
 Trước v1.3, nếu bạn muốn giá nhảy live trên web, phải:
 
@@ -130,7 +130,7 @@ Xem [docs realtime đầy đủ](/docs/key-features/advanced/realtime) có luôn
 
 ### `await init()` bắt buộc
 
-Từ v1.3, data symbols và holidays không còn bundle trong npm package — fetch runtime từ raw GitHub, cache disk 24h. Lợi: update symbols mới không cần bump version, package nhẹ hơn. Cost: gọi `init()` một lần ở entrypoint:
+Từ v1.3, data symbols và holidays không còn bundle trong npm package, fetch runtime từ raw GitHub, cache disk 24h. Lợi: update symbols mới không cần bump version, package nhẹ hơn. Cost: gọi `init()` một lần ở entrypoint:
 
 ```typescript
 import { init } from "vnstock-js";
@@ -140,7 +140,7 @@ await init(); // gọi 1 lần ở app start
 
 Các API truy vấn trực tiếp (`quote`, `history`, `company`, `financials`) vẫn không cần `init()`. Chỉ bắt buộc khi dùng `stock.search`, `listing.*`, `market.calendar.*`.
 
-## Patch v1.3.1 — CLI sạch sẽ hơn
+## Patch v1.3.1, CLI sạch sẽ hơn
 
 Sau 1 tuần dùng CLI, mình tìm ra kha khá bug nhỏ, fix gọn trong v1.3.1:
 

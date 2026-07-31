@@ -724,7 +724,7 @@ export function FinanceDashboard({
           </div>
         </div>
       ) : (
-        /* Layout 2: No chart — watchlist + market info */
+        /* Layout 2: khong co bieu do, watchlist + thong tin thi truong */
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <WatchlistPanel />
           <div className="space-y-4">

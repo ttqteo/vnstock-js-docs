@@ -40,7 +40,7 @@ const data = await stock.quote({ ticker: "FPT", start: "2025-01-01" });
 
 ### Realtime giá cổ phiếu
 
-Đây là tính năng mình hào hứng nhất. vnstock-js giờ hỗ trợ **WebSocket realtime** — bạn có thể nhận giá cổ phiếu cập nhật liên tục trong giờ giao dịch, không cần polling.
+Đây là tính năng mình hào hứng nhất. vnstock-js giờ hỗ trợ **WebSocket realtime**: bạn có thể nhận giá cổ phiếu cập nhật liên tục trong giờ giao dịch, không cần polling.
 
 ```ts
 const { connect, subscribe, parseData } = stock.realtime;
@@ -55,7 +55,7 @@ const socket = connect({
 
 ### Chỉ báo kỹ thuật tích hợp sẵn
 
-Không cần cài thêm thư viện nào. SMA, EMA, RSI — import thẳng từ vnstock-js:
+Không cần cài thêm thư viện nào. SMA, EMA, RSI, import thẳng từ vnstock-js:
 
 ```ts
 import { stock, sma, rsi } from "vnstock-js";
@@ -86,7 +86,7 @@ const results = await stock.screening({
 - **Bảng giá** với đầy đủ thông tin trần/sàn/tham chiếu
 - **Thông tin công ty**: hồ sơ, cổ đông, ban lãnh đạo, sự kiện, tin tức
 - **Giá vàng & tỷ giá** từ nhiều nguồn (SJC, BTMC, GiaVang.net)
-- **TypeScript** hoàn chỉnh — mọi response đều có type
+- **TypeScript** hoàn chỉnh, mọi response đều có type
 
 ## Ai nên dùng?
 
@@ -98,8 +98,8 @@ const results = await stock.screening({
 
 vnstock-js gọi API từ SSI/Vietcap. Các API này **không hỗ trợ CORS**, nên bạn không thể gọi trực tiếp từ browser. Có 2 cách dùng:
 
-1. **Server-side** (Next.js Server Component, Node.js script) — gọi trực tiếp, không vấn đề gì
-2. **Client-side** — tạo API route proxy trên server, client gọi qua đó
+1. **Server-side** (Next.js Server Component, Node.js script), gọi trực tiếp, không vấn đề gì
+2. **Client-side**: tạo API route proxy trên server, client gọi qua đó
 
 Riêng **WebSocket realtime** thì chạy trực tiếp trên browser, không bị CORS.
 

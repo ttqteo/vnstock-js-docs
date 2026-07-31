@@ -39,7 +39,7 @@ const rsi14 = rsi(history); // period mặc định = 14
 const rsi7 = rsi(history, { period: 7 });
 ```
 
-## MACD — Moving Average Convergence Divergence (v1.4+)
+## MACD, Moving Average Convergence Divergence (v1.4+)
 
 ```typescript
 const macdData = macd(history); // default fast=12, slow=26, signal=9
@@ -62,7 +62,7 @@ const bb10 = bollinger(history, { period: 10, stddev: 1.5 });
 - `percentB` = vị trí giá trong band (0..1+). 1.0 = chạm upper, 0.0 = chạm lower.
 - `middle` = SMA(period). `upper`/`lower` = middle ± stddev × σ.
 
-## ATR — Average True Range (v1.4+)
+## ATR, Average True Range (v1.4+)
 
 ```typescript
 const atr14 = atr(history, 14); // Wilder smoothing

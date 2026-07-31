@@ -50,7 +50,7 @@ export function StockWidget() {
   return <div>{/* render data */}</div>;
 }`;
 
-const REALTIME_CODE = `// WebSocket realtime — chạy trực tiếp client-side
+const REALTIME_CODE = `// WebSocket realtime, chạy trực tiếp client-side
 "use client";
 import { realtime } from "vnstock-js";
 
@@ -150,7 +150,7 @@ export function UsageGuide() {
               <p className="text-sm font-medium">Server Component (khuyên dùng)</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              Gọi trực tiếp trong async Server Component — không bị CORS, data có sẵn khi render.
+              Gọi trực tiếp trong async Server Component, không bị CORS, data có sẵn khi render.
             </p>
             <CodeBlock code={SERVER_CODE} label="app/page.tsx" />
           </div>
@@ -170,7 +170,7 @@ export function UsageGuide() {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Realtime</Badge>
-              <p className="text-sm font-medium">WebSocket — chạy trực tiếp client</p>
+              <p className="text-sm font-medium">WebSocket, chạy trực tiếp client</p>
             </div>
             <p className="text-sm text-muted-foreground">
               WebSocket không bị CORS. Dùng <code className="bg-muted px-1 rounded text-xs">realtime.create()</code> trực tiếp trong client component. Auto-reconnect với dead-man&apos;s switch, EventEmitter API.

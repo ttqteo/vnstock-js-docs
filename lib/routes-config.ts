@@ -5,7 +5,7 @@ export type EachRoute = {
   href: string;
   noLink?: true; // noLink will create a route segment (section) but cannot be navigated
   since?: string; // version đầu tiên có feature này (vd "1.4")
-  releasedAt?: string; // ngày release "YYYY-MM-DD" — badge "Mới" auto-hiện trong NEW_BADGE_DAYS ngày
+  releasedAt?: string; // ngày release "YYYY-MM-DD", badge "Mới" tự hiện trong NEW_BADGE_DAYS ngày
   items?: EachRoute[];
 };
 
