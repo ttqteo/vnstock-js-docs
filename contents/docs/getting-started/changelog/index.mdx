@@ -3,6 +3,124 @@ title: Lịch Sử Phiên Bản
 description: Các thay đổi qua từng phiên bản vnstock-js
 ---
 
+## 1.5.1
+
+Bản vá cho môi trường serverless và cách báo lỗi mạng.
+
+### Sửa
+
+- **`import "vnstock-js"` không còn làm sập app trên Vercel, AWS Lambda hay Cloudflare.** Trước đây chỉ cần nạp package là ném `ENOENT: mkdir '/home/.../.vnstock-js'` và mọi route trả 500, kể cả app không hề dùng watchlist. Nguyên nhân: instance `watchlist` được tạo ở cấp module, mà storage lại tạo thư mục trong home ngay lúc khởi tạo, trong khi serverless không có home ghi được.
+
+  Storage nay không đụng ổ đĩa lúc khởi tạo. Thư mục chỉ tạo ở lần ghi đầu tiên, và nếu home không ghi được thì tự chuyển sang thư mục tạm thay vì ném lỗi.
+
+- **Request đứt giữa chừng không còn bị báo là `HTTP 200: OK`.** Phản hồi lớn có thể đứt khi đang tải thân dữ liệu, sau khi header 200 đã về, khiến thư viện đọc nhầm thành lỗi HTTP thành công. Ngoài thông báo vô nghĩa, request kiểu này còn không được thử lại lần nào. Nay nhận diện đúng là lỗi truyền tải, ném `NetworkError` và thử lại theo backoff.
+
+Không breaking. Chạy trên máy cá nhân không thấy khác biệt.
+
+## 1.5.0
+
+Nhóm API mức thị trường: độ rộng, thanh khoản, khối ngoại, bối cảnh cho AI.
+
+### Thêm
+
+- **`market.breadth({ exchange })`**: số mã tăng, giảm, đứng giá, trần, sàn. Sàn nhận `HOSE` (mặc định), `HNX`, `UPCOM`, `ALL`.
+- **`market.liquidity({ index, asOf })`**: giá trị giao dịch toàn sàn, kèm phiên trước và % thay đổi.
+- **`market.foreignFlow({ exchange, top })`** và **`stock.foreignFlow(symbol)`**: mua, bán, ròng của khối ngoại, kèm top mua bán ròng.
+- **`market.overview({ exchange })`**: gộp chỉ số, thanh khoản, độ rộng, khối ngoại trong một lời gọi.
+- **`market.aiContext({ exchange, asOf })`**: regime thị trường, thanh khoản so với trung bình 20 phiên, độ rộng, khối ngoại.
+- **`asOf`** cho `stock.aiContext()` và `stock.toAIPrompt()`: tính chỉ báo tại cuối một phiên quá khứ.
+- **`init({ ratios: true })`**: tải bộ chỉ số theo quý dựng sẵn từ GitHub, cache 24h. Sàng lọc theo ROE, ROA, biên lợi nhuận không gọi mạng lần nào.
+- **MCP lên 22 tool** (trước 13): thêm nhóm thị trường và lấp các module chưa lộ ra MCP là tin tức, báo cáo tài chính, sàng lọc, hàng hoá, watchlist.
+- **CLI**: `vnstock market` và `vnstock foreign [symbol]`.
+
+Đơn vị tiền nhóm thị trường là **tỷ VND**, output kèm trường `unit`.
+
+### Breaking
+
+- **Giá chỉ số không còn chia 1000.** `VNINDEX` trước trả `1.66901`, nay trả `1669.01` điểm. Nếu code đang nhân 1000 để bù thì bỏ đi.
+- **`goldPriceGiaVangNet()` trả dữ liệu đã chuẩn hoá.** Field đổi tên: `type_code` thành `code`, `type` thành `name`, `buy` thành `buyPrice`, `sell` thành `sellPrice`.
+- **`screening.screen()` bắt buộc có phạm vi**: phải truyền `group` hoặc `exchange`, không thì ném `InvalidParameterError`.
+
+### Sửa
+
+- **`screening` chuyển sang REST.** Endpoint GraphQL cũ trả body rỗng nên `screen()` trả mảng rỗng, người dùng đọc nhầm thành "không mã nào khớp". Bản mới lọc theo bảng giá trước rồi mới gọi chỉ số cho các mã sống sót.
+- **Lỗi mạng nay serialize được.** Trước đây `cause` giữ nguyên đối tượng axios chứa socket trỏ vòng, nên `JSON.stringify(err)` ném lỗi và log qua Sentry hay pino bị hỏng.
+- **`asOf` lệch một ngày**, do biên `end` của endpoint là loại trừ.
+- **CLI nuốt lệnh mới**: `vnstock market` từng bị hiểu nhầm là mã chứng khoán.
+
+## 1.4.3
+
+### Thêm
+
+- **`QuoteHistory.value`**: giá trị giao dịch từng bar, đơn vị **triệu VND**.
+- **`QuoteHistory.symbol`**: mở khoá batch nhiều mã cho `quote.history({ symbols: [...] })`. Một request cho cả danh sách thay vì N request, giảm nguy cơ 429.
+
+Không breaking, cả hai đều là trường optional.
+
+## 1.4.2
+
+### Thêm
+
+- **MCP tool `get_dividends`** và **`get_corporate_events`**: lịch cổ tức và sự kiện doanh nghiệp (ĐHCĐ, phát hành, niêm yết, giao dịch nội bộ).
+
+### Sửa
+
+- **Root export thiếu `macd`, `bollinger`, `atr`**: ba indicator này có từ 1.4.0 nhưng quên re-export, buộc phải import qua subpath. Nay import thẳng từ `vnstock-js`.
+
+## 1.4.1
+
+### Thêm
+
+- **`superTrend(candles, opts?)`**: chỉ báo theo xu hướng, mặc định `period=10, multiplier=3`.
+- **`ichimoku(candles, opts?)`** và **`ichimokuFutureCloud()`**: mây Ichimoku, bản thứ hai cho projection 26 phiên tới.
+- **`aiContext`** nay kèm `superTrend` và `ichimoku`, và phân loại xu hướng có tính tới hai chỉ báo này.
+- **`VciAdapter({ cache })`**: cache TTL cho các endpoint ít đổi. Mặc định bật, tắt bằng `{ cache: false }`.
+
+### Sửa
+
+- **Nhận diện Cloudflare Error 1015**: ném `RateLimitError` và retry với backoff 30s, 60s, 120s thay vì báo lỗi chung.
+- **`goldPriceSJC()` deprecated**: endpoint trả 403 từ IP ngoài Việt Nam. Dùng `goldPriceBTMC()` hoặc `goldPriceGiaVangNet()`.
+
+## 1.4.0
+
+Chuyển định vị từ SDK dữ liệu sang bộ công cụ nghiên cứu cho AI.
+
+### Thêm
+
+- **MCP server** (`vnstock mcp`): dùng được với Claude Desktop, Cursor, VS Code. 11 tool song ngữ.
+- **Indicators v2**: `macd`, `bollinger`, `atr`.
+- **`stock.aiContext(symbol)`**: JSON có cấu trúc gồm xu hướng, snapshot chỉ báo, kháng cự hỗ trợ, z-score khối lượng, hiệu suất 1d/7d/30d/90d.
+- **`stock.toAIPrompt(symbol, { lang })`**: bản văn xuôi cho LLM không dùng MCP.
+- **Easy mode**: `quickQuote`, `recentHistory`, `compareSymbols`, `topMovers`.
+- **Watchlist** `vnstock.watchlist`: CRUD, lưu tại `~/.vnstock-js/watchlist.json`.
+
+Không breaking. Code 1.3.x chạy y nguyên.
+
+## 1.3.3
+
+### Thêm
+
+- **Module `news`**: tin tức tài chính Việt Nam từ [news-crawler](https://github.com/ttqteo/news-crawler). `news.byDate(date?)`, `news.bySource(source, date?)`, `news.search(keyword, date?)`.
+
+### Sửa
+
+- **Listing, Company, Financial hoạt động trở lại.** Ba module này chuyển từ GraphQL (offline từ khoảng 04/2026) sang REST mới của Vietcap. API công khai không đổi.
+
+### Còn tồn tại
+
+- `listing.allSymbols()` vẫn bỏ qua vì endpoint trả 403.
+- `screening` chưa chuyển REST, để dành bản sau.
+
+## 1.3.2
+
+### Thêm
+
+- **CLI tự phát hiện bản mới**: kiểm tra ngầm registry npm, in banner ở cuối output. Cache 24h, timeout 2s, tự tắt khi chạy trong CI hoặc khi đặt `VNSTOCK_NO_UPDATE_CHECK=1`.
+
+### Sửa
+
+- **`history --range 1d`** tính đúng `Change %` cho phiên cũ nhất, nhờ fetch thêm buffer 10 phiên để có mốc so sánh.
+
 ## 1.3.1
 
 Bản vá cho CLI sau khi release 1.3.0.
