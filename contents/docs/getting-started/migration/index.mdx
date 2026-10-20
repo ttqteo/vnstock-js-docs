@@ -50,7 +50,7 @@ const client = createClient({ proxy: '/api/vnstock' }) // khi chạy trên trìn
 | `import { sma, rsi, ... } from 'vnstock-js'` | `import { sma, rsi, ... } from 'vnstock-js/indicators'` |
 | `watchlist.create/add/list` | Không còn trong SDK. Dùng CLI `vnstock watchlist` hoặc tool MCP `watchlist` (cùng file `~/.vnstock-js/watchlist.json`), hoặc tự lưu qua `Storage` |
 
-Tham số luôn là `symbol`, không còn `ticker`. Mã viết thường cũng được, `HSX` hiểu là `HOSE`.
+Tham số luôn là `symbol`, không còn `ticker`. Mã viết thường cũng được, `HSX` hiểu là `HOSE`. Danh mục mã (`vn.symbols()`, `vn.search()`) cũng trả sàn `HOSE`, không còn `HSX` như dữ liệu VCI.
 
 ## Khoảng thời gian và khung nến
 
@@ -69,6 +69,7 @@ Tham số luôn là `symbol`, không còn `ticker`. Mã viết thường cũng �
 | Giá trị giao dịch trên bảng giá, vốn hoá | không thống nhất | đồng | đối chiếu từng trường |
 | Chỉ số (VNINDEX, VN30) | điểm | điểm | giữ nguyên |
 | Thay đổi giá theo phần trăm (`changePct`) | phần trăm | phần trăm (`0.96` là 0,96%) | giữ nguyên |
+| Biến động trong `context().performance` (`change1d`, `change7d`, `change30d`, `change90d`) | phân số (`0.05`) | phần trăm (`5`) | nhân 100 |
 | Tỷ số (ROE, biên lợi nhuận) | không thống nhất | phân số (`0.15` là 15%) | đối chiếu từng trường |
 | Giá vàng | theo nguồn | đồng/lượng | đối chiếu nguồn |
 

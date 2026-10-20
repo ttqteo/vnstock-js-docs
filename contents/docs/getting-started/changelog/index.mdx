@@ -19,6 +19,7 @@ Bản 2.0.0 viết lại thư viện từ đầu: một API gọn thay cho hai b
 - **Chỉ báo chuyển sang `vnstock-js/indicators`**, nhận `Bar[]` và trả kết quả theo `time`.
 - **Sàng lọc** dùng `where: { pe: { lt: 15 } }` và `sort: '-roe'` thay cho `filters`, `sortBy`, `order`. Truyền `filters` sẽ báo lỗi kèm gợi ý.
 - **Tham số luôn là `symbol`**, không còn `ticker`.
+- **`context().performance` tính bằng phần trăm** như `changePct` (`5` là tăng 5%), trước là phân số (`0.05`). `vn.symbols()` và `vn.search()` trả sàn `HOSE` thay cho `HSX` của VCI.
 - **Watchlist rời khỏi SDK**: dùng CLI `vnstock watchlist` hoặc tool MCP `watchlist`, vẫn đọc file `~/.vnstock-js/watchlist.json` cũ.
 - **Gỡ axios và date-fns**: mọi request đi qua `fetch` có sẵn. Cần Node 18 trở lên.
 
@@ -61,6 +62,7 @@ MCP, CLI và tài liệu:
 
 ### Sửa
 
+- **Tỷ lệ sở hữu của cổ đông và ban lãnh đạo nhỏ hơn thật 100 lần**: VCI đã trả tỷ lệ dạng phân số nhưng thư viện chia thêm 100, nên cổ đông nắm 6,8% hiện thành 0,068%. `percentage` và `ownership` nay là phân số đúng (`0.068` là 6,8%).
 - **Lịch sử bỏ qua ngày bắt đầu**: ở 1.x, `stock.quote({ start })` trả 365 phiên tính lùi từ hôm nay bất kể `start`, còn khoảng dài hơn khoảng 1,5 năm thì bị cắt mất phần đầu, vì VCI chỉ trả `countBack` phiên tính lùi từ `to`. Lõi mới tính số phiên theo khoảng ngày rồi lọc từ `from`.
 - **`end` và `asOf` lệch một ngày theo múi giờ máy chạy**: ngày giờ nay luôn đọc theo giờ Việt Nam, cho cùng kết quả trên máy cá nhân và trên server UTC.
 - **Phần trăm thay đổi giá luôn `null`** ở `quickQuote`, `compareSymbols` và tool MCP `get_quote` của 1.x. `Quote.changePct` nay luôn có, bằng 0 trước lệnh khớp đầu tiên.

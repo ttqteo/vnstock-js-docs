@@ -26,9 +26,7 @@ Trả về bởi `vn.topMovers({ limit })` dưới dạng `{ gainers: TopMover[]
 }
 ```
 
-<Note>
-`marketCap` và `liquidity` đang giữ nguyên số VietCap trả về, chưa quy ra đồng như các trường khác. Đừng cộng trừ chúng với số liệu bằng đồng.
-</Note>
+`marketCap` (vốn hoá) và `liquidity` (giá trị giao dịch bình quân theo cách VietCap tính) đều bằng đồng như mọi số tiền khác.
 
 Muốn tự xếp hạng theo phần trăm thay đổi trong phiên, lấy bảng giá cả sàn rồi sắp xếp:
 
