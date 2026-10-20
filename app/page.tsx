@@ -10,6 +10,7 @@ import {
   Gauge,
   Star,
   Package,
+  Layers,
 } from "lucide-react";
 
 function GithubIcon({ className }: { className?: string }) {
@@ -29,6 +30,7 @@ import Link from "next/link";
 import { vn } from "@/lib/vnstock";
 import { MarketTicker } from "@/components/market-ticker";
 import Copy from "@/components/markdown/copy";
+import Architecture from "@/components/markdown/architecture";
 
 export const revalidate = 3600;
 
@@ -296,6 +298,36 @@ export default async function Home() {
               {CODE_EXAMPLE}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Architecture */}
+      <section className="px-4 pb-20 sm:pb-24">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center gap-3 mb-4">
+            <Layers className="w-5 h-5 text-muted-foreground" />
+            <span className="text-[0.65rem] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+              Architecture
+            </span>
+          </div>
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold mb-4 uppercase tracking-tight">
+            Một client.
+            <br />
+            Chạy ở mọi nơi.
+          </h2>
+          <p className="text-muted-foreground mb-8 max-w-lg">
+            Mọi lời gọi đi qua client, source rồi transport. Chỉ báo và backtest
+            là hàm thuần, không gọi mạng. Trình duyệt đi qua proxy có sẵn trong
+            thư viện.
+          </p>
+          <Architecture />
+          <Link
+            href="/docs/getting-started/architecture"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            Xem kiến trúc chi tiết
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
         </div>
       </section>
 
