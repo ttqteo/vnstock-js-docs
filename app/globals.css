@@ -98,6 +98,23 @@ pre > code {
   @apply border-l-2 border-transparent;
 }
 
+.code-wrap pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+}
+
+/* wrapped lines stop short of the wrap and copy buttons */
+.code-wrap pre > code {
+  padding-right: 44px !important;
+}
+
+@media (min-width: 640px) {
+  .code-wrap pre > code {
+    padding-right: 80px !important;
+  }
+}
+
 .line-number::before {
   display: inline-block;
   width: 1rem;
@@ -179,6 +196,37 @@ pre > code {
 .dark .border,
 .dark [class*="border-"] {
   border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Architecture diagram; no border-* class names so the rule above leaves its colours alone */
+.arch {
+  background: hsl(var(--muted) / 0.35);
+  box-shadow: inset 0 0 0 1px hsl(var(--foreground) / 0.08);
+}
+
+.arch-lane {
+  background: hsl(var(--background) / 0.6);
+  box-shadow: inset 0 0 0 1px hsl(var(--foreground) / 0.06);
+}
+
+.arch-node {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--foreground) / 0.14);
+}
+
+.arch-client {
+  background: rgb(59 130 246 / 0.08);
+  border-color: rgb(59 130 246 / 0.55);
+}
+
+.arch-external {
+  background: rgb(245 158 11 / 0.08);
+  border-color: rgb(245 158 11 / 0.55);
+}
+
+.arch-optional {
+  border-style: dashed;
+  border-color: hsl(var(--foreground) / 0.3);
 }
 
 .dark nav.sticky {
