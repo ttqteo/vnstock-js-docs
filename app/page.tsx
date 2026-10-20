@@ -11,6 +11,7 @@ import {
   Star,
   Package,
   Layers,
+  Bot,
 } from "lucide-react";
 
 function GithubIcon({ className }: { className?: string }) {
@@ -31,6 +32,8 @@ import { vn } from "@/lib/vnstock";
 import { MarketTicker } from "@/components/market-ticker";
 import Copy from "@/components/markdown/copy";
 import Architecture from "@/components/markdown/architecture";
+import AgentChat from "@/components/agent-chat";
+import { buildAgentDemo } from "@/lib/agent-demo";
 
 export const revalidate = 3600;
 
@@ -108,9 +111,10 @@ function formatStars(n: number): string {
 }
 
 export default async function Home() {
-  const [stars, npmVersion] = await Promise.all([
+  const [stars, npmVersion, agentTurns] = await Promise.all([
     fetchGithubStars(),
     fetchNpmVersion(),
+    buildAgentDemo(),
   ]);
 
   let indexData: {
@@ -300,6 +304,46 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* Agent chat */}
+      {agentTurns.length > 0 && (
+        <section className="px-4 pb-20 sm:pb-24">
+          <div className="max-w-5xl mx-auto grid lg:grid-cols-[2fr_3fr] gap-10 lg:gap-12 items-start">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <Bot className="w-5 h-5 text-muted-foreground" />
+                <span className="text-[0.65rem] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                  AI Agent
+                </span>
+              </div>
+              <h2 className="font-display text-3xl sm:text-4xl font-extrabold mb-4 uppercase tracking-tight">
+                Hỏi bằng tiếng Việt.
+                <br />
+                Trả lời bằng dữ liệu thật.
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Cắm vnstock-js vào Claude Desktop, Cursor hay VS Code qua MCP.
+                Agent tự chọn trong 27 công cụ: bảng giá, chỉ báo, sàng lọc,
+                khối ngoại, backtest.
+              </p>
+              <div className="bg-muted dark:bg-accent px-4 py-3 mb-6 font-mono text-xs leading-relaxed overflow-x-auto whitespace-pre">
+                {`"vnstock": {
+  "command": "npx",
+  "args": ["-y", "vnstock-js", "mcp"]
+}`}
+              </div>
+              <Link
+                href="/docs/getting-started/ai"
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+              >
+                Dùng vnstock-js với AI
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+            <AgentChat turns={agentTurns} />
+          </div>
+        </section>
+      )}
 
       {/* Architecture */}
       <section className="px-4 pb-20 sm:pb-24">
