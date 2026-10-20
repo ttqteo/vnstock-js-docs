@@ -1,173 +1,89 @@
 ---
 title: CLI
-description: Tra cứu giá cổ phiếu, lịch sử, tìm mã từ terminal
+description: Tra cứu giá, lịch sử, thị trường, sàng lọc, backtest và danh mục ngay trên terminal.
 ---
 
-Từ **v1.3.0**, vnstock-js kèm CLI tool, chạy thẳng trong terminal không cần viết code.
+vnstock-js kèm lệnh `vnstock` để dùng thẳng trong terminal, không cần viết code.
 
 ## Cài đặt
 
-### Global
-
 ```bash
-npm install -g vnstock-js
-vnstock quote VCB
+npx vnstock-js FPT            # chạy một lần
+npm install -g vnstock-js     # cài global, sau đó gọi `vnstock`
 ```
 
-### Chạy một lần qua `npx`
+Gõ mã trần là xem giá: `vnstock FPT` giống `vnstock quote FPT`.
+
+## Giá và lịch sử
 
 ```bash
-npx vnstock-js quote VCB
+vnstock quote FPT
+vnstock history FPT --range 3mo
+vnstock history FPT --from 2026-01-01 --to 2026-06-30 --limit 50
+vnstock compare FPT VCB HPG
 ```
 
-### Từ project hiện tại
-
-Nếu đã cài `vnstock-js` trong project:
+## Tìm mã
 
 ```bash
-npx vnstock quote VCB
-# hoặc
-./node_modules/.bin/vnstock quote VCB
+vnstock search "ngân hàng" --limit 5
+vnstock symbols --exchange HOSE
 ```
 
-## Commands
-
-### `vnstock quote <SYMBOL>`
-
-Snapshot 1 mã: giá hiện tại, % thay đổi, KL, trần/sàn.
+## Thị trường
 
 ```bash
-$ vnstock quote VCB
-
-VCB   HOSE
-Giá       85.50   (+0.50  +0.59%)
-Trần      91.50
-Sàn       79.50
-TC        85.00
-KL        1,234,567
-NN Mua    45,000
-NN Bán    32,000
+vnstock market                       # chỉ số, thanh khoản, độ rộng, khối ngoại
+vnstock market --exchange HNX --index HNXIndex
+vnstock foreign --top 5              # khối ngoại toàn sàn
+vnstock foreign FPT                  # khối ngoại một mã
+vnstock gold                         # giá vàng, đồng/lượng
 ```
 
-### `vnstock history <SYMBOL> [options]`
-
-Lịch sử OHLCV. Mặc định 30 ngày gần nhất.
+## Phân tích
 
 ```bash
-$ vnstock history VCB --range 7d
-
-VCB  2026-04-07 → 2026-04-14  (5 phiên)
-Ngày         Mở      Cao    Thấp     Đóng        KL     Change%
-2026-04-07  84.50  85.20  84.00   85.00  1,200,000    +0.59%
-2026-04-08  85.00  85.80  84.80   85.60    980,000    +0.71%
-...
+vnstock patterns FPT                                   # hỗ trợ/kháng cự, mẫu nến, Turtle, breakout
+vnstock screen --group VN30 --where "pe<15,roe>0.15" --sort -roe --limit 10
+vnstock backtest FPT VCB --preset breakout --tp 7 --sl 4 --hold 10 --range 2y
+vnstock similar FPT --top 5                            # thử nghiệm
 ```
 
-**Flags:**
+`--where` nhận các so sánh cách nhau bằng dấu phẩy: `<`, `<=`, `>`, `>=`, `=`. ROE, ROA là phân số (`roe>0.15` là trên 15%). Preset backtest: `breakout`, `oversold_bounce`, `ema_cross`; `--tp`, `--sl` tính bằng phần trăm.
 
-| Flag            | Mô tả                        | Ví dụ                            |
-| --------------- | ---------------------------- | -------------------------------- |
-| `--from <date>` | Từ ngày cụ thể hoặc relative | `--from 2026-01-01`, `--from 1y` |
-| `--range <Nd>`  | Window N ngày gần nhất       | `--range 7d`, `--range 90d`      |
-| `--limit N`     | Giới hạn số phiên trả về     | `--limit 50`                     |
-| `--json`        | Output JSON (stdout)         | `--json > data.json`             |
-| `--csv`         | Output CSV                   | `--csv > data.csv`               |
+## Danh mục và watchlist
 
-### `vnstock search <QUERY>`
-
-Tìm mã theo tên công ty hoặc ticker (offline, từ `symbols.json`).
+Lưu ở `~/.vnstock-js`.
 
 ```bash
-$ vnstock search "vietcombank"
+vnstock portfolio add FPT 100 120000 --broker DNSE   # giá vốn bằng đồng
+vnstock portfolio cash 5000000 --broker DNSE
+vnstock portfolio                                     # định giá theo giá hiện tại
+vnstock portfolio remove FPT
 
-Mã     Tên công ty                                        Sàn
-VCB    Ngân hàng TMCP Ngoại thương Việt Nam              HOSE
-
-$ vnstock search "ngân hàng" --limit 5
-
-Mã     Tên                                                Sàn
-VCB    Ngân hàng TMCP Ngoại thương Việt Nam              HOSE
-CTG    Ngân hàng TMCP Công Thương Việt Nam               HOSE
-BID    Ngân hàng TMCP Đầu tư và Phát triển Việt Nam      HOSE
-TCB    Ngân hàng TMCP Kỹ Thương Việt Nam                 HOSE
-MBB    Ngân hàng TMCP Quân đội                            HOSE
+vnstock watchlist create bank
+vnstock watchlist add bank VCB TCB MBB
+vnstock watchlist quote bank
+vnstock watchlist                                     # liệt kê các danh sách
 ```
 
-### `vnstock symbols [options]`
+Gõ giá vốn theo nghìn đồng (`120` thay vì `120000`) sẽ bị từ chối kèm gợi ý.
 
-Liệt kê tất cả mã theo sàn.
+## Định dạng đầu ra
+
+| Cờ | Tác dụng |
+|---|---|
+| `--json` | In dữ liệu dạng JSON để dùng trong script |
+| `--csv` | CSV, với `quote`, `history`, `search`, `symbols`, `market`, `foreign` |
+| `--quiet` | Ẩn thông báo phụ (cập nhật phiên bản...) |
+| `--no-color` | Tắt màu |
+
+Phần hiển thị đổi đơn vị cho dễ đọc (`125.8k`, `392.5 tỷ`); `--json` giữ nguyên số liệu bằng đồng.
+
+## MCP
 
 ```bash
-$ vnstock symbols --exchange HOSE --limit 10
-
-HOSE  (10/702 mã)
-Mã     Tên                                    Ngành
-AAA    Nhựa An Phát Xanh                      Hóa chất
-AAM    Thủy sản Mekong                        Thực phẩm
-...
+vnstock mcp   # chạy MCP server qua stdio
 ```
 
-**Flags:**
-
-| Flag                            | Mô tả                              |
-| ------------------------------- | ---------------------------------- |
-| `--exchange <HOSE\|HNX\|UPCOM>` | Lọc theo sàn (HOSE auto map → HSX) |
-| `--limit N`                     | Giới hạn output (mặc định: đầy đủ) |
-| `--json` / `--csv`              | Export format                      |
-
-## Flags chung
-
-Dùng được ở mọi command:
-
-| Flag              | Mô tả                        |
-| ----------------- | ---------------------------- |
-| `--json`          | Xuất JSON ra stdout, dễ pipe |
-| `--csv`           | Xuất CSV                     |
-| `--no-color`      | Tắt ANSI màu (CI/log)        |
-| `--verbose`       | In thêm debug info           |
-| `-v`, `--version` | In version                   |
-| `-h`, `--help`    | Help                         |
-
-<Note type="note">
-  Khi chạy trong **non-TTY** (pipe, redirect, CI), CLI tự fallback sang plain
-  text không ANSI, pipe-friendly.
-</Note>
-
-## Examples
-
-### Export giá 1 năm ra CSV
-
-```bash
-vnstock history VCB --from 1y --csv > vcb-1y.csv
-```
-
-### Pipe qua `jq` để xử lý
-
-```bash
-vnstock quote FPT --json | jq '.price'
-# 95.2
-```
-
-### Watch giá mỗi 30 giây
-
-```bash
-watch -n 30 'vnstock quote VNM'
-```
-
-### Top 10 mã HOSE
-
-```bash
-vnstock symbols --exchange HOSE --limit 10
-```
-
-## Lưu ý
-
-### `init()` tự động
-
-CLI tự gọi `init()` lần đầu khi dùng `search` / `symbols` (cần symbols data). `quote` và `history` không cần vì truy vấn trực tiếp VCI API.
-
-Data cache tại `~/.vnstock-js/cache/`, TTL 24h. Lần đầu chạy sẽ mất ~1s để fetch symbols.json (~200KB).
-
-### Timezone
-
-Mọi tính toán ngày dùng **múi giờ Việt Nam (UTC+7)** bất kể locale máy. Kết quả `--range 7d` ở Mỹ và ở VN giống nhau.
+Xem [MCP Server](/docs/key-features/advanced/mcp).

@@ -1,59 +1,76 @@
 ---
 title: Hướng Dẫn Sử Dụng Nhanh
-description: Bắt đầu nhanh với vnstock-js
+description: Những lời gọi hay dùng nhất của vnstock-js 2.x trong một trang.
 ---
 
-## Cơ bản
+## Cổ phiếu
 
 ```ts
-import { stock, commodity } from 'vnstock-js';
+import { vn } from "vnstock-js";
 
-// Dữ liệu giá cổ phiếu VCI từ 01-01-2024
-const prices = await stock.quote({ ticker: 'VCI', start: '2024-01-01' });
-// → [{ date: "2024-01-02", open: 25.5, high: 26.0, low: 25.0, close: 25.8, volume: 1000000 }, ...]
+const fpt = vn.stock("FPT"); // tạo đồng bộ, chưa gọi mạng
 
-// Dữ liệu chỉ số VNINDEX
-const index = await stock.index({ index: 'VNINDEX', start: '2024-01-01' });
+const quote = await fpt.price();                              // giá, trần, sàn, tham chiếu, khối lượng, giá trị
+const daily = await fpt.history("6mo");                       // nến ngày, giá bằng đồng
+const weekly = await fpt.history({ from: "2025-01-01", interval: "1w" });
+const profile = await fpt.company();
+const holders = await fpt.shareholders();
+const income = await fpt.financials("income", { period: "quarter" });
 
-// Top tăng/giảm
-const gainers = await stock.topGainers();
-const losers = await stock.topLosers();
-
-// Thông tin công ty
-const company = stock.company({ ticker: 'VCI' });
-const profile = await company.profile();
-const shareholders = await company.shareholders();
-
-// Dữ liệu vàng
-const goldPrices = await commodity.gold.priceSJC();
+console.log(quote.price, quote.changePct, daily.at(-1)?.close, weekly.length, profile.industry, holders.length, income.rows.length);
 ```
 
-## Nâng cao
+Mã sai không làm hỏng lúc tạo handle; lời gọi đầu tiên mới báo lỗi kèm gợi ý, ví dụ `vn.stock("FTP")` nhận `Did you mean "FPT"?`.
+
+## Chỉ số và thị trường
 
 ```ts
-import vnstock, { sma, rsi } from 'vnstock-js';
+import { vn } from "vnstock-js";
 
-// Dữ liệu giá với nhiều tùy chọn
-const history = await vnstock.stock.quote.history({
-  symbols: ['VCI'],
-  start: '2024-01-01',
-  end: '2024-06-30',
-  timeFrame: '1D'
-});
+const vnindex = await vn.index("VNINDEX").history("1y"); // điểm
+const overview = await vn.market({ exchange: "HOSE" });   // chỉ số, thanh khoản, độ rộng, khối ngoại
+const vn30 = await vn.prices({ group: "VN30" });
+const { gainers, losers } = await vn.topMovers({ limit: 5 });
 
-// Tính chỉ báo kỹ thuật
-const sma20 = sma(history, { period: 20 });
-const rsi14 = rsi(history);
+console.log(vnindex.at(-1)?.close, overview.liquidity.value, vn30.length, gainers, losers);
+```
 
-// Sàng lọc cổ phiếu
-const screened = await vnstock.stock.screening.screen({
-  exchange: 'HOSE',
-  filters: [
-    { field: 'pe', operator: '<', value: 15 },
-    { field: 'roe', operator: '>', value: 0.15 },
-  ],
-  sortBy: 'marketCap',
-  order: 'desc',
+## Sàng lọc
+
+```ts
+import { vn } from "vnstock-js";
+
+const rows = await vn.screen({
+  group: "VN30",
+  where: { pe: { lt: 15 }, roe: { gt: 0.15 } }, // ROE là phân số: 0.15 = 15%
+  sort: "-roe",
   limit: 10,
 });
 ```
+
+## Chỉ báo
+
+```ts
+import { vn } from "vnstock-js";
+import { sma, rsi, supportResistance } from "vnstock-js/indicators";
+
+const bars = await vn.stock("FPT").history("1y");
+const sma20 = sma(bars, { period: 20 });
+const rsi14 = rsi(bars);
+const zones = supportResistance(bars);
+```
+
+## Theo dõi giá
+
+```ts
+import { vn } from "vnstock-js";
+
+const stop = vn.watch(["FPT", "VCB"], (t) => console.log(t.symbol, t.price, t.changePct));
+setTimeout(stop, 60000); // nhớ dừng, nếu không tiến trình chạy mãi
+```
+
+## Tiếp theo
+
+- [Quy ước & đơn vị](/docs/getting-started/conventions): đọc trước khi tính toán với số liệu.
+- [Danh sách hàm](/docs/getting-started/api-references): toàn bộ API.
+- [Trình duyệt & proxy](/docs/key-features/advanced/proxy): dùng trong React, Next.js client component.

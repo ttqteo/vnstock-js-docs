@@ -1,32 +1,65 @@
 ---
 title: Cài Đặt
-description: Cách cài đặt npm package vào ứng dụng.
+description: Cài đặt vnstock-js cho Node, serverless, trình duyệt, CLI và MCP.
 ---
 
-Cài đặt bằng npm
-
 ```bash
-npm install vnstock-js@latest
+npm install vnstock-js
 ```
 
-## CLI (tuỳ chọn)
+Cần **Node 18 trở lên** (dùng `fetch` có sẵn). Không cần khóa API và không cần gọi hàm khởi tạo: danh mục mã và lịch nghỉ được tải ở lần dùng đầu.
 
-Từ v1.3.0, vnstock-js kèm CLI tool:
+## Các entry của package
+
+| Import | Dùng cho |
+|---|---|
+| `vnstock-js` | Client `vn`, `createClient()`, kiểu dữ liệu, lỗi |
+| `vnstock-js/indicators` | Chỉ báo và pattern, hàm thuần trên `Bar[]`, không gọi mạng |
+| `vnstock-js/proxy` | Proxy cho trình duyệt: `nextHandler()`, `workerHandler()`, `expressHandler()` |
+| `vnstock-js/node` | `fileStorage()` lưu cache ở `~/.vnstock-js` giữa các lần chạy |
+
+Package xuất cả CommonJS (`require`) và ESM (`import`).
+
+## Cache trên ổ đĩa (tuỳ chọn, Node)
+
+Mặc định dữ liệu nền (danh mục mã, lịch nghỉ, tỷ số quý) chỉ cache trong bộ nhớ. Script chạy nhiều lần nên dùng `fileStorage()`:
+
+```ts
+import { createClient } from "vnstock-js";
+import { fileStorage } from "vnstock-js/node";
+
+const vn = createClient({ storage: fileStorage(), preload: true });
+```
+
+## Trình duyệt
+
+VietCap chặn request từ trình duyệt, nên cần gắn proxy có sẵn vào server của bạn rồi tạo client với `proxy`. Xem [Trình duyệt & proxy](/docs/key-features/advanced/proxy).
+
+## Theo dõi giá trực tiếp
+
+`watch()` ở chế độ stream cần WebSocket: Node 22 trở lên và trình duyệt có sẵn; Node 18 đến 21 cài thêm `ws`:
 
 ```bash
+npm install ws
+```
+
+Hoặc dùng `{ mode: 'poll' }` để hỏi bảng giá định kỳ, không cần WebSocket.
+
+## CLI
+
+```bash
+npx vnstock-js FPT
+# hoặc cài global
 npm install -g vnstock-js
-# hoặc chạy tạm
-npx vnstock-js quote VCB
+vnstock history FPT --range 3mo
 ```
 
-## Khởi tạo runtime
+Xem [CLI](/docs/getting-started/cli).
 
-Từ **v1.3.0** trở đi, gọi `await init()` một lần lúc khởi động app trước khi dùng symbol lookup (`stock.search`, `listing.*`) hoặc market calendar. Dữ liệu symbol/holiday được fetch từ remote và cache 24h tại `~/.vnstock-js/cache/`.
+## MCP cho Claude, Cursor, VS Code
 
-```typescript
-import { init } from "vnstock-js";
-
-await init(); // gọi 1 lần ở entrypoint
+```bash
+claude mcp add --scope user vnstock npx -y vnstock-js mcp
 ```
 
-Các API truy vấn trực tiếp (quote, history, company, financial...) không cần `init()`.
+Xem [MCP Server](/docs/key-features/advanced/mcp).

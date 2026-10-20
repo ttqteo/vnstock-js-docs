@@ -1,32 +1,49 @@
 ---
 title: Giới Thiệu
-description: Phần này cung cấp cái nhìn tổng quan về thư viện vnstock-js.
+description: Tổng quan về vnstock-js, thư viện dữ liệu chứng khoán Việt Nam cho JavaScript và TypeScript.
 ---
 
-Chào mừng bạn đến với **vnstock-js**!
+**vnstock-js** là thư viện mã nguồn mở lấy dữ liệu chứng khoán Việt Nam cho JavaScript và TypeScript. Chạy trên Node, Bun, Deno, Cloudflare Workers, Vercel Edge, và trên trình duyệt qua proxy đóng gói sẵn.
 
-Thư viện JavaScript/TypeScript lấy dữ liệu thị trường chứng khoán Việt Nam, tối ưu cho web.
+```ts
+import { vn } from "vnstock-js";
 
-## Tổng Quan
+const fpt = vn.stock("FPT");
+await fpt.price();        // { price: 127000, changePct: 0.95, ... }
+await fpt.history("6mo"); // nến ngày, giá tính bằng đồng
+await vn.market();        // VN-Index, thanh khoản, độ rộng, khối ngoại
+```
 
-**vnstock-js** là gói npm mã nguồn mở, cung cấp dữ liệu chứng khoán VN với output đã chuẩn hóa (giá chia 1000, camelCase, ISO dates).
+👉 [vnstock-js trên npm](https://www.npmjs.com/package/vnstock-js) · [GitHub](https://github.com/ttqteo/vnstock-js) · [Trang demo vnstock-js-site](https://vnstock-js.vercel.app)
 
-👉 [vnstock-js - npmjs.com](https://www.npmjs.com/package/vnstock-js)
+## Điểm chính của bản 2.0
 
-### Tính Năng
+- **Một API gọn**: `vn.stock('FPT')`, `vn.index('VNINDEX')`, `vn.market()`, `vn.screen()`... Không cần khóa API, không cần hàm khởi tạo.
+- **Tiền luôn tính bằng đồng**, chỉ số tính bằng điểm, tỷ số là phân số. Xem [Quy ước & đơn vị](/docs/getting-started/conventions).
+- **Chạy mọi nơi**: core dùng `fetch` có sẵn, không đụng ổ đĩa; trình duyệt đi qua proxy `vnstock-js/proxy`.
+- **Dành cho AI agent**: JSDoc kèm ví dụ cho mọi API, `AGENTS.md` trong package, MCP server 27 công cụ.
 
-| **Tính năng** | **Mô tả** |
-|---------------|-----------|
-| Báo Giá - Quote | Dữ liệu giá lịch sử OHLCV theo nhiều timeframe |
-| Giao Dịch - Trading | Bảng giá realtime, top tăng/giảm |
-| Niêm Yết - Listing | Danh sách mã, sàn, ngành ICB |
-| Tài Chính - Financials | Bảng cân đối, KQKD, lưu chuyển tiền tệ |
-| Công Ty - Company | Thông tin, cổ đông, ban lãnh đạo, sự kiện |
-| Sàng Lọc - Screening | Lọc cổ phiếu theo tiêu chí tài chính |
-| Chỉ Báo - Indicators | SMA, EMA, RSI |
-| Hàng Hoá | Giá vàng (BTMC, SJC, GiaVang.net), tỷ giá VCB |
-| Realtime | WebSocket dữ liệu giá realtime |
+## Tính năng
 
-## Nhà Phát Triển
+| Tính năng | Mô tả |
+|---|---|
+| Bảng giá, lịch sử giá | Giá hiện tại, nến từ 1 phút tới 1 tháng, gộp khung ngay trong thư viện |
+| Thông tin công ty, tài chính | Hồ sơ, cổ đông, ban lãnh đạo, sự kiện, cổ tức, báo cáo tài chính |
+| Thị trường | Tổng quan, độ rộng, thanh khoản, khối ngoại và lịch sử khối ngoại, thanh khoản trong phiên |
+| Sàng lọc | Lọc theo P/E, ROE, vốn hoá... bằng `where` và `sort` |
+| Chỉ báo & pattern | SMA, EMA, RSI, MACD, hỗ trợ/kháng cự, mẫu nến, Turtle, sức khoẻ thị trường |
+| Danh mục đầu tư | Định giá theo giá hiện tại, nhóm theo môi giới và ngành |
+| Theo dõi & cảnh báo | `watch()` qua WebSocket hoặc poll, `alert()` khi giá vượt đỉnh |
+| Backtest | Event study với chốt lời, cắt lỗ, số phiên giữ; tìm phiên tương tự |
+| Vàng, tỷ giá, tin tức | BTMC, GiaVang.net, Vietcombank, tin tài chính trong ngày |
+| MCP & CLI | Dùng trong Claude, Cursor, VS Code; tra cứu nhanh trên terminal |
 
-Được phát triển bởi [github.com/ttqteo](https://github.com/ttqteo)
+Đang dùng bản 1.x? Đọc [Nâng cấp từ v1](/docs/getting-started/migration).
+
+## Nhà phát triển
+
+Được phát triển bởi [github.com/ttqteo](https://github.com/ttqteo). Lấy cảm hứng từ [thinh-vu/vnstock](https://github.com/thinh-vu/vnstock) cho Python.
+
+<Note>
+Dữ liệu chỉ phục vụ tham khảo, không phải khuyến nghị đầu tư.
+</Note>

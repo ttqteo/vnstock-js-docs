@@ -1,95 +1,65 @@
 ---
 title: Kiến Trúc
-description: Kiến trúc Pipeline của vnstock-js v1.0
+description: Cách vnstock-js 2.x tổ chức client, source, transport, storage và compute.
 ---
 
-## Tổng Quan
+<img src="/images/v2-architecture.svg" alt="Kiến trúc vnstock-js 2.x" width={900} height={560} />
 
-vnstock-js v1.0 sử dụng **Pipeline Architecture** - mọi request đi qua 2 giai đoạn xử lý:
+Mọi lời gọi đi theo một đường: **client → source → transport → nguồn dữ liệu**, còn phần tính toán là hàm thuần nằm riêng.
 
-```
-Request Pipeline → Transform Pipeline → Output (Array of Objects)
-```
+## Client
 
-## Request Pipeline
+`vn` là client mặc định; `createClient()` tạo client riêng với cấu hình của bạn. Handle như `vn.stock('FPT')` được tạo đồng bộ và không gọi mạng; lần dùng đầu mới kiểm tra mã có trong danh mục.
 
-```
-API Call
-  │
-  ▼
-┌──────────┐
-│  Fetch   │  ← HTTP client (axios), GET/POST/GraphQL
-└────┬─────┘
-     ▼
-┌──────────┐
-│  Retry   │  ← 2 lần retry, exponential backoff (5xx, timeout)
-└────┬─────┘
-     ▼
-Raw Response
+```ts
+import { createClient } from "vnstock-js";
+
+const vn = createClient({
+  proxy: "/api/vnstock", // chỉ cần trên trình duyệt
+  timeout: 10000,
+  retries: 2,
+  preload: true,         // tải sẵn danh mục mã và lịch nghỉ
+});
 ```
 
-## Transform Pipeline
+## Source
 
-Dữ liệu thô từ API đi qua 5 bước chuẩn hóa:
+Source VCI gọi API của VietCap và đổi kết quả sang dạng chung của thư viện: `Bar` cho nến, `Quote` cho bảng giá, mọi số tiền về đồng, thời gian về giờ Việt Nam.
 
-```
-Raw Response
-  │
-  ▼
-┌──────────┐
-│ 1. Parse │  ← Xử lý JSON, edge cases (empty, malformed)
-└────┬─────┘
-     ▼
-┌──────────┐
-│ 2. Clean │  ← Loại bỏ null/undefined, fields thừa
-└────┬─────┘
-     ▼
-┌──────────┐
-│ 3.Rename │  ← Map field names → camelCase tiếng Anh
-└────┬─────┘
-     ▼
-┌───────────┐
-│ 4.Normalize│ ← Chuẩn hóa nghiệp vụ VN
-│  (VN Biz) │    - Giá ÷ 1000 (đơn vị: nghìn VND)
-│           │    - Timestamp → "2024-01-15"
-│           │    - Percentage → decimal (0.15)
-└────┬──────┘
-     ▼
-┌──────────┐
-│ 5. Shape │  ← Chuyển thành Array of Objects
-└────┬─────┘
-     ▼
-QuoteHistory[] | PriceBoardItem[] | ...
+## Transport
+
+Transport bọc `fetch` có sẵn của môi trường:
+
+- Thử lại với backoff khi lỗi mạng, timeout hoặc lỗi 5xx.
+- Nhận diện bị giới hạn tần suất (HTTP 429) và trang chặn của Cloudflare, báo lỗi rõ ràng thay vì trả dữ liệu rác.
+- Khi client có `proxy`, viết lại URL sang proxy của bạn.
+
+Header phiên của VietCap chỉ được gắn phía server; trình duyệt luôn đi qua proxy.
+
+## Storage
+
+Danh mục mã, lịch nghỉ và tỷ số quý được tải lười từ GitHub ở lần dùng đầu, rồi cache trong một `Storage`:
+
+```ts
+interface Storage {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string): Promise<void>;
+  remove(key: string): Promise<void>;
+}
 ```
 
-## Cấu trúc thư mục
+`memoryStorage()` là mặc định. `fileStorage()` của `vnstock-js/node` lưu ở `~/.vnstock-js` giữa các lần chạy. Trên trình duyệt có thể tự viết một `Storage` trên IndexedDB. Danh mục đầu tư (`vn.portfolio.save()`) và lịch sử khối ngoại cũng đi qua `Storage`.
 
-```
-src/
-├── core/               # Business logic
-│   ├── stock/          # Quote, Trading, Company, Financial, Listing, Screening
-│   ├── commodity/      # Gold, Exchange rates
-│   └── realtime.ts     # WebSocket
-├── indicators/         # SMA, EMA, RSI (pure functions)
-├── pipeline/           # Request + Transform pipeline
-│   ├── fetch.ts        # HTTP client with retry
-│   ├── transform.ts    # applyTransform()
-│   └── transform/configs/  # Per-module transform rules
-├── models/             # TypeScript interfaces
-├── shared/             # Constants, utilities
-├── simple.ts           # Simplified API wrapper
-├── runtime.ts          # Vnstock class
-└── index.ts            # Main exports
-```
+Core không dùng `fs`, nên chạy được trên serverless và edge mà không cần cấu hình gì.
 
-## Nguồn dữ liệu
+## Compute và indicators
 
-| Loại dữ liệu | Nguồn | Giao thức |
-|---------------|-------|-----------|
-| Giá lịch sử | VietCap | REST |
-| Bảng giá | VietCap | REST |
-| Công ty, Tài chính | VietCap | GraphQL |
-| Niêm yết | VietCap | REST + GraphQL |
-| Realtime | SSI | WebSocket |
-| Vàng | BTMC, SJC, GiaVang.net | REST |
-| Tỷ giá | Vietcombank | REST (JSON API) |
+Gộp nến, chỉ báo, pattern, định giá danh mục, backtest và tìm phiên tương tự là hàm thuần trên `Bar[]`, không gọi mạng. Chỉ báo được xuất riêng ở `vnstock-js/indicators` nên dùng được cả trong trình duyệt.
+
+## Realtime
+
+`watch()` dùng chung một kết nối WebSocket tới SSI cho mọi watcher của một client, tự kết nối lại khi rớt. Ở chế độ `poll`, nó hỏi bảng giá định kỳ thay vì giữ WebSocket.
+
+## Lịch sử khối ngoại
+
+VietCap chỉ cho xem khối ngoại của phiên hiện tại. Repo vnstock-js có một workflow chạy mỗi ngày sau 15:30, ghi lại khối ngoại của từng mã vào `data/foreign` và gộp theo tháng. `foreign('3mo')` đọc các file tháng này qua raw GitHub và cache trong `Storage`.

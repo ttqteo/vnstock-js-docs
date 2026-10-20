@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <style>
+      .box { fill: #f1f5f9; stroke: #94a3b8; stroke-width: 1.5; }
+      .main { fill: #dbeafe; stroke: #3b82f6; stroke-width: 2; }
+      .ext { fill: #fef3c7; stroke: #d97706; stroke-width: 1.5; }
+      .t { fill: #0f172a; font-size: 15px; font-weight: 700; }
+      .s { fill: #475569; font-size: 12.5px; }
+      .c { fill: #1e40af; font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .line { stroke: #94a3b8; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+      .dash { stroke: #94a3b8; stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; marker-end: url(#arrow); }
+      .lbl { fill: #64748b; font-size: 11.5px; }
+    </style>
+  </defs>
+
+  <!-- App -->
+  <rect class="box" x="300" y="20" width="300" height="62" rx="10"/>
+  <text class="t" x="450" y="46" text-anchor="middle">Ứng dụng của bạn</text>
+  <text class="s" x="450" y="67" text-anchor="middle">Node · Bun · Deno · Workers · trình duyệt</text>
+
+  <!-- Client -->
+  <rect class="main" x="230" y="122" width="440" height="72" rx="10"/>
+  <text class="t" x="450" y="148" text-anchor="middle">Client</text>
+  <text class="c" x="450" y="172" text-anchor="middle">vn · createClient({ proxy, storage, ... })</text>
+  <text class="s" x="450" y="188" text-anchor="middle">stock() · index() · market() · screen() · portfolio() · watch()</text>
+
+  <!-- Row 3 -->
+  <rect class="box" x="30" y="248" width="250" height="66" rx="10"/>
+  <text class="t" x="155" y="275" text-anchor="middle">Source VCI</text>
+  <text class="s" x="155" y="297" text-anchor="middle">đổi dữ liệu VCI sang Bar, Quote (đồng)</text>
+
+  <rect class="box" x="325" y="248" width="250" height="66" rx="10"/>
+  <text class="t" x="450" y="275" text-anchor="middle">Compute &amp; indicators</text>
+  <text class="s" x="450" y="297" text-anchor="middle">hàm thuần, không gọi mạng</text>
+
+  <rect class="box" x="620" y="248" width="250" height="66" rx="10"/>
+  <text class="t" x="745" y="275" text-anchor="middle">Storage</text>
+  <text class="s" x="745" y="297" text-anchor="middle">memoryStorage · fileStorage</text>
+
+  <!-- Row 4 -->
+  <rect class="box" x="30" y="368" width="250" height="66" rx="10"/>
+  <text class="t" x="155" y="395" text-anchor="middle">Transport</text>
+  <text class="s" x="155" y="417" text-anchor="middle">fetch · retry · rate limit · proxy</text>
+
+  <rect class="box" x="325" y="368" width="250" height="66" rx="10"/>
+  <text class="t" x="450" y="395" text-anchor="middle">Realtime</text>
+  <text class="s" x="450" y="417" text-anchor="middle">watch(): WebSocket hoặc poll</text>
+
+  <rect class="ext" x="620" y="368" width="250" height="66" rx="10"/>
+  <text class="t" x="745" y="395" text-anchor="middle">Dữ liệu trên GitHub</text>
+  <text class="s" x="745" y="417" text-anchor="middle">mã · lịch nghỉ · tỷ số · khối ngoại</text>
+
+  <!-- Row 5 -->
+  <rect class="ext" x="30" y="482" width="250" height="62" rx="10"/>
+  <text class="t" x="155" y="508" text-anchor="middle">VietCap</text>
+  <text class="s" x="155" y="529" text-anchor="middle">bảng giá · nến · công ty · tài chính</text>
+
+  <rect class="box" x="325" y="482" width="250" height="62" rx="10"/>
+  <text class="t" x="450" y="508" text-anchor="middle">vnstock-js/proxy</text>
+  <text class="s" x="450" y="529" text-anchor="middle">chỉ cần khi chạy trên trình duyệt</text>
+
+  <rect class="ext" x="620" y="482" width="250" height="62" rx="10"/>
+  <text class="t" x="745" y="508" text-anchor="middle">SSI WebSocket</text>
+  <text class="s" x="745" y="529" text-anchor="middle">giá khớp trực tiếp</text>
+
+  <!-- Arrows -->
+  <path class="line" d="M450 82 L450 120"/>
+  <path class="line" d="M300 194 L170 246"/>
+  <path class="line" d="M450 194 L450 246"/>
+  <path class="line" d="M600 194 L730 246"/>
+  <path class="line" d="M155 314 L155 366"/>
+  <path class="line" d="M155 434 L155 480"/>
+  <path class="dash" d="M280 412 C 310 440, 330 470, 360 480"/>
+  <path class="dash" d="M325 513 L282 513"/>
+  <text class="lbl" x="300" y="458">trình duyệt</text>
+  <path class="line" d="M640 194 C 600 260, 560 330, 520 366"/>
+  <path class="line" d="M575 434 C 610 470, 640 476, 660 480"/>
+  <path class="line" d="M745 366 L745 316"/>
+  <text class="lbl" x="752" y="346">tải lười, cache</text>
+</svg>

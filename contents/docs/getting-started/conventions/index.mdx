@@ -1,0 +1,70 @@
+---
+title: Quy Ước & Đơn Vị
+description: Đơn vị tiền, chỉ số, phần trăm, thời gian và lỗi trong vnstock-js 2.x.
+---
+
+Sai đơn vị là loại lỗi hay gặp nhất khi làm việc với dữ liệu chứng khoán. vnstock-js 2.x dùng một bộ quy ước duy nhất cho mọi hàm.
+
+## Đơn vị
+
+| Dữ liệu | Đơn vị | Ví dụ |
+|---|---|---|
+| Giá cổ phiếu (giá khớp, trần, sàn, tham chiếu, nến cổ phiếu) | đồng | `127000` là 127.000 đồng |
+| Giá trị giao dịch, vốn hoá, khối ngoại, thanh khoản thị trường | đồng | `13354737798630` là khoảng 13,35 nghìn tỷ |
+| Báo cáo tài chính | đồng (`unit: 'VND'`) | |
+| Giá vàng | đồng/lượng | `142000000` |
+| Tỷ giá | đồng trên một đơn vị ngoại tệ | `25880` |
+| Chỉ số (VNINDEX, VN30...) | điểm | `1689.84` |
+| Phần trăm thay đổi giá (`changePct`, `pnlPct`, `ret` của backtest) | phần trăm | `0.95` là 0,95% |
+| Tỷ số tài chính (ROE, ROA, biên lợi nhuận), `winRate`, `weight` | phân số | `0.15` là 15% |
+
+<Note>
+Không nhân chia 1000 để "sửa" đơn vị. Muốn hiển thị giá kiểu bảng điện (`127.00`), chia cho 1000 ngay ở bước hiển thị.
+</Note>
+
+Riêng nến trong phiên (1m, 5m, 15m, 30m, 1h), `value` là giá trị giao dịch **luỹ kế** từ đầu phiên tới nến đó; nến ngày trở lên thì `value` là của riêng nến.
+
+## Thời gian
+
+Mọi thời gian theo giờ Việt Nam (ICT, UTC+7), bất kể máy chạy ở múi giờ nào.
+
+- Nến ngày, tuần, tháng: `time: "2026-10-16"`.
+- Nến trong phiên: `time: "2026-10-16T09:15:00+07:00"`.
+- Nến có `time`, không có `date`.
+
+## Khoảng thời gian và khung nến
+
+- Range: `1d 5d 1mo 3mo 6mo ytd 1y 2y 5y max`, hoặc `{ from, to }` dạng `YYYY-MM-DD`.
+- Interval: `1m 5m 15m 30m 1h 1d 1w 1mo`. Các khung 5m, 15m, 30m, 1w, 1mo được gộp từ nến gốc ngay trong thư viện.
+- `6m` không phải range hợp lệ (nhầm với 6 phút); dùng `6mo`. Truyền sai sẽ nhận lỗi kèm gợi ý.
+
+## Tham số
+
+- Luôn là `symbol`, không phân biệt hoa thường: `vn.stock("fpt")` giống `vn.stock("FPT")`.
+- Sàn: `HOSE`, `HNX`, `UPCOM`, `ALL`; `HSX` được hiểu là `HOSE`.
+
+## Lỗi
+
+Mọi lỗi kế thừa `VnstockError`, có `code` và thường có `hint` chỉ cách sửa:
+
+| Lỗi | `code` | Khi nào |
+|---|---|---|
+| `InvalidSymbolError` | `INVALID_SYMBOL` | Mã không có trong danh mục; `hint` gợi ý mã gần nhất |
+| `InvalidParameterError` | `INVALID_PARAMETER` | Tham số sai (range, interval, `tp`...) |
+| `NetworkError` | `NETWORK_ERROR` | Mất mạng, timeout |
+| `RateLimitError` | `RATE_LIMIT` | Nguồn từ chối vì gọi quá nhiều |
+| `ApiError` | `API_ERROR` | Nguồn trả lỗi HTTP |
+| `DataUnavailableError` | `DATA_UNAVAILABLE` | Không tải được dữ liệu nền và không có bản cache |
+| `ParseError` | `PARSE_ERROR` | Dữ liệu từ nguồn hoặc dữ liệu đã lưu không đọc được |
+
+```ts
+import { vn, VnstockError } from "vnstock-js";
+
+try {
+  await vn.stock("FTP").price();
+} catch (e) {
+  if (e instanceof VnstockError) console.log(e.code, e.hint); // INVALID_SYMBOL, Did you mean "FPT"?
+}
+```
+
+Lỗi `JSON.stringify` được, tiện ghi log hoặc trả về qua API.

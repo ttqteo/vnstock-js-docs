@@ -1,119 +1,83 @@
 ---
 title: Danh Sách Hàm
-description: Tất cả API của vnstock-js v1.2
+description: Toàn bộ API công khai của vnstock-js 2.x.
 ---
 
-## Khởi tạo
+Mọi số tiền tính bằng **đồng**, chỉ số bằng **điểm**. Xem [Quy ước & đơn vị](/docs/getting-started/conventions).
 
-### Cơ bản
-
-```ts
-import { stock, commodity, market, realtime } from 'vnstock-js';
-```
-
-### Nâng cao
+## Import
 
 ```ts
-import { Vnstock } from 'vnstock-js';
-const vnstock = new Vnstock();
+import { vn, createClient, memoryStorage } from "vnstock-js";
+import { sma, rsi, macd /* ... */ } from "vnstock-js/indicators";
+import { nextHandler, workerHandler, expressHandler } from "vnstock-js/proxy";
+import { fileStorage } from "vnstock-js/node";
 ```
 
-## Chứng khoán - Stock
+## Client
 
-### Báo giá
+| Hàm | Trả về | Mô tả |
+|---|---|---|
+| `createClient(options?)` | client | `{ proxy, timeout, retries, storage, fetch, preload }` |
+| `vn.stock(symbol)` | handle cổ phiếu | Tạo đồng bộ, không gọi mạng |
+| `vn.index(symbol)` | handle chỉ số | `VNINDEX`, `VN30`, `VN100`, `HNXIndex`, `HNX30`, `HNXUpcomIndex` |
+| `vn.prices(symbols \| { group } \| { exchange })` | `Quote[]` | Bảng giá nhiều mã trong một request |
+| `vn.watch(symbols, cb, options?)` | hàm dừng | Giá trực tiếp, `cb` nhận `Tick` |
+| `vn.market(options?)` | tổng quan | Chỉ số, thanh khoản, độ rộng, khối ngoại; `asOf` cho phiên đã qua |
+| `vn.market.breadth(options?)` | độ rộng | Số mã tăng, giảm, trần, sàn |
+| `vn.market.liquidity(options?)` | thanh khoản | Giá trị giao dịch so với phiên trước |
+| `vn.market.foreign(options?)` | khối ngoại | Phiên hiện tại; thêm `range` để lấy lịch sử |
+| `vn.market.intraday(options?)` | đường thanh khoản | Luỹ kế theo phút so với phiên trước |
+| `vn.market.context(options?)` | bối cảnh cho AI | Xu hướng, thanh khoản so với trung bình, độ rộng |
+| `vn.screen(options)` | `ScreenRow[]` | `{ group \| exchange, where, sort, limit }` |
+| `vn.portfolio(input)` | tổng hợp danh mục | `{ positions, cash }`; kèm `save()`, `load()` |
+| `vn.backtest(symbols, signal, options)` | kết quả backtest | Gộp lệnh và thống kê nhiều mã |
+| `vn.search(query, { limit }?)` | `SymbolInfo[]` | Tìm theo mã hoặc tên công ty |
+| `vn.symbols({ exchange, group, industry }?)` | `SymbolInfo[]` | Danh mục mã |
+| `vn.calendar.isTradingDay(date)` | `boolean` | Có phải ngày giao dịch |
+| `vn.calendar.next(date?)`, `previous(date?)` | `string` | Ngày giao dịch kế tiếp, trước đó |
+| `vn.calendar.holidays(year)` | `string[]` | Ngày nghỉ trong năm |
+| `vn.topMovers({ limit }?)` | `{ gainers, losers }` | Top tăng, giảm |
+| `vn.gold({ source }?)` | `{ source, unit, items }` | Giá vàng đồng/lượng |
+| `vn.fx({ date }?)` | `FxRate[]` | Tỷ giá Vietcombank |
+| `vn.news({ date, source, query }?)` | tin tức | Tin tài chính trong một ngày |
 
-| Hàm | Mô tả | Params |
-|-----|--------|--------|
-| `stock.quote()` | Giá lịch sử OHLCV | `{ ticker, start, end? }` |
-| `stock.index()` | Dữ liệu chỉ số | `{ index, start, end? }` |
+## Handle cổ phiếu: `vn.stock(symbol)`
 
-### Giao dịch
+| Hàm | Trả về | Mô tả |
+|---|---|---|
+| `price()` | `Quote` | Giá, trần, sàn, tham chiếu, khối lượng, giá trị |
+| `history(range \| { from, to, interval })` | `Bar[]` | Nến từ 1 phút tới 1 tháng |
+| `company()` | hồ sơ | Ngành, số cổ phiếu, lịch sử |
+| `shareholders()`, `officers()` | danh sách | Cổ đông lớn, ban lãnh đạo |
+| `events()`, `dividends()`, `news()` | danh sách | Sự kiện, cổ tức, tin của công ty |
+| `financials(kind, { period })` | `{ unit, fields, rows }` | `'balance' \| 'income' \| 'cashflow' \| 'ratios'`, theo `year` hoặc `quarter` |
+| `foreign()` / `foreign(range)` | khối ngoại | Phiên hiện tại, hoặc lịch sử đã ghi |
+| `context({ lookback, asOf })` | `AIContext` | Xu hướng, chỉ báo, mốc giá cho AI |
+| `prompt({ lang })` | `string` | Bối cảnh dạng văn bản cho LLM |
+| `patterns({ recent })` | báo cáo pattern | Hỗ trợ/kháng cự, mẫu nến, Turtle, breakout |
+| `watch(cb, options?)` | hàm dừng | Giá trực tiếp của mã này |
+| `alert({ when, lookback }, cb)` | hàm dừng | Cảnh báo `breakout` hoặc theo hàm |
+| `backtest(signal, { tp, sl, hold, range })` | kết quả backtest | Event study trên nến ngày |
+| `similar({ top, range })` | phiên tương tự | Thử nghiệm |
 
-| Hàm | Mô tả | Params |
-|-----|--------|--------|
-| `stock.priceBoard()` | Bảng giá hiện tại | `{ ticker }` |
-| `stock.topGainers()` | Top tăng mạnh | - |
-| `stock.topLosers()` | Top giảm mạnh | - |
+## Handle chỉ số: `vn.index(symbol)`
 
-### Công ty
+| Hàm | Trả về | Mô tả |
+|---|---|---|
+| `price()` | `Quote` | Mức điểm hiện tại so với phiên trước |
+| `history(range \| { from, to, interval })` | `Bar[]` | Nến tính bằng điểm |
+| `context(options?)`, `prompt(options?)` | bối cảnh | Như handle cổ phiếu |
+| `health(options?)` | sức khoẻ thị trường | Ngày phân phối, ngày bùng nổ xác nhận (phương pháp của William O'Neil) |
 
-| Hàm | Mô tả | Params |
-|-----|--------|--------|
-| `stock.company()` | Tạo Company instance | `{ ticker }` |
-| `company.profile()` | Thông tin công ty | - |
-| `company.shareholders()` | Cổ đông | - |
-| `company.officers()` | Ban lãnh đạo | - |
-| `company.events()` | Sự kiện | - |
-| `company.news()` | Tin tức | - |
-| `company.dividends()` | Cổ tức | - |
-| `company.insiderDeals()` | Giao dịch nội bộ | - |
-| `company.subsidiaries()` | Công ty con | - |
-| `company.affiliates()` | Công ty liên kết | - |
+## Chỉ báo: `vnstock-js/indicators`
 
-### Tài chính
+`sma`, `ema`, `rsi`, `macd`, `bollinger`, `atr`, `superTrend`, `ichimoku`, `ichimokuFutureCloud`, `swingPivots`, `supportResistance`, `extremeZones`, `candlePatterns`, `turtleSignals`, `marketHealth`, `volumeZScore`, `breakouts`, `patternReport`. Mọi hàm nhận `Bar[]`, trả kết quả theo `time`. Xem [Chỉ báo & pattern](/docs/key-features/advanced/indicators).
 
-| Hàm | Mô tả | Params |
-|-----|--------|--------|
-| `stock.financials()` | Bảng cân đối kế toán | `{ ticker, period? }` |
+## Proxy: `vnstock-js/proxy`
 
-Nâng cao:
+`nextHandler()`, `workerHandler()`, `expressHandler()`. Xem [Trình duyệt & proxy](/docs/key-features/advanced/proxy).
 
-| Hàm | Mô tả | Params |
-|-----|--------|--------|
-| `vnstock.stock.financials.balanceSheet()` | CĐKT | `{ symbol, period?, lang? }` |
-| `vnstock.stock.financials.incomeStatement()` | KQKD | `{ symbol, period?, lang? }` |
-| `vnstock.stock.financials.cashFlow()` | LCTT | `{ symbol, period?, lang? }` |
+## Lỗi
 
-### Niêm yết
-
-| Hàm | Mô tả | Params |
-|-----|--------|--------|
-| `vnstock.stock.listing.allSymbols()` | Tất cả mã | - |
-| `vnstock.stock.listing.symbolsByExchange()` | Theo sàn | - |
-| `vnstock.stock.listing.symbolsByIndustries()` | Theo ngành | - |
-| `vnstock.stock.listing.industriesIcb()` | Mã ngành ICB | - |
-| `vnstock.stock.listing.symbolsByGroup()` | Theo nhóm | `group?` |
-
-### Sàng lọc
-
-| Hàm | Mô tả | Params |
-|-----|--------|--------|
-| `stock.screening()` | Lọc cổ phiếu | `{ exchange?, filters?, sortBy?, order?, limit? }` |
-
-### Chỉ báo kỹ thuật
-
-| Hàm | Mô tả | Params |
-|-----|--------|--------|
-| `sma()` | Simple Moving Average | `data, { period, field? }` |
-| `ema()` | Exponential Moving Average | `data, { period, field? }` |
-| `rsi()` | Relative Strength Index | `data, { period?, field? }` |
-
-### Tìm kiếm mã (v1.2+)
-
-| Hàm | Mô tả | Params |
-|-----|--------|--------|
-| `stock.search()` | Tìm mã cổ phiếu offline | `query, { limit? }` |
-| `vnstock.stock.listing.search()` | Tìm kiếm nâng cao | `query, { limit? }` |
-| `vnstock.stock.listing.getBySymbol()` | Tra cứu chính xác | `symbol` |
-| `vnstock.stock.listing.getByExchange()` | Lọc theo sàn | `exchange` |
-| `vnstock.stock.listing.getByIndustry()` | Lọc theo ngành | `industry` |
-| `vnstock.stock.listing.allLocal()` | Toàn bộ ~3300 mã offline | -- |
-
-## Lịch Giao Dịch - Market Calendar (v1.2+)
-
-| Hàm | Mô tả | Params |
-|-----|--------|--------|
-| `market.calendar.isTradeDay()` | Kiểm tra ngày giao dịch | `date` |
-| `market.calendar.nextTradeDay()` | Ngày giao dịch kế tiếp | `date` |
-| `market.calendar.prevTradeDay()` | Ngày giao dịch trước đó | `date` |
-| `market.calendar.holidays()` | Danh sách ngày nghỉ lễ | `year` |
-| `market.calendar.session()` | Giờ giao dịch sàn HOSE | -- |
-
-## Hàng Hoá - Commodity
-
-| Hàm | Mô tả |
-|-----|--------|
-| `commodity.gold.priceBTMC()` | Giá vàng BTMC |
-| `commodity.gold.priceGiaVangNet()` | Giá vàng GiaVang.net |
-| `commodity.gold.priceSJC()` | Giá vàng SJC |
-| `commodity.exchange()` | Tỷ giá VCB |
+`VnstockError`, `InvalidSymbolError`, `InvalidParameterError`, `NetworkError`, `RateLimitError`, `ApiError`, `ParseError`, `DataUnavailableError`. Xem [Quy ước & đơn vị](/docs/getting-started/conventions#lỗi).
