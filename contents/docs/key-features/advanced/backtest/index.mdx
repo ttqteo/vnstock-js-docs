@@ -1,0 +1,100 @@
+---
+title: Backtest & Phiên Tương Tự
+description: Đo kết quả của một tín hiệu bằng event study, và tìm các phiên trong quá khứ có trạng thái giống hiện tại.
+---
+
+## backtest()
+
+```ts
+import { vn } from "vnstock-js";
+
+const r = await vn.stock("FPT").backtest("breakout", { tp: 7, sl: 4, hold: 10 });
+console.log(r.stats.all.trades, r.stats.all.winRate, r.stats.all.avgRet);
+
+const many = await vn.backtest(["FPT", "VCB", "HPG"], "oversold_bounce", { tp: 5, sl: 3, hold: 10, range: "5y" });
+```
+
+Cách tính (event study trên nến ngày):
+
+1. Tín hiệu được xét ở cuối mỗi phiên, chỉ với các nến **tới phiên đó** nên không nhìn trước được.
+2. Vào lệnh ở **giá mở cửa phiên sau** tín hiệu.
+3. Thoát khi chạm chốt lời `tp` hoặc cắt lỗ `sl`; phiên chạm cả hai thì **tính cắt lỗ trước**. Mở cửa vượt qua mức (gap) thì thoát ở giá mở cửa.
+4. Hết `hold` phiên mà chưa chạm thì thoát ở giá đóng cửa phiên cuối (`timeout`).
+5. Mỗi mã chỉ một lệnh mở tại một thời điểm; `overlap: true` để đếm mọi tín hiệu.
+
+Không tính phí, trượt giá, trần sàn. Tín hiệu quá gần cuối chuỗi (chưa đủ `hold` phiên phía sau) bị bỏ qua.
+
+### Tuỳ chọn
+
+| Tuỳ chọn | Ý nghĩa |
+|---|---|
+| `tp` | Chốt lời, **phần trăm** trên giá vào: `7` là +7% |
+| `sl` | Cắt lỗ, phần trăm dưới giá vào, từ 0 tới 100 |
+| `hold` | Số phiên giữ tối đa, tính cả phiên vào lệnh (1 tới 250) |
+| `range` | Khoảng dữ liệu, mặc định `2y` |
+| `overlap` | Đếm cả tín hiệu khi lệnh trước còn mở |
+
+### Tín hiệu
+
+Preset theo tên:
+
+| Preset | Quy tắc |
+|---|---|
+| `breakout` | Đóng cửa vượt đỉnh cao nhất của 20 phiên trước |
+| `oversold_bounce` | RSI 14 cắt lên 30 |
+| `ema_cross` | EMA20 cắt lên EMA50 |
+
+Hoặc hàm của riêng bạn: nhận các nến tới phiên đang xét, trả `true` (có tín hiệu), một chuỗi (có tín hiệu, chuỗi là nhãn nhóm), hoặc `false`/`null`.
+
+```ts
+const r = await vn.backtest(["FPT", "VCB", "HPG"], (bars) => {
+  const last = bars[bars.length - 1];
+  const prev = bars[bars.length - 2];
+  if (!prev) return false;
+  return last.close > prev.high ? (last.volume > prev.volume * 2 ? "vol-x2" : "vol-normal") : false;
+}, { tp: 5, sl: 3, hold: 5, range: "5y" });
+
+console.log(r.stats.byTag["vol-x2"], r.stats.byTag["vol-normal"]);
+```
+
+### Kết quả
+
+```ts
+{
+  trades: [{ symbol, signalTime, tag, entryTime, entry, exitTime, exit, outcome: "tp" | "sl" | "timeout", ret, held }],
+  stats: {
+    all: { trades, wins, winRate, avgRet, medianRet, best, worst, tp, sl, timeout, avgHeld },
+    byTag: { [tag]: { ... } },
+  },
+}
+```
+
+`entry`, `exit` bằng đồng; `ret`, `avgRet`, `medianRet` là phần trăm; `winRate` là phân số (`0.55` là 55%), `null` khi không có lệnh.
+
+<Note>
+Kết quả quá khứ không bảo đảm tương lai. Event study đo từng tín hiệu độc lập, không mô phỏng vốn, phí hay cách bạn thực sự vào lệnh.
+</Note>
+
+## similar() (thử nghiệm)
+
+```ts
+const s = await vn.stock("FPT").similar({ top: 10 });
+console.log(s.asOf, s.matches.map((m) => [m.time, m.similarity, m.ret20]), s.summary.ret20);
+```
+
+Tìm các phiên trong 5 năm (đổi bằng `range`) có trạng thái kỹ thuật giống phiên gần nhất, theo năm chỉ số: RSI 14, MACD histogram chia giá, z-score khối lượng, độ dốc EMA20 qua 5 phiên, khoảng cách tới đỉnh 250 phiên. Mỗi chỉ số được chuẩn hoá trên lịch sử của chính mã đó rồi so bằng cosine; 20 phiên gần nhất bị loại vì chúng giống chỉ vì nằm sát nhau.
+
+Mỗi phiên khớp kèm `ret5`, `ret20`, `ret60`: giá thay đổi bao nhiêu **phần trăm** sau 5, 20, 60 phiên (`null` khi chưa đủ phiên). `summary` gom số phiên, trung bình và tỷ lệ tăng cho từng mốc. Cần ít nhất 250 phiên dữ liệu.
+
+<Note>
+Trạng thái giống nhau không có nghĩa là kết quả giống nhau.
+</Note>
+
+## Qua CLI và MCP
+
+```bash
+vnstock backtest FPT VCB --preset breakout --tp 7 --sl 4 --hold 10
+vnstock similar FPT --top 5
+```
+
+Tool MCP `backtest_signal` (nhận tên preset) và `find_similar_setups` gọi đúng các hàm này.

@@ -1,17 +1,26 @@
 ---
 title: Nâng Cao
-description: API nâng cao của vnstock-js
+description: Các nhóm tính năng của vnstock-js 2.x.
 ---
 
-Sử dụng API nâng cao để truy cập đầy đủ tính năng:
+Mọi tính năng đều đi qua cùng một client:
 
-```typescript
-import vnstock from 'vnstock-js';
+```ts
+import { vn, createClient } from "vnstock-js";
 ```
 
-Xem chi tiết từng module:
-
-- [Giao Dịch - Trading](/docs/key-features/advanced/trading), Bảng giá, top tăng/giảm
-- [Báo Giá - Quote](/docs/key-features/advanced/quote), Giá lịch sử OHLCV
-- [Niêm Yết - Listing](/docs/key-features/advanced/listing), Danh sách mã, sàn, ngành
-- [Tài Chính - Financials](/docs/key-features/advanced/financials), Báo cáo tài chính
+- [Bảng giá](/docs/key-features/advanced/trading): giá hiện tại một hay nhiều mã, top tăng giảm
+- [Lịch sử giá](/docs/key-features/advanced/quote): nến từ 1 phút tới 1 tháng, gộp khung
+- [Danh mục mã](/docs/key-features/advanced/listing) và [Tìm kiếm](/docs/key-features/advanced/search)
+- [Tài chính](/docs/key-features/advanced/financials): báo cáo tài chính, tỷ số, thông tin công ty
+- [Thị trường](/docs/key-features/advanced/market): tổng quan, độ rộng, thanh khoản, khối ngoại, dữ liệu trong phiên
+- [Sàng lọc](/docs/key-features/advanced/screening): `where` và `sort`
+- [Chỉ báo & pattern](/docs/key-features/advanced/indicators): `vnstock-js/indicators`
+- [AI Context](/docs/key-features/advanced/ai-context): bối cảnh kỹ thuật cho LLM
+- [Danh mục đầu tư](/docs/key-features/advanced/portfolio): định giá theo giá hiện tại
+- [Theo dõi & cảnh báo](/docs/key-features/advanced/realtime): `watch()`, `alert()`
+- [Backtest & phiên tương tự](/docs/key-features/advanced/backtest)
+- [Trình duyệt & proxy](/docs/key-features/advanced/proxy)
+- [Lịch giao dịch](/docs/key-features/advanced/calendar)
+- [Vàng, tỷ giá, tin tức](/docs/key-features/advanced/commodity)
+- [MCP Server](/docs/key-features/advanced/mcp) và [Watchlist](/docs/key-features/advanced/watchlist)

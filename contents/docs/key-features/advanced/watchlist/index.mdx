@@ -1,94 +1,36 @@
 ---
-title: Watchlist - Danh Sách Mã Yêu Thích
-description: Quản lý nhiều watchlist, persist ~/.vnstock-js/watchlist.json, fetch quotes batch
+title: Watchlist
+description: Danh sách mã theo dõi lưu ở ~/.vnstock-js, dùng qua CLI và MCP.
 ---
 
-Từ v1.4, vnstock-js có module `watchlist` đơn giản để track nhiều danh sách mã (banks, tech, watchlist riêng...), persist local trên Node, browser opt-in adapter.
+Từ 2.0, watchlist không còn nằm trong SDK. Nó được dùng qua CLI `vnstock watchlist` và tool MCP `watchlist`, lưu ở `~/.vnstock-js/watchlist.json` (cùng file với bản 1.x, nên danh sách cũ vẫn còn).
 
-```typescript
-import { watchlist } from 'vnstock-js';
+## CLI
+
+```bash
+vnstock watchlist create bank
+vnstock watchlist add bank VCB TCB MBB ACB
+vnstock watchlist list bank
+vnstock watchlist quote bank          # bảng giá mọi mã trong danh sách
+vnstock watchlist remove bank ACB
+vnstock watchlist delete bank
+vnstock watchlist                     # liệt kê các danh sách
 ```
 
-## CRUD cơ bản
+Thêm `--json` để lấy dữ liệu cho script.
 
-```typescript
-// Tạo watchlist
-await watchlist.create('banks');
+## MCP
 
-// Thêm 1 mã hoặc nhiều mã
-await watchlist.add('banks', 'VCB');
-await watchlist.add('banks', ['TCB', 'MBB', 'ACB']);
+Tool `watchlist` nhận `action` (`list_all`, `list`, `create`, `delete`, `add`, `remove`, `quote`), `name` và `symbols`. Ví dụ hỏi: "Thêm VCB, TCB vào danh sách bank rồi cho tôi giá".
 
-// Liệt kê
-const symbols = await watchlist.list('banks');
-// → ['VCB', 'TCB', 'MBB', 'ACB']
+## Trong code
 
-const allNames = await watchlist.listAll();
-// → ['banks', 'tech', ...]
+Trong ứng dụng của bạn, một watchlist chỉ là danh sách mã. Lưu nó ở đâu tuỳ bạn (database, localStorage, cookie) rồi lấy giá bằng một request:
 
-// Xoá mã
-await watchlist.remove('banks', 'ACB');
+```ts
+import { vn } from "vnstock-js";
 
-// Xoá watchlist
-await watchlist.delete('banks');
-
-// Check tồn tại
-const exists = await watchlist.has('banks');
+const symbols = ["VCB", "TCB", "MBB"];
+const quotes = await vn.prices(symbols);
+const stop = vn.watch(symbols, (t) => console.log(t.symbol, t.price));
 ```
-
-## Auto-uppercase + dedup
-
-```typescript
-await watchlist.add('mixed', ['vcb', 'TCB', 'vcb', 'tcb']);
-await watchlist.list('mixed');
-// → ['VCB', 'TCB']  (dedup, uppercase)
-```
-
-## Persist
-
-**Node**: `~/.vnstock-js/watchlist.json`, atomic rename khi write.
-
-```json
-{
-  "banks": { "symbols": ["VCB","TCB","MBB"], "createdAt": "2026-05-14" },
-  "tech":  { "symbols": ["FPT","CMG"],       "createdAt": "2026-05-14" }
-}
-```
-
-**Browser**: default no-op + warn console. Inject custom adapter để dùng localStorage / IndexedDB:
-
-```typescript
-import { Watchlist, WatchlistStorage } from 'vnstock-js';
-
-const localStorageAdapter: WatchlistStorage = {
-  async read() {
-    return localStorage.getItem('vnstock_watchlist');
-  },
-  async write(json) {
-    localStorage.setItem('vnstock_watchlist', json);
-  },
-};
-
-const wl = new Watchlist(localStorageAdapter);
-await wl.add('myList', 'VCB');
-```
-
-## Fetch quotes batch
-
-Combine với easy-mode `compareSymbols` để fetch giá toàn watchlist:
-
-```typescript
-import { watchlist, compareSymbols } from 'vnstock-js';
-
-const symbols = await watchlist.list('banks');
-const quotes = await compareSymbols(symbols);
-// → [{ symbol: 'VCB', price: 59.3, change: 0.17, ... }, ...]
-```
-
-<Note type="note">
-Watchlist là **local-only**: không sync cloud. Nếu cần multi-device, build adapter trên cloud DB của bạn.
-</Note>
-
-<Note type="warning">
-2 process cùng ghi watchlist file có thể race (last-wins). Nếu chạy nhiều agent song song, tự lock hoặc dùng 1 writer duy nhất.
-</Note>

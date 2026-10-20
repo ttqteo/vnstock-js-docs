@@ -1,0 +1,55 @@
+---
+title: Vàng, Tỷ Giá, Tin Tức
+description: Giá vàng trong nước, tỷ giá Vietcombank, tin tài chính trong ngày.
+---
+
+## Giá vàng
+
+```ts
+import { vn } from "vnstock-js";
+
+const gold = await vn.gold();                          // BTMC, lỗi thì chuyển GiaVang.net
+const sjc = gold.items.find((g) => /SJC/.test(g.name));
+console.log(gold.source, sjc?.buy, sjc?.sell);         // đồng/lượng
+
+await vn.gold({ source: "giavangnet" });               // chọn nguồn: "auto" | "btmc" | "giavangnet"
+```
+
+```json
+{
+  "source": "btmc",
+  "unit": "VND/luong",
+  "items": [
+    { "name": "VÀNG MIẾNG SJC (Vàng SJC)", "code": "", "karat": "24k", "buy": 138600000, "sell": 142600000,
+      "buyChange": null, "sellChange": null, "updatedAt": "2026-10-20T12:19:00+07:00" }
+  ]
+}
+```
+
+- Mọi giá là **đồng/lượng** (1 lượng = 37,5 g). Vàng BTMC báo theo chỉ và được nhân 10; bạc báo theo sản phẩm và được chia theo trọng lượng ghi trong tên.
+- Mỗi sản phẩm chỉ còn một dòng mới nhất. Đồng xu vàng (báo giá cả đồng xu) bị bỏ vì không quy được ra đồng/lượng.
+- `buy`, `sell` là `null` khi nguồn không niêm yết giá đó.
+
+## Tỷ giá
+
+```ts
+const rates = await vn.fx();                         // hôm nay
+const usd = rates.find((r) => r.currencyCode === "USD");
+// { currencyCode: "USD", currencyName: "US DOLLAR", buyCash: 25650, buyTransfer: 25680, sell: 26060 }
+
+await vn.fx({ date: "2026-10-15" });
+```
+
+Tỷ giá Vietcombank, đồng trên một đơn vị ngoại tệ; `null` khi ngân hàng không niêm yết.
+
+## Tin tức
+
+```ts
+const today = await vn.news();
+const banks = await vn.news({ query: "ngân hàng" });
+const one = await vn.news({ date: "2026-10-14", source: "Vietstock" });
+```
+
+Tin tài chính tổng hợp mỗi ngày từ [news-crawler](https://github.com/ttqteo/news-crawler). `query` lọc theo tiêu đề và tóm tắt, `source` lọc theo nguồn, không phân biệt hoa thường. Mỗi tin có `id`, `source`, `title`, `summary`, `link`, `image`, `publishedAt`.
+
+Tin riêng của một công ty: `vn.stock("FPT").news()`.

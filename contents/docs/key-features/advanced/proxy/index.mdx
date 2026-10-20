@@ -1,0 +1,72 @@
+---
+title: Trình Duyệt & Proxy
+description: Dùng vnstock-js trong client component qua proxy có sẵn.
+---
+
+VietCap chặn request từ trình duyệt (CORS) và còn từ chối Origin lạ ở phía server. Thư viện kèm sẵn một proxy nhỏ để đặt trên server của bạn; client trên trình duyệt gọi qua đó.
+
+## Next.js (App Router)
+
+```ts
+// app/api/vnstock/[...path]/route.ts
+import { nextHandler } from "vnstock-js/proxy";
+
+export const { GET, POST } = nextHandler();
+```
+
+```tsx
+// components/price.tsx
+"use client";
+import { useEffect, useState } from "react";
+import { createClient, type Quote } from "vnstock-js";
+
+const vn = createClient({ proxy: "/api/vnstock" });
+
+export function Price({ symbol }: { symbol: string }) {
+  const [q, setQ] = useState<Quote | null>(null);
+  useEffect(() => {
+    vn.stock(symbol).price().then(setQ);
+  }, [symbol]);
+  return <span>{q ? q.price.toLocaleString() : "…"}</span>;
+}
+```
+
+## Cloudflare Workers, Deno, Bun
+
+```ts
+import { workerHandler } from "vnstock-js/proxy";
+
+export default { fetch: workerHandler() };
+```
+
+## Express
+
+```ts
+import express from "express";
+import { expressHandler } from "vnstock-js/proxy";
+
+const app = express();
+app.use(expressHandler());
+```
+
+## Tuỳ chọn
+
+Cả ba hàm nhận cùng tuỳ chọn:
+
+| Tuỳ chọn | Mặc định | Ý nghĩa |
+|---|---|---|
+| `basePath` | `/api/vnstock` | Đường dẫn gắn proxy; client đặt `proxy` trùng giá trị này |
+| `cacheSeconds` | `30` | Số giây CDN được cache phản hồi GET thành công; `0` để tắt |
+
+## An toàn
+
+- Proxy **không phải open proxy**: chỉ chuyển tiếp tới hai host VietCap mà thư viện dùng, theo danh sách đường dẫn cố định. Đường dẫn lạ (kể cả kiểu `%2e%2e`) bị chặn với 403.
+- Header phiên của VietCap chỉ được gắn ở server.
+- Nguồn không phản hồi thì trả 502.
+
+## Không cần proxy khi
+
+- Gọi từ Server Component, API Route, Server Action, script Node: dùng thẳng `vn`.
+- Dữ liệu nền (danh mục mã, lịch nghỉ, lịch sử khối ngoại) tải từ raw GitHub, vốn cho phép CORS.
+- Chỉ báo ở `vnstock-js/indicators`: hàm thuần, không gọi mạng.
+- `watch()` ở chế độ stream kết nối WebSocket tới SSI. Nếu WebSocket bị chặn trên môi trường của bạn, dùng `{ mode: 'poll' }`.

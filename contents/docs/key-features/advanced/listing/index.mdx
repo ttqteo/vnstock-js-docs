@@ -1,51 +1,34 @@
 ---
-title: Niêm Yết - Listing
-description: API niêm yết - danh sách mã, sàn, ngành
+title: Danh Mục Mã - Symbols
+description: Danh sách mã theo sàn, nhóm, ngành.
 ---
 
-## Tất cả mã cổ phiếu
+```ts
+import { vn } from "vnstock-js";
 
-```typescript
-import vnstock from 'vnstock-js';
-
-const allSymbols = await vnstock.stock.listing.allSymbols();
-// → [{ symbol: "VCI", companyName: "CTCP Chứng khoán Bản Việt" }, ...]
+const all = await vn.symbols();
+const hose = await vn.symbols({ exchange: "HOSE" });
+const vn30 = await vn.symbols({ group: "VN30" });
+const banks = await vn.symbols({ industry: "Ngân hàng" });
 ```
 
-## Theo sàn
+Mỗi phần tử:
 
-```typescript
-const symbols = await vnstock.stock.listing.symbolsByExchange();
-// → [{ symbol: "VCI", exchange: "HOSE", companyName: "...", companyNameEn: "..." }, ...]
+```json
+{
+  "symbol": "FPT",
+  "companyName": "Công ty Cổ phần FPT",
+  "companyNameEn": "FPT Corporation",
+  "exchange": "HSX",
+  "industry": "Phần mềm & Dịch vụ Máy tính",
+  "industryEn": "Software & Computer Services",
+  "sector": "Công nghệ Thông tin",
+  "sectorEn": "Technology",
+  "icbCode": "9537",
+  "vn30": true
+}
 ```
 
-Output: `ListedSymbol[]`
+Danh mục mã được tải từ GitHub ở lần dùng đầu và cache trong `Storage`, nên `symbols()` không gọi VCI. Danh mục này cũng là thứ thư viện dùng để kiểm tra mã và gợi ý khi gõ sai.
 
-| Field | Type | Mô tả |
-|-------|------|--------|
-| `symbol` | string | Mã |
-| `exchange` | string | Sàn (HOSE/HNX/UPCOM) |
-| `companyName` | string | Tên công ty |
-| `companyNameEn` | string | Tên tiếng Anh |
-
-## Theo ngành
-
-```typescript
-const industries = await vnstock.stock.listing.symbolsByIndustries();
-// → [{ symbol: "VCI", industry: "Chứng khoán", sector: "Tài chính", ... }, ...]
-```
-
-## Mã ngành ICB
-
-```typescript
-const icb = await vnstock.stock.listing.industriesIcb();
-// → [{ code: "8000", name: "Tài chính", nameEn: "Financials", level: "1" }, ...]
-```
-
-## Theo nhóm
-
-```typescript
-const vn30 = await vnstock.stock.listing.symbolsByGroup('VN30');
-```
-
-Nhóm hỗ trợ: `HOSE`, `VN30`, `VNMidCap`, `VNSmallCap`, `VNAllShare`, `VN100`, `ETF`, `HNX`, `HNX30`, `UPCOM`, `BOND`, `CW`, `FU_INDEX`, `FU_BOND`
+Muốn bảng giá của cả nhóm thì dùng thẳng `vn.prices({ group: "VN30" })`.

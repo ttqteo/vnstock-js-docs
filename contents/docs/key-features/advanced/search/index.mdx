@@ -1,60 +1,13 @@
 ---
-title: Tim Kiem Ma - Search
-description: Tim kiem ma co phieu offline voi relevance ranking va VN30 boost
+title: Tìm Kiếm - Search
+description: Tìm mã theo ký hiệu hoặc tên công ty.
 ---
 
-## Symbol Directory & Search
+```ts
+import { vn } from "vnstock-js";
 
-Module `listing` cung cap danh sach ~3300 ma co phieu offline, khong can goi API.
-
-### Tim kiem
-
-```typescript
-import { stock } from "vnstock-js";
-// hoac: const vnstock = new Vnstock(); vnstock.stock.listing.search(...)
-
-stock.search("Vinamilk");
-// [{ symbol: "VNM", companyName: "CTCP Sua Viet Nam", exchange: "HOSE", vn30: true, ... }]
-
-stock.search("ngan hang", { limit: 5 });
-// Top 5 ket qua lien quan den nganh ngan hang
+const banks = await vn.search("ngân hàng", { limit: 5 });
+const fpt = await vn.search("FPT");
 ```
 
-### Thu tu uu tien ket qua
-
-1. **Khop chinh xac ma** -- `"VNM"` -> VNM len dau
-2. **Ma bat dau bang** -- `"VN"` -> VNM, VND, VNS...
-3. **Ten bat dau bang** -- `"Vin"` -> Vinamilk, Vinhomes, Vingroup
-4. **Chua tu khoa** -- `"sua"` -> tat ca cong ty co "sua" trong ten/nganh
-5. **VN30 boost** -- ma VN30 duoc uu tien trong cung nhom
-
-### Tra cuu chinh xac
-
-```typescript
-import { Vnstock } from "vnstock-js";
-const vnstock = new Vnstock();
-
-vnstock.stock.listing.getBySymbol("FPT");
-// { symbol: "FPT", companyName: "CTCP FPT", exchange: "HOSE", vn30: true, ... }
-
-vnstock.stock.listing.getBySymbol("ZZZZZ");
-// null
-```
-
-### Loc theo san / nganh
-
-```typescript
-vnstock.stock.listing.getByExchange("HOSE");
-// SymbolInfo[] -- tat ca ma tren san HOSE
-
-vnstock.stock.listing.getByIndustry("Ngan hang");
-// SymbolInfo[] -- tat ca ngan hang
-
-vnstock.stock.listing.allLocal();
-// SymbolInfo[] -- toan bo ~3300 ma
-```
-
-<Note>
-Du lieu duoc bundle cung package, cap nhat bang `npm run update-symbols`.
-Khong can ket noi internet de su dung cac ham search.
-</Note>
+Tìm theo mã, tên công ty (tiếng Việt có dấu hoặc tiếng Anh) và tên ngành, không phân biệt hoa thường. Thứ tự: mã khớp chính xác, mã bắt đầu bằng từ khoá, tên bắt đầu bằng từ khoá, rồi các kết quả chứa từ khoá. Mặc định trả 10 kết quả. Kết quả là danh sách mã như [Danh mục mã](/docs/key-features/advanced/listing). `search` đọc danh mục đã cache nên không gọi mạng sau lần tải đầu.

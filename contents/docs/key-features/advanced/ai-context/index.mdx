@@ -1,115 +1,58 @@
 ---
-title: AI Context - Phân Tích Kỹ Thuật cho LLM
-description: aiContext() trả structured JSON, toAIPrompt() trả plain-text cho Claude/GPT/Gemini
+title: AI Context
+description: Bối cảnh kỹ thuật tính sẵn cho LLM, dạng JSON hoặc văn bản.
 ---
 
-Từ v1.4, vnstock-js cung cấp 2 helper để build **bối cảnh phân tích kỹ thuật pre-computed** cho AI/LLM reasoning, không phải dump raw OHLCV.
+Thay vì đưa nến thô cho LLM, `context()` tính sẵn xu hướng, chỉ báo, mốc giá, khối lượng và hiệu suất; `prompt()` trả cùng nội dung ở dạng văn bản để dán thẳng vào prompt.
 
-```typescript
-import vnstock from 'vnstock-js';
+```ts
+import { vn } from "vnstock-js";
+
+const ctx = await vn.stock("FPT").context();
+const text = await vn.stock("FPT").prompt({ lang: "vi" }); // hoặc "en"
+const past = await vn.stock("FPT").context({ asOf: "2026-10-10" });
+const vni = await vn.index("VNINDEX").context();
 ```
 
-## `stock.aiContext(symbol, options?)`
+Tuỳ chọn: `lookback` (số phiên dùng để tính, mặc định 200), `asOf` (`YYYY-MM-DD`, chỉ dùng nến tới hết phiên đó, để backtest không nhìn trước).
 
-Trả về structured JSON gồm:
+## Cấu trúc
 
-- **trend**: direction (bullish/bearish/neutral), strength (0..1), rationale tiếng Việt
-- **indicators**: RSI14, MACD (line/signal/histogram/crossover), SMA/EMA 20/50/200, Bollinger (upper/middle/lower/percentB), ATR14
-- **levels**: support + resistance dạng pivot points
-- **volume**: today, avg20, signal (above_average/below_average/normal), z-score
-- **performance**: change 1d/7d/30d/90d
-
-```typescript
-const ctx = await vnstock.stock.aiContext('VCB');
-
-console.log(ctx.trend);
-// { direction: "bullish", strength: 0.72, rationale: "EMA20 > EMA50 > EMA200, slope EMA20 dương 5 phiên" }
-
-console.log(ctx.indicators.rsi14);   // 62.3
-console.log(ctx.indicators.macd);    // { line, signal, histogram, crossover }
-console.log(ctx.levels.support);     // [56.5, 54.2, 52.0]
-console.log(ctx.levels.resistance);  // [60.0, 62.5, 64.0]
-console.log(ctx.volume.signal);      // "above_average"
-console.log(ctx.performance);        // { change1d: 0.0017, change30d: 0.058, ... }
+```ts
+{
+  symbol: "FPT",
+  asOf: "2026-10-20",
+  trend: { direction: "bearish", strength: 1, rationale: "EMA20 < EMA50 < EMA200, ..." },
+  indicators: {
+    rsi14: 33.46,
+    macd: { line, signal, histogram, crossover: "bullish" | "bearish" | "none" },
+    sma: { 20, 50, 200 }, ema: { 20, 50, 200 },
+    bollinger: { upper, middle, lower, percentB },
+    atr14,
+    superTrend: { value, direction },
+    ichimoku: { tenkanSen, kijunSen, cloudTop, cloudBottom, priceVsCloud, tkCross },
+  },
+  levels: { support: number[], resistance: number[] },
+  volume: { today, avg20, signal: "above_average" | "below_average" | "normal", zscore },
+  performance: { change1d, change7d, change30d, change90d },
+}
 ```
 
-### Options
+- Mọi mức giá (SMA, EMA, Bollinger, ATR, `levels`) tính bằng đồng với cổ phiếu, điểm với chỉ số.
+- `trend.strength` từ 0 tới 1, tính theo độ dốc EMA20 tính bằng phần trăm nên không phụ thuộc mức giá.
+- `performance.change*` là phân số so với giá đóng cửa 1, 7, 30, 90 phiên trước (`-0.05` là giảm 5%).
 
-```typescript
-await vnstock.stock.aiContext('VCB', { lookback: 200 }); // default 200 phiên
+`prompt()` in giá theo dạng dễ đọc (`57.5k`), phù hợp để LLM đọc.
+
+## Bối cảnh thị trường
+
+```ts
+const market = await vn.market.context({ index: "VNINDEX" });
+console.log(market.regime, market.rationale, market.liquidity.signal, market.notes);
 ```
 
-### Tính theo một phiên trong quá khứ (v1.5+)
+`regime` là một trong `trending_up`, `trending_down`, `sideways`. Với `asOf`, độ rộng và khối ngoại là `null` và `notes` giải thích lý do.
 
-```typescript
-const past = await vnstock.stock.aiContext('VCB', { asOf: '2026-07-20' });
-console.log(past.asOf);  // "2026-07-20"
-```
+## Dùng với MCP
 
-`asOf` cắt chuỗi lịch sử tại ngày chỉ định rồi tính chỉ báo trên phần dữ liệu đó, như thể bạn đang đứng ở cuối phiên hôm ấy. Dùng khi viết báo cáo trễ ngày mà không muốn lẫn giá hiện tại.
-
-Ngày chỉ định được tính vào kết quả. `asOf: '2026-07-20'` bao gồm chính phiên 20/07.
-
-Áp dụng cho cả `toAIPrompt()`, và MCP nhận tham số `as_of`.
-
-## `stock.toAIPrompt(symbol, options?)`
-
-Trả về plain-text format optimize cho LLM context window. Dùng khi user export sang GPT/Gemini bên ngoài.
-
-```typescript
-const text = await vnstock.stock.toAIPrompt('VCB', { lang: 'vi' });
-console.log(text);
-```
-
-Output:
-
-```
-=== VCB, 2026-05-22 ===
-Trend: bullish (strength 72%), EMA20 > EMA50 > EMA200, slope EMA20 dương 5 phiên
-RSI(14): 62.3
-MACD: line 0.420, signal 0.310, histogram 0.110, crossover: bullish
-SMA: 20=58.40, 50=56.10, 200=52.80
-EMA: 20=58.90, 50=56.50, 200=52.60
-Bollinger %B: 0.62 (upper=61.20, lower=55.60)
-ATR(14): 1.340
-Volume: 5,550,000 (avg 4,120,000, z-score 1.85, above_average)
-Support: 56.50 / 54.20 / 52.00
-Resistance: 60.00 / 62.50 / 64.00
-Change: 1d +0.17% · 7d +2.34% · 30d +5.80% · 90d +14.20%
-```
-
-### Options
-
-```typescript
-await vnstock.stock.toAIPrompt('VCB', { lang: 'en' }); // English version
-await vnstock.stock.toAIPrompt('VCB', { lookback: 100 });
-```
-
-## Use case, AI agent integration
-
-```typescript
-import vnstock from 'vnstock-js';
-import { Anthropic } from '@anthropic-ai/sdk';
-
-const text = await vnstock.stock.toAIPrompt('VCB');
-
-const client = new Anthropic();
-const response = await client.messages.create({
-  model: 'claude-opus-4-7',
-  max_tokens: 1024,
-  messages: [
-    {
-      role: 'user',
-      content: `Phân tích VCB dựa trên context sau và đưa ra nhận định kỹ thuật:\n\n${text}`,
-    },
-  ],
-});
-```
-
-<Note type="note">
-**Không phải lời khuyên đầu tư.** Output là pre-computed indicators + rules-based classifier. LLM reasoning trên context vẫn cần user judgment.
-</Note>
-
-<Note type="warning">
-Trend classifier hiện tại **rules-based** (EMA chain + slope), không phải ML. Có thể mis-classify trong sideway market. `neutral` là fallback safe.
-</Note>
+Tool `get_ai_context` và `to_ai_prompt` của [MCP Server](/docs/key-features/advanced/mcp) gọi đúng các hàm này, nên Claude hay Cursor nhận cùng dữ liệu.

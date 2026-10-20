@@ -1,77 +1,57 @@
 ---
 title: Tài Chính - Financials
-description: API tài chính - báo cáo tài chính doanh nghiệp
+description: Báo cáo tài chính, tỷ số, hồ sơ công ty, cổ đông, sự kiện.
 ---
 
-## Bảng cân đối kế toán
+## Báo cáo tài chính
 
-```typescript
-import vnstock from 'vnstock-js';
+```ts
+import { vn } from "vnstock-js";
 
-const bs = await vnstock.stock.financials.balanceSheet({
-  symbol: 'VCI',
-  period: 'quarter', // hoặc 'year'
-  lang: 'en',        // hoặc 'vi'
-});
+const income = await vn.stock("FPT").financials("income", { period: "quarter" });
+const balance = await vn.stock("FPT").financials("balance", { period: "year" });
+const cashflow = await vn.stock("FPT").financials("cashflow"); // theo quý
+const ratios = await vn.stock("FPT").financials("ratios", { period: "quarter" });
 ```
 
-## Kết quả kinh doanh
+`kind`: `'balance' | 'income' | 'cashflow' | 'ratios'`. `period`: `'quarter'` (mặc định) hoặc `'year'`.
 
-```typescript
-const is = await vnstock.stock.financials.incomeStatement({
-  symbol: 'VCI',
-  period: 'year',
-});
-```
+Kết quả:
 
-## Lưu chuyển tiền tệ
-
-```typescript
-const cf = await vnstock.stock.financials.cashFlow({
-  symbol: 'VCI',
-  period: 'quarter',
-});
-```
-
-## Cấu trúc output
-
-Mỗi hàm trả về:
-
-```typescript
+```ts
 {
-  data: {
-    symbol: "VCI",
-    year: 2024,
-    quarter: 4,
-    revenue: 1500,
-    netProfit: 300,
-    roe: 0.22,
-    roa: 0.08,
-    pe: 12,
-    pb: 1.5,
-    eps: 3500,
-    debtToEquity: 0.8,
-    // ... nhiều chỉ số khác
-  },
-  mapping: {
-    ratio: { type: "...", fields: [...] },
-    unit: { BILLION: "billion", PERCENT: "%" }
-  }
+  symbol: "FPT",
+  kind: "income",
+  period: "quarter",
+  unit: "VND",
+  fields: [{ field: "isa3", titleVi: "Doanh thu thuần", titleEn: "Net sales", level: 1, parent: null }, ...],
+  rows: [{ period: "2026-Q2", values: { isa3: 13788503461199, isa22: 2567587014434, ... } }, ...],
 }
 ```
 
-### Các chỉ số chính
+- `rows` cũ trước mới sau; `period` là `"2026"` theo năm hoặc `"2026-Q2"` theo quý.
+- Số liệu bằng đồng. Với `ratios`, các tỷ số như `roe`, `roa`, biên lợi nhuận là phân số, `pe`, `pb` là bội số.
+- Mã trường (`isa3`...) khác nhau giữa doanh nghiệp thường, ngân hàng và công ty chứng khoán. Dùng `fields` để tra theo tên:
 
-| Field | Mô tả |
-|-------|--------|
-| `revenue` | Doanh thu |
-| `netProfit` | Lợi nhuận ròng |
-| `roe` | Tỷ suất sinh lời trên vốn chủ |
-| `roa` | Tỷ suất sinh lời trên tài sản |
-| `pe` | Price/Earnings |
-| `pb` | Price/Book |
-| `eps` | Lợi nhuận trên cổ phiếu |
-| `debtToEquity` | Nợ/Vốn chủ |
-| `currentRatio` | Tỷ số thanh toán hiện hành |
-| `grossMargin` | Biên lợi nhuận gộp |
-| `netProfitMargin` | Biên lợi nhuận ròng |
+```ts
+const net = income.fields.find((f) => f.titleEn === "Net sales")?.field;
+const latest = income.rows[income.rows.length - 1];
+console.log(net && latest.values[net]); // doanh thu thuần quý gần nhất, đồng
+```
+
+## Hồ sơ công ty
+
+```ts
+const fpt = vn.stock("FPT");
+
+const profile = await fpt.company();       // ngành, số cổ phiếu lưu hành, giới thiệu
+const holders = await fpt.shareholders();  // cổ đông lớn
+const officers = await fpt.officers();     // ban lãnh đạo
+const events = await fpt.events();         // sự kiện: cổ tức, phát hành, đại hội...
+const dividends = await fpt.dividends();   // chỉ sự kiện cổ tức
+const news = await fpt.news();             // tin của công ty
+```
+
+Các phần này dùng chung một request tới VCI. Ngày tháng theo giờ Việt Nam. Sự kiện có `exRightDate` (ngày giao dịch không hưởng quyền), `recordDate` (ngày đăng ký cuối cùng), `ratio` (tỷ lệ, phân số).
+
+Xem [CompanyProfile](/docs/data/CompanyProfile).

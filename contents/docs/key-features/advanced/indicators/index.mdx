@@ -1,76 +1,72 @@
 ---
-title: Chỉ Báo Kỹ Thuật - Indicators
-description: SMA, EMA, RSI, MACD, Bollinger Bands, ATR
+title: Chỉ Báo & Pattern
+description: Chỉ báo kỹ thuật, vùng hỗ trợ/kháng cự, mẫu nến, Turtle, breakout, sức khoẻ thị trường.
 ---
 
-Các chỉ báo kỹ thuật là pure functions, nhận `QuoteHistory[]` và trả kết quả. Từ v1.4 có thêm MACD, Bollinger Bands, ATR.
+```ts
+import { vn } from "vnstock-js";
+import { sma, rsi, macd, supportResistance, candlePatterns } from "vnstock-js/indicators";
 
-```typescript
-import { sma, ema, rsi, macd, bollinger, atr } from 'vnstock-js';
+const bars = await vn.stock("FPT").history("1y");
+const sma20 = sma(bars, { period: 20 });
 ```
 
-## SMA - Simple Moving Average
+`vnstock-js/indicators` là hàm thuần: nhận `Bar[]` (cũ trước mới sau), không gọi mạng, chạy được cả trong trình duyệt. Kết quả có cùng độ dài và thứ tự với `bars`, mỗi phần tử có `time`; giá trị là `null` cho tới khi đủ dữ liệu khởi động. Đơn vị theo đơn vị của nến: đồng với cổ phiếu, điểm với chỉ số.
 
-```typescript
-const history = await vnstock.stock.quote.history({
-  symbols: ['FPT'], start: '2024-01-01', timeFrame: '1D'
-});
+## Chỉ báo xu hướng và động lượng
 
-const sma20 = sma(history, { period: 20 });
-// → [{ date: "2024-01-15", sma: null }, ..., { date: "2024-02-15", sma: 25.6 }, ...]
+| Hàm | Kết quả mỗi phần tử | Mặc định |
+|---|---|---|
+| `sma(bars, { period, field? })` | `{ time, sma }` | `field: "close"` |
+| `ema(bars, { period, field? })` | `{ time, ema }` | khởi tạo bằng SMA |
+| `rsi(bars, { period? })` | `{ time, rsi }` (0 tới 100) | Wilder, 14 |
+| `macd(bars, { fast?, slow?, signal? })` | `{ time, macd, signal, histogram }` | 12, 26, 9 |
+| `bollinger(bars, { period?, stddev? })` | `{ time, upper, middle, lower, percentB }` | 20, 2 |
+| `atr(bars, period?)` | `{ time, atr }` | Wilder, 14 |
+| `superTrend(bars, { period?, multiplier? })` | `{ time, superTrend, direction, upperBand, lowerBand }` | 10, 3 |
+| `ichimoku(bars, options?)` | `{ time, tenkanSen, kijunSen, senkouSpanA, senkouSpanB, chikouSpan, cloudTop, cloudBottom }` | 9, 26, 52 |
+| `volumeZScore(bars, { period? })` | `{ time, z }` | 20 phiên trước, không tính phiên hiện tại |
 
-// SMA theo volume
-const volumeSma = sma(history, { period: 10, field: 'volume' });
+```ts
+const last = macd(bars).at(-1);           // { macd, signal, histogram }
+const pctB = bollinger(bars).at(-1)?.percentB;
+const trend = superTrend(bars).at(-1)?.direction; // "bullish" | "bearish"
 ```
 
-## EMA - Exponential Moving Average
+## Vùng giá và pattern
 
-```typescript
-const ema12 = ema(history, { period: 12 });
-// → [{ date: "...", ema: null }, ..., { date: "...", ema: 25.8 }, ...]
+| Hàm | Kết quả |
+|---|---|
+| `swingPivots(bars, window)` | Đỉnh, đáy xoay `{ index, time, price, kind: "high" \| "low" }` |
+| `supportResistance(bars, { window?, maxZones?, tolerance?, minTouches? })` | Vùng `{ low, high, kind: "support" \| "resistance", touches, lastTouch }`, xếp theo số lần chạm |
+| `extremeZones(bars, { rsiPeriod?, lower?, upper? })` | `{ time, zone: "bottom" \| "top" \| null }`: RSI dưới 30 kèm chạm Bollinger dưới, và ngược lại |
+| `candlePatterns(bars, { trendLookback? })` | `{ time, pattern, bias }`: engulfing, hammer, shooting star, doji, morning/evening star |
+| `breakouts(bars, { lookback?, volumeZ? })` | `{ time, direction, level, volumeZ }`: đóng cửa vượt đỉnh/đáy `lookback` phiên kèm khối lượng đột biến |
+| `turtleSignals(bars, options?)` | `{ time, action: "buy" \| "sell", price, stop, reason }`: phá đỉnh 20 phiên mua, thủng đáy 10 phiên thoát, dừng lỗ 2 x ATR, lọc EMA200; chỉ mua |
+
+```ts
+const zones = supportResistance(bars);
+const recentCandles = candlePatterns(bars).filter((p) => p.bias === "bullish").slice(-3);
+const spikes = breakouts(bars, { lookback: 20, volumeZ: 2 });
 ```
 
-## RSI - Relative Strength Index
+`patternReport(bars, { recent })` gộp tất cả trong một lần; trên client là `vn.stock('FPT').patterns()`:
 
-```typescript
-const rsi14 = rsi(history); // period mặc định = 14
-// → [{ date: "...", rsi: null }, ..., { date: "...", rsi: 65.3 }, ...]
-
-const rsi7 = rsi(history, { period: 7 });
+```ts
+const report = await vn.stock("FPT").patterns({ recent: 10 });
+console.log(report.zones, report.extreme, report.candles, report.turtle, report.breakouts);
 ```
 
-## MACD, Moving Average Convergence Divergence (v1.4+)
+## Sức khoẻ thị trường
 
-```typescript
-const macdData = macd(history); // default fast=12, slow=26, signal=9
-// → [{ date, macd, signal, histogram }]
-
-const fast = macd(history, { fast: 5, slow: 13, signal: 5 });
+```ts
+const health = await vn.index("VNINDEX").health();
+// hoặc: marketHealth(await vn.index("VNINDEX").history("1y"))
+console.log(health.status, health.distributionCount, health.events.at(-1));
 ```
 
-`histogram > 0` đang bullish, `histogram < 0` đang bearish. Crossover khi histogram đổi dấu.
+`status` là `"uptrend"`, `"pressure"` hoặc `"correction"`. Theo phương pháp của William O'Neil: đếm ngày phân phối (giảm điểm trên khối lượng lớn hơn phiên trước) trong 25 phiên gần nhất và tìm ngày bùng nổ xác nhận (follow-through day) sau một đáy.
 
-## Bollinger Bands (v1.4+)
-
-```typescript
-const bb = bollinger(history); // default period=20, stddev=2
-// → [{ date, upper, middle, lower, percentB }]
-
-const bb10 = bollinger(history, { period: 10, stddev: 1.5 });
-```
-
-- `percentB` = vị trí giá trong band (0..1+). 1.0 = chạm upper, 0.0 = chạm lower.
-- `middle` = SMA(period). `upper`/`lower` = middle ± stddev × σ.
-
-## ATR, Average True Range (v1.4+)
-
-```typescript
-const atr14 = atr(history, 14); // Wilder smoothing
-// → [{ date, atr }]
-```
-
-Đo biên độ dao động trung bình. Dùng cho stop-loss dynamic, position sizing theo volatility.
-
-<Note type="note">
-Giá trị `null` ở đầu mảng là do chưa đủ dữ liệu để tính. Ví dụ SMA(20) cần tối thiểu 20 điểm dữ liệu, MACD cần ≥26 phiên.
+<Note>
+Các pattern là quy tắc kỹ thuật tự động, có tỷ lệ báo nhầm. Dùng để tham khảo, không phải khuyến nghị đầu tư.
 </Note>

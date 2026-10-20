@@ -1,85 +1,94 @@
 ---
-title: Hướng dẫn sử dụng hàm cơ bản
-description: Các hàm cơ bản của vnstock-js
+title: Cơ Bản
+description: Các lời gọi cơ bản của vnstock-js 2.x với đầu ra mẫu.
 ---
 
 ```ts
-import { stock, commodity } from 'vnstock-js';
+import { vn } from "vnstock-js";
 ```
 
-## Dữ liệu chỉ số VNINDEX
+`vn` là client mặc định, dùng được ngay. Mọi số tiền tính bằng đồng.
+
+## Giá hiện tại
 
 ```ts
-const indexPrices = await stock.index({ index: 'VNINDEX', start: '2024-01-01' });
-// → [{ date: "2024-01-02", open: 1.18, high: 1.19, low: 1.17, close: 1.185, volume: 500000000 }, ...]
+const quote = await vn.stock("FPT").price();
 ```
 
-## Dữ liệu giá cổ phiếu VCI
-
-```ts
-const tickerPrices = await stock.quote({ ticker: 'VCI', start: '2024-01-01' });
-// → [{ date: "2024-01-02", open: 25.5, high: 26.0, low: 25.0, close: 25.8, volume: 1000000 }, ...]
+```json
+{
+  "symbol": "FPT", "name": "Công ty Cổ phần FPT", "exchange": "HOSE",
+  "price": 57500, "change": 400, "changePct": 0.701,
+  "ref": 57100, "ceiling": 61000, "floor": 53200, "high": 57800, "low": 56800,
+  "volume": 3259200, "value": 186521720000, "matchVolume": 133100,
+  "foreignBuyVolume": 512856, "foreignSellVolume": 807002,
+  "bids": [{ "price": 57500, "volume": 1000 }], "asks": [{ "price": 57600, "volume": 40600 }]
+}
 ```
 
-## Bảng giá
+Xem đủ các trường ở [Quote](/docs/data/PriceBoardItem).
+
+## Lịch sử giá
 
 ```ts
-const priceBoard = await stock.priceBoard({ ticker: 'VCI' });
-// → [{ symbol: "VCI", price: 25.8, totalVolume: 500000, ceilingPrice: 27.5, ... }]
+const bars = await vn.stock("FPT").history("6mo");
 ```
 
-## Top tăng/giảm
-
-```ts
-const gainers = await stock.topGainers();
-const losers = await stock.topLosers();
-// → [{ symbol: "FPT", exchange: "HOSE", marketCap: 95000, ... }]
+```json
+[{ "time": "2026-10-20", "open": 57000, "high": 57800, "low": 56800, "close": 57600, "volume": 3259200, "value": 186521720000 }]
 ```
 
-## Thông tin công ty VCI
+Range: `1d 5d 1mo 3mo 6mo ytd 1y 2y 5y max`, hoặc `{ from, to, interval }`. Xem [Lịch sử giá](/docs/key-features/advanced/quote).
+
+## Chỉ số
 
 ```ts
-const company = stock.company({ ticker: 'VCI' });
-const profile = await company.profile();
-// → { industry: "Chứng khoán", issuedShares: 500000000, ... }
-
-const shareholders = await company.shareholders();
-// → [{ name: "...", percentage: 0.15, ... }]
+const vnindex = await vn.index("VNINDEX").history("1mo"); // điểm, ví dụ close: 1689.12
 ```
 
-## Báo cáo tài chính
+## Nhiều mã một lúc
 
 ```ts
-const financials = await stock.financials({ ticker: 'VCI', period: 'quarter' });
-// → { data: { symbol: "VCI", year: 2024, quarter: 4, roe: 0.22, ... }, mapping: { ... } }
+const quotes = await vn.prices(["FPT", "VCB", "HPG"]);
+const vn30 = await vn.prices({ group: "VN30" });
 ```
 
-## Sàng lọc cổ phiếu
+## Tổng quan thị trường
 
 ```ts
-const screened = await stock.screening({
-  exchange: 'HOSE',
-  filters: [{ field: 'pe', operator: '<', value: 15 }],
-  sortBy: 'roe',
-  order: 'desc',
-  limit: 10,
-});
-// → [{ symbol: "FPT", pe: 12, roe: 0.22, marketCap: 95000, ... }]
+const m = await vn.market({ exchange: "HOSE" });
+console.log(m.index.close, m.liquidity.value, m.breadth.advancing, m.foreign.netValue);
 ```
 
-## Dữ liệu vàng
+## Top tăng, giảm
 
 ```ts
-const goldSJC = await commodity.gold.priceSJC();
-// → [{ type: "SJC 1L", buyPrice: 92000000, sellPrice: 94000000, ... }]
-
-const goldBTMC = await commodity.gold.priceBTMC();
-const goldGVN = await commodity.gold.priceGiaVangNet();
+const { gainers, losers } = await vn.topMovers({ limit: 10 });
 ```
 
-## Tỷ giá ngoại tệ
+## Thông tin công ty
 
 ```ts
-const rates = await commodity.exchange();
-// → [{ currencyCode: "USD", currencyName: "US Dollar", buyCash: "25100", sell: "25450" }]
+const fpt = vn.stock("FPT");
+const profile = await fpt.company();        // ngành, số cổ phiếu
+const holders = await fpt.shareholders();
+const events = await fpt.events();          // cổ tức, phát hành, đại hội
+```
+
+## Vàng, tỷ giá, tin tức
+
+```ts
+const gold = await vn.gold();               // đồng/lượng
+const usd = (await vn.fx()).find((r) => r.currencyCode === "USD");
+const news = await vn.news({ query: "lãi suất" });
+```
+
+## Xử lý lỗi
+
+```ts
+try {
+  await vn.stock("FTP").price();
+} catch (e) {
+  console.log(e.code, e.hint); // INVALID_SYMBOL, Did you mean "FPT"?
+}
 ```

@@ -1,47 +1,49 @@
 ---
-title: Giao Dịch - Trading
-description: API giao dịch - bảng giá, top tăng/giảm
+title: Bảng Giá - Prices
+description: Giá hiện tại của một hay nhiều mã, top tăng giảm.
 ---
 
-## Bảng giá
+## Một mã
 
-```typescript
-import vnstock from 'vnstock-js';
+```ts
+import { vn } from "vnstock-js";
 
-const priceBoard = await vnstock.stock.trading.priceBoard(['VCI', 'FPT']);
+const q = await vn.stock("FPT").price();
+console.log(q.price, q.ref, q.ceiling, q.floor, q.changePct);
 ```
 
-Output: `PriceBoardItem[]`
+Trả về một [Quote](/docs/data/PriceBoardItem): giá khớp, tham chiếu, trần, sàn, cao, thấp, giá trung bình, khối lượng và giá trị luỹ kế, khối lượng khớp gần nhất, khối ngoại mua bán, ba bước giá mua bán. Mọi giá tính bằng đồng. Trước lệnh khớp đầu tiên của phiên, `price` là 0 và `change`, `changePct` là 0.
 
-| Field | Type | Mô tả |
-|-------|------|--------|
-| `symbol` | string | Mã cổ phiếu |
-| `companyName` | string | Tên công ty |
-| `exchange` | string | Sàn (HOSE/HNX/UPCOM) |
-| `price` | number | Giá khớp (nghìn VND) |
-| `ceilingPrice` | number | Giá trần |
-| `floorPrice` | number | Giá sàn |
-| `referencePrice` | number | Giá tham chiếu |
-| `totalVolume` | number | Tổng khối lượng |
-| `totalValue` | number | Tổng giá trị |
-| `bidPrices` | array | 3 mức giá mua `[{price, volume}]` |
-| `askPrices` | array | 3 mức giá bán `[{price, volume}]` |
+## Nhiều mã trong một request
 
-## Top tăng mạnh
-
-```typescript
-const gainers = await vnstock.stock.trading.topGainers();
-const losers = await vnstock.stock.trading.topLosers();
+```ts
+const list = await vn.prices(["FPT", "VCB", "HPG"]);
+const vn30 = await vn.prices({ group: "VN30" });      // VN30, VN100, HNX30...
+const hose = await vn.prices({ exchange: "HOSE" });   // cả sàn
 ```
 
-Output: `TopStock[]`
+Gộp nhiều mã vào một lời gọi `vn.prices` nhanh hơn và ít bị giới hạn tần suất hơn gọi `price()` từng mã.
 
-| Field | Type | Mô tả |
-|-------|------|--------|
-| `symbol` | string | Mã cổ phiếu |
-| `exchange` | string | Sàn |
-| `marketCap` | number | Vốn hóa |
-| `price1DayAgo` | number | Giá 1 ngày trước (nghìn VND) |
-| `price5DaysAgo` | number | Giá 5 ngày trước |
-| `price20DaysAgo` | number | Giá 20 ngày trước |
-| `vn30` | boolean | Thuộc VN30 |
+## Chỉ số
+
+```ts
+const vni = await vn.index("VNINDEX").price(); // mức điểm hiện tại so với phiên trước
+```
+
+## Top tăng, giảm
+
+```ts
+const { gainers, losers } = await vn.topMovers({ limit: 10 });
+console.log(gainers.map((m) => [m.symbol, m.exchange, m.price1DayAgo]));
+```
+
+Xem [TopMover](/docs/data/TopStock).
+
+## Hiển thị kiểu bảng điện
+
+Bảng điện in giá theo nghìn đồng (`57.50`). Chia cho 1000 ở bước hiển thị, đừng đổi dữ liệu gốc:
+
+```ts
+const board = (dong: number) => (dong / 1000).toFixed(2);
+console.log(board(q.price)); // "57.50"
+```

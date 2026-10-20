@@ -1,0 +1,72 @@
+---
+title: Danh Mục Đầu Tư
+description: Định giá danh mục theo giá hiện tại, nhóm theo môi giới và ngành, lưu và đọc lại.
+---
+
+```ts
+import { vn } from "vnstock-js";
+
+const p = await vn.portfolio({
+  positions: [
+    { symbol: "FPT", quantity: 100, cost: 120000, broker: "DNSE" },
+    { symbol: "VCB", quantity: 200, cost: 58000, broker: "TCBS" },
+    { symbol: "HPG", quantity: 500, cost: 28000 },
+  ],
+  cash: { DNSE: 5000000, TCBS: 2000000 },
+});
+
+console.log(p.totals.nav, p.totals.pnlPct);
+```
+
+<Note>
+`cost` là **giá vốn mỗi cổ phiếu bằng đồng**: `120000`, không phải `120`. Nếu đang lưu giá vốn theo nghìn đồng, nhân 1000 trước khi truyền vào.
+</Note>
+
+## Đầu vào
+
+| Trường | Ý nghĩa |
+|---|---|
+| `positions[].symbol` | Mã cổ phiếu |
+| `positions[].quantity` | Số cổ phiếu, lớn hơn 0 |
+| `positions[].cost` | Giá vốn mỗi cổ phiếu, đồng |
+| `positions[].broker` | Tuỳ chọn; vị thế không ghi được gom vào `"default"` |
+| `positions[].note`, `tags` | Tuỳ chọn, giữ nguyên trong kết quả |
+| `cash` | Tiền mặt bằng đồng: một số (gom vào `"default"`) hoặc `{ broker: số }` |
+
+Mã sai bị báo `INVALID_SYMBOL` kèm gợi ý trước khi hỏi giá.
+
+## Kết quả
+
+```ts
+{
+  date: "2026-10-20",
+  positions: [
+    { symbol: "FPT", quantity: 100, cost: 120000, broker: "DNSE",
+      price: 57500, value: 5750000, pnl: -6250000, pnlPct: -52.083, weight: 0.27, industry: "Công nghệ Thông tin" },
+  ],
+  byBroker: { DNSE: { value, cost, pnl, pnlPct, cash, nav }, TCBS: { ... }, default: { ... } },
+  byIndustry: { "Ngân hàng": { value, weight }, ... },
+  totals: { value, cost, pnl, pnlPct, cash, nav },
+  unit: "VND",
+}
+```
+
+- `price` là giá khớp, hoặc giá tham chiếu trước lệnh khớp đầu tiên của phiên.
+- Tiền bằng đồng, `pnlPct` là phần trăm, `weight` là phân số của NAV.
+
+## Lưu và đọc lại
+
+```ts
+await vn.portfolio.save({ positions: [{ symbol: "FPT", quantity: 100, cost: 120000 }], cash: 5000000 });
+const saved = await vn.portfolio.load(); // { positions: [] } khi chưa lưu gì
+const summary = await vn.portfolio(saved);
+```
+
+`save()` và `load()` dùng `storage` của client. Với `fileStorage()` của `vnstock-js/node`, danh mục nằm ở `~/.vnstock-js/portfolio.json`, cùng file mà CLI `vnstock portfolio` và tool MCP `portfolio_summary` dùng. Trên trình duyệt, tự viết một `Storage` trên IndexedDB hoặc localStorage.
+
+```ts
+import { createClient } from "vnstock-js";
+import { fileStorage } from "vnstock-js/node";
+
+const vn = createClient({ storage: fileStorage() });
+```
