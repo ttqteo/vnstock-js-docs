@@ -35,10 +35,6 @@ export const NAVLINKS: { title: string; href: string; external?: true; exact?: t
     href: "https://vnstock-js.vercel.app",
     external: true,
   },
-  // {
-  //   title: "Lịch Sự Kiện",
-  //   href: "/calendar",
-  // },
 ];
 
 export function Navbar() {

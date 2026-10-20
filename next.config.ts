@@ -10,9 +10,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // The live market dashboard moved to the demo site.
+  // The live market dashboard moved to the demo site; the calendar page became the docs page.
   async redirects() {
-    return [{ source: "/finance", destination: "https://vnstock-js.vercel.app", permanent: false }];
+    return [
+      { source: "/finance", destination: "https://vnstock-js.vercel.app", permanent: false },
+      { source: "/calendar", destination: "/docs/key-features/advanced/calendar", permanent: false },
+    ];
   },
   // if used turbopack
   transpilePackages: ["next-mdx-remote", "vnstock-js", "lightweight-charts"],

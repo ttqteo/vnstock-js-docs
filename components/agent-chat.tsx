@@ -128,7 +128,7 @@ export default function AgentChat({ turns }: { turns: ChatTurn[] }) {
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Số liệu thật lấy bằng vnstock-js, làm mới mỗi giờ. Câu trả lời là mẫu dựng sẵn để minh hoạ cách agent gọi công cụ MCP, không phải một mô hình AI đang chạy.
+        Mô phỏng: cài MCP trên máy rồi hỏi Claude Desktop, Cursor hay VS Code, agent sẽ gọi các công cụ này. Số liệu là thật, lấy bằng vnstock-js và làm mới mỗi giờ; câu trả lời là mẫu dựng sẵn.
       </p>
     </div>
   );
