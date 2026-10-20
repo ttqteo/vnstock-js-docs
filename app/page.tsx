@@ -26,7 +26,7 @@ function GithubIcon({ className }: { className?: string }) {
 }
 import Image from "next/image";
 import Link from "next/link";
-import { stock } from "vnstock-js";
+import { vn } from "@/lib/vnstock";
 import { MarketTicker } from "@/components/market-ticker";
 import Copy from "@/components/markdown/copy";
 
@@ -38,40 +38,39 @@ const FEATURES = [
     label: "REALTIME",
     title: "WebSocket Streaming",
     description:
-      "Giá cổ phiếu cập nhật liên tục qua SSI WebSocket. Không cần polling.",
+      "vn.watch() nhận giá khớp qua WebSocket, có chế độ poll cho serverless và trình duyệt.",
   },
   {
     icon: BarChart3,
     label: "TECHNICALS",
     title: "Chỉ báo kỹ thuật",
     description:
-      "SMA, EMA, RSI tích hợp sẵn. Import và dùng ngay, không cần thư viện ngoài.",
+      "SMA, EMA, RSI, MACD, vùng hỗ trợ/kháng cự, mẫu nến, Turtle trong vnstock-js/indicators.",
   },
   {
     icon: Filter,
     label: "SCREENING",
     title: "Sàng lọc cổ phiếu",
-    description: "Lọc theo PE, ROE, vốn hóa. Hỗ trợ HOSE, HNX, UPCOM.",
+    description: "Lọc theo P/E, ROE, vốn hoá bằng where và sort, theo nhóm VN30 hoặc theo sàn.",
   },
   {
     icon: Code2,
     label: "TYPESCRIPT",
     title: "Type-safe",
     description:
-      "Type đầy đủ cho mọi response. Autocomplete mượt mà trên mọi IDE.",
+      "Type và JSDoc kèm ví dụ cho mọi API, tiền luôn tính bằng đồng.",
   },
 ];
 
-const CODE_EXAMPLE = `import { stock, sma } from "vnstock-js";
+const CODE_EXAMPLE = `import { vn } from "vnstock-js";
+import { sma } from "vnstock-js/indicators";
 
-// Lấy giá cổ phiếu FPT
-const prices = await stock.quote({
-  ticker: "FPT",
-  start: "2025-01-01",
-});
+// Giá hiện tại và nến ngày 6 tháng của FPT, tiền tính bằng đồng
+const quote = await vn.stock("FPT").price();
+const bars = await vn.stock("FPT").history("6mo");
 
-// Tính SMA 20 ngày
-const sma20 = sma(prices, { period: 20 });`;
+// SMA 20 phiên
+const sma20 = sma(bars, { period: 20 });`;
 
 async function fetchGithubStars(): Promise<number | null> {
   try {
@@ -127,19 +126,15 @@ export default async function Home() {
     };
     const results = await Promise.all(
       indices.map((idx) =>
-        stock.index({
-          index: idx,
-          start: new Date(Date.now() - 14 * 86400000)
-            .toISOString()
-            .split("T")[0],
-        }),
+        vn.index(idx).history("1mo"),
       ),
     );
     indexData = results.map((data, i) => {
       const latest = data[data.length - 1];
       const prev = data.length > 1 ? data[data.length - 2] : latest;
-      const value = latest.close * 1000;
-      const prevValue = prev.close * 1000;
+      // Index levels are points.
+      const value = latest.close;
+      const prevValue = prev.close;
       return {
         symbol: displayNames[indices[i]] || indices[i],
         value,

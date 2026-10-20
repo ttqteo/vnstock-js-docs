@@ -10,20 +10,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SymbolLink } from "./stock-chart-dialog";
+import { fmtMoney } from "@/lib/format";
 
+/** vn.screen() row: price and market cap in dong, ratios as fractions. */
 interface ScreenResult {
   symbol: string;
   companyName: string;
   industry: string;
   exchange: string;
-  pe: number;
-  pb: number;
-  roe: number;
-  roa: number;
+  pe: number | null;
+  pb: number | null;
+  roe: number | null;
+  roa: number | null;
   marketCap: number;
   price: number;
   volume: number;
-  [key: string]: unknown;
 }
 
 export function ScreeningTable({ data }: { data: ScreenResult[] }) {
@@ -53,7 +54,7 @@ export function ScreeningTable({ data }: { data: ScreenResult[] }) {
                 <Badge variant="outline">{item.exchange}</Badge>
               </TableCell>
               <TableCell className="text-right">
-                {item.price ? (item.price * 1000).toLocaleString() : "—"}
+                {item.price ? item.price.toLocaleString() : "—"}
               </TableCell>
               <TableCell className="text-right">
                 {item.pe != null ? item.pe.toFixed(1) : "—"}
@@ -69,7 +70,7 @@ export function ScreeningTable({ data }: { data: ScreenResult[] }) {
                 ) : "—"}
               </TableCell>
               <TableCell className="text-right">
-                {item.marketCap ? item.marketCap.toLocaleString() : "—"}
+                {item.marketCap ? fmtMoney(item.marketCap) : "—"}
               </TableCell>
             </TableRow>
           ))}

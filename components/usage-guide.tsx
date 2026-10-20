@@ -9,77 +9,67 @@ import { ChevronDown, ChevronUp, Server, Globe, Zap } from "lucide-react";
 const INSTALL_CODE = `npm install vnstock-js`;
 
 const SERVER_CODE = `// app/page.tsx (Next.js Server Component)
-import { stock, commodity } from "vnstock-js";
+import { vn } from "vnstock-js";
 
 export default async function Page() {
-  const history = await stock.quote({ ticker: "FPT", start: "2025-01-01" });
-  const goldPrice = await commodity.gold.priceGiaVangNet();
+  // Giá bằng đồng, nến có \`time\`
+  const bars = await vn.stock("FPT").history("6mo");
+  const { items: gold } = await vn.gold();
 
   return <div>{/* render data */}</div>;
 }`;
 
-const API_ROUTE_CODE = `// app/api/stock/quote/route.ts (API Route)
-import { stock } from "vnstock-js";
-import { NextRequest, NextResponse } from "next/server";
+const PROXY_CODE = `// app/api/vnstock/[...path]/route.ts
+// Proxy chỉ chuyển tiếp tới máy chủ VietCap theo danh sách đường dẫn cố định
+import { nextHandler } from "vnstock-js/proxy";
 
-export async function GET(request: NextRequest) {
-  const ticker = request.nextUrl.searchParams.get("ticker");
-  const start = new Date(Date.now() - 180 * 86400000)
-    .toISOString().split("T")[0];
-  const data = await stock.quote({
-    ticker: ticker!.toUpperCase(),
-    start,
-  });
-  return NextResponse.json(data);
-}`;
+export const { GET, POST } = nextHandler();`;
 
-const CLIENT_CODE = `// components/stock-widget.tsx ("use client")
+const CLIENT_CODE = `// components/stock-widget.tsx
 "use client";
 import { useEffect, useState } from "react";
+import { createClient, type Bar } from "vnstock-js";
+
+// Trình duyệt đi qua proxy vì VCI chặn CORS
+const vn = createClient({ proxy: "/api/vnstock" });
 
 export function StockWidget() {
-  const [data, setData] = useState([]);
+  const [bars, setBars] = useState<Bar[]>([]);
 
   useEffect(() => {
-    // Gọi qua API route để tránh CORS
-    fetch("/api/stock/quote?ticker=FPT")
-      .then((res) => res.json())
-      .then(setData);
+    vn.stock("FPT").history("3mo").then(setBars);
   }, []);
 
-  return <div>{/* render data */}</div>;
+  return <div>{/* render bars */}</div>;
 }`;
 
-const REALTIME_CODE = `// WebSocket realtime, chạy trực tiếp client-side
+const REALTIME_CODE = `// Theo dõi giá trực tiếp
 "use client";
-import { realtime } from "vnstock-js";
+import { useEffect } from "react";
+import { createClient } from "vnstock-js";
 
-const client = realtime.create({ symbols: ["FPT", "MBB"] });
+const vn = createClient({ proxy: "/api/vnstock" });
 
-client.on("quote", (quote) => {
-  console.log(quote.symbol, quote.matched.price);
-});
-client.on("error", (err) => console.error(err));
+export function LivePrices() {
+  useEffect(() => {
+    // Mọi watcher của client dùng chung một WebSocket; trả hàm dừng
+    const stop = vn.watch(["FPT", "MBB"], (t) => {
+      console.log(t.symbol, t.price, t.changePct); // giá bằng đồng, % là phần trăm
+    });
+    return stop;
+  }, []);
 
-client.connect();
+  return null;
+}`;
 
-// Thay đổi danh sách mã không cần reconnect
-client.subscribe(["VNM"]);
-client.unsubscribe(["FPT"]);
+const NODE_CODE = `// script.mjs (Node.js 18+)
+import { vn } from "vnstock-js";
+import { sma, rsi } from "vnstock-js/indicators";
 
-// Khi component unmount
-client.disconnect();`;
-
-const NODE_CODE = `// script.js (Node.js)
-const { stock, sma, rsi } = require("vnstock-js");
-
-async function main() {
-  const history = await stock.quote({ ticker: "FPT", start: "2025-01-01" });
-  const sma20 = sma(history, { period: 20 });
-  const rsi14 = rsi(history);
-  console.log(history, sma20, rsi14);
-}
-main();`;
+const bars = await vn.stock("FPT").history("1y");
+const sma20 = sma(bars, { period: 20 });
+const rsi14 = rsi(bars);
+console.log(bars.at(-1), sma20.at(-1), rsi14.at(-1));`;
 
 function CodeBlock({ code, label }: { code: string; label: string }) {
   return (
@@ -128,14 +118,14 @@ export function UsageGuide() {
             <Globe size={18} className="mt-0.5 shrink-0 text-green-500" />
             <div>
               <p className="font-medium">Client-side</p>
-              <p className="text-muted-foreground text-xs">Gọi qua API Route proxy do CORS từ SSI</p>
+              <p className="text-muted-foreground text-xs">Đi qua proxy vnstock-js/proxy vì VCI chặn CORS</p>
             </div>
           </div>
           <div className="flex items-start gap-2 p-3 rounded-lg border">
             <Zap size={18} className="mt-0.5 shrink-0 text-yellow-500" />
             <div>
               <p className="font-medium">Realtime</p>
-              <p className="text-muted-foreground text-xs">WebSocket trực tiếp, không cần proxy</p>
+              <p className="text-muted-foreground text-xs">vn.watch() qua WebSocket, hoặc mode poll</p>
             </div>
           </div>
         </div>
@@ -158,22 +148,24 @@ export function UsageGuide() {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Client</Badge>
-              <p className="text-sm font-medium">Client Component qua API Route</p>
+              <p className="text-sm font-medium">Client Component qua proxy</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              API SSI không cho phép CORS. Tạo API Route làm proxy, client gọi qua đó.
+              VCI không cho phép CORS. Gắn proxy có sẵn của thư viện vào một route, rồi tạo client với{" "}
+              <code className="bg-muted px-1 rounded text-xs">proxy</code> trỏ tới route đó.
             </p>
-            <CodeBlock code={API_ROUTE_CODE} label="app/api/stock/quote/route.ts" />
+            <CodeBlock code={PROXY_CODE} label="app/api/vnstock/[...path]/route.ts" />
             <CodeBlock code={CLIENT_CODE} label="components/stock-widget.tsx" />
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Realtime</Badge>
-              <p className="text-sm font-medium">WebSocket, chạy trực tiếp client</p>
+              <p className="text-sm font-medium">Theo dõi giá với watch()</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              WebSocket không bị CORS. Dùng <code className="bg-muted px-1 rounded text-xs">realtime.create()</code> trực tiếp trong client component. Auto-reconnect với dead-man&apos;s switch, EventEmitter API.
+              <code className="bg-muted px-1 rounded text-xs">vn.watch()</code> mở một WebSocket dùng chung, tự kết nối lại, trả hàm dừng. Trên serverless hoặc khi WebSocket bị chặn, truyền{" "}
+              <code className="bg-muted px-1 rounded text-xs">{"{ mode: 'poll' }"}</code> để hỏi bảng giá định kỳ.
             </p>
             <CodeBlock code={REALTIME_CODE} label="components/realtime.tsx" />
           </div>
@@ -186,7 +178,7 @@ export function UsageGuide() {
             <p className="text-sm text-muted-foreground">
               Dùng trực tiếp không cần framework, phù hợp cho bot, cron job, data pipeline.
             </p>
-            <CodeBlock code={NODE_CODE} label="script.js" />
+            <CodeBlock code={NODE_CODE} label="script.mjs" />
           </div>
         </div>
       )}

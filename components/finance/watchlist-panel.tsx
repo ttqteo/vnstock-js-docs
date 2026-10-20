@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Star, X, RefreshCw } from "lucide-react";
 import { SymbolLink } from "@/components/stock-widget/stock-chart-dialog";
 import { TickerSearch } from "@/components/stock-widget/ticker-search";
-import { VnstockTypes, realtime } from "vnstock-js";
+import { createClient, type Quote, type Tick } from "vnstock-js";
+
+// Browser-side client: watch() opens one WebSocket for the whole watchlist.
+const vnClient = createClient();
 
 type MarketStatus = "open" | "lunch" | "closed";
 type SparkMode = "1D" | "30D";
@@ -44,6 +47,7 @@ function saveSymbols(syms: string[]) {
   } catch {}
 }
 
+/** Prices and value in dong. */
 interface WatchlistItem {
   symbol: string;
   price: number;
@@ -156,7 +160,7 @@ export function WatchlistPanel() {
         if (!Array.isArray(arr)) return;
 
         const newFlash: Record<string, "up" | "down" | null> = {};
-        arr.forEach((pb: VnstockTypes.PriceBoardItem) => {
+        arr.forEach((pb: Quote) => {
           const price = pb.price ?? 0;
           const prev = prevPrices.current[pb.symbol];
           if (prev != null && price !== prev) {
@@ -178,27 +182,17 @@ export function WatchlistPanel() {
 
         setItems((prev) => {
           const next = { ...prev };
-          arr.forEach((pb: VnstockTypes.PriceBoardItem) => {
-            const ref = pb.referencePrice ?? 0;
-            const price = pb.price ?? 0;
-            const change = ref > 0 ? price - ref : 0;
-            const changePct = ref > 0 ? (change / ref) * 100 : 0;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const totalVal = ((pb as any).totalValue as number) ?? 0;
+          arr.forEach((pb: Quote) => {
             next[pb.symbol] = {
               symbol: pb.symbol,
-              price,
-              refPrice: ref,
-              change,
-              changePct,
-              ceiling: pb.ceilingPrice ?? 0,
-              floor: pb.floorPrice ?? 0,
-              volume: pb.totalVolume ?? 0,
-              // totalValue from API is in millions VND → convert to VND
-              totalValue:
-                totalVal > 0
-                  ? totalVal * 1e6
-                  : price * (pb.totalVolume ?? 0) * 1e6,
+              price: pb.price,
+              refPrice: pb.ref,
+              change: pb.change,
+              changePct: pb.changePct,
+              ceiling: pb.ceiling,
+              floor: pb.floor,
+              volume: pb.volume,
+              totalValue: pb.value,
             };
           });
           return next;
@@ -207,10 +201,10 @@ export function WatchlistPanel() {
         // Seed 1D sparkline with current price as first point
         setSpark1D((prev) => {
           const next = { ...prev };
-          arr.forEach((pb: VnstockTypes.PriceBoardItem) => {
+          arr.forEach((pb: Quote) => {
             const price = pb.price ?? 0;
             if (price > 0 && !next[pb.symbol]?.length) {
-              next[pb.symbol] = [price * 1000];
+              next[pb.symbol] = [price];
             }
           });
           return next;
@@ -238,7 +232,7 @@ export function WatchlistPanel() {
         if (Array.isArray(data) && data.length > 0) {
           const recent = data.slice(-30);
           results[ticker] = recent.map(
-            (d: { close: number }) => d.close * 1000
+            (d: { close: number }) => d.close
           );
         }
       })
@@ -254,8 +248,6 @@ export function WatchlistPanel() {
   // ── Realtime WebSocket ───────────────────────────────────────
   const [marketMode, setMarketMode] = useState<MarketStatus>("closed");
   const [wsLive, setWsLive] = useState(false);
-  const clientRef = useRef<ReturnType<typeof realtime.create> | null>(null);
-  const prevSymsRef = useRef<string[]>([]);
 
   useEffect(() => {
     const tick = () => setMarketMode(getMarketStatus());
@@ -265,80 +257,51 @@ export function WatchlistPanel() {
   }, []);
 
   useEffect(() => {
-    if (!hydrated || marketMode !== "open") return;
-    const client = realtime.create({ symbols: [] });
-    client.on("connected", () => setWsLive(true));
-    client.on("disconnected", () => setWsLive(false));
-    client.on("error", (e) => console.error("[watchlist realtime]", e));
-    client.on("quote", (q) => {
-      if (!q?.symbol) return;
-      const price = q.matched?.price ?? 0;
+    if (!hydrated || marketMode !== "open" || symbols.length === 0) return;
+    const onTick = (t: Tick) => {
+      const price = t.price;
       if (price <= 0) return;
 
       // Flash animation
-      const prev = prevPrices.current[q.symbol];
+      const prev = prevPrices.current[t.symbol];
       if (prev != null && price !== prev) {
         const dir: "up" | "down" = price > prev ? "up" : "down";
-        setFlash((f) => ({ ...f, [q.symbol]: dir }));
+        setFlash((f) => ({ ...f, [t.symbol]: dir }));
         setTimeout(() => {
-          setFlash((f) => ({ ...f, [q.symbol]: null }));
+          setFlash((f) => ({ ...f, [t.symbol]: null }));
         }, 600);
       }
-      prevPrices.current[q.symbol] = price;
+      prevPrices.current[t.symbol] = price;
 
-      // Update price data
       setItems((prev) => {
-        const cur = prev[q.symbol];
+        const cur = prev[t.symbol];
         if (!cur) return prev;
-        const ref = cur.refPrice;
-        const change = ref > 0 ? price - ref : cur.change;
-        const changePct = ref > 0 ? (change / ref) * 100 : cur.changePct;
         return {
           ...prev,
-          [q.symbol]: {
-            ...cur,
-            price,
-            change,
-            changePct,
-            volume: q.totalVolume ?? cur.volume,
-            totalValue: q.totalValue ?? cur.totalValue,
-          },
+          [t.symbol]: { ...cur, price, change: t.change, changePct: t.changePct, volume: t.volume, totalValue: t.value },
         };
       });
 
       // Append to 1D sparkline (cap at 200 points to avoid memory bloat)
-      const priceVnd = price * 1000;
       setSpark1D((prev) => {
-        const arr = prev[q.symbol] ?? [];
-        const next = [...arr, priceVnd];
+        const arr = prev[t.symbol] ?? [];
+        const next = [...arr, price];
         if (next.length > 200) next.shift();
-        return { ...prev, [q.symbol]: next };
+        return { ...prev, [t.symbol]: next };
       });
+    };
+    setWsLive(true);
+    const stop = vnClient.watch(symbols, onTick, {
+      onError: (e) => {
+        console.error("[watchlist realtime]", e);
+        setWsLive(false);
+      },
     });
-    client.connect();
-    clientRef.current = client;
-    prevSymsRef.current = [];
     return () => {
-      client.disconnect();
-      clientRef.current = null;
+      stop();
       setWsLive(false);
     };
-  }, [hydrated, marketMode]);
-
-  // Subscribe/unsubscribe as watchlist changes
-  useEffect(() => {
-    const client = clientRef.current;
-    if (!client || marketMode !== "open") {
-      prevSymsRef.current = symbols;
-      return;
-    }
-    const prev = prevSymsRef.current;
-    const added = symbols.filter((s) => !prev.includes(s));
-    const removed = prev.filter((s) => !symbols.includes(s));
-    if (added.length > 0) client.subscribe(added);
-    if (removed.length > 0) client.unsubscribe(removed);
-    prevSymsRef.current = symbols;
-  }, [symbols, marketMode]);
+  }, [hydrated, marketMode, symbols]);
 
   const handleAdd = (ticker: string) => {
     const s = ticker.toUpperCase().trim();
@@ -513,7 +476,7 @@ export function WatchlistPanel() {
                 <span
                   className={`w-20 text-right font-mono text-xs tabular-nums ${color}`}
                 >
-                  {(item.price * 1000).toLocaleString()}
+                  {item.price.toLocaleString()}
                 </span>
 
                 {/* Change % */}

@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { stock, commodity } from "vnstock-js";
+import { vn } from "@/lib/vnstock";
 import { FinanceDashboard } from "@/components/finance/finance-dashboard";
 
 export const revalidate = 3600;
@@ -35,26 +35,26 @@ export default async function FinancePage() {
     vnindexResult,
     hnxResult,
     upcomResult,
-    gainersResult,
-    losersResult,
+    moversResult,
     goldResult,
     exchangeResult,
   ] = await Promise.allSettled([
-    stock.index({ index: "VNINDEX", start: daysAgo(90) }),
-    stock.index({ index: "HNXIndex", start: daysAgo(7) }),
-    stock.index({ index: "HNXUpcomIndex", start: daysAgo(7) }),
-    stock.topGainers(),
-    stock.topLosers(),
-    commodity.gold.priceGiaVangNet(),
-    commodity.exchange(),
+    vn.index("VNINDEX").history({ from: daysAgo(90) }),
+    vn.index("HNXIndex").history({ from: daysAgo(45) }),
+    vn.index("HNXUpcomIndex").history({ from: daysAgo(45) }),
+    vn.topMovers({ limit: 20 }),
+    vn.gold(),
+    vn.fx(),
   ]);
 
   const vnindex = vnindexResult.status === "fulfilled" ? vnindexResult.value : [];
   const hnx = hnxResult.status === "fulfilled" ? hnxResult.value : [];
   const upcom = upcomResult.status === "fulfilled" ? upcomResult.value : [];
-  const gainers = gainersResult.status === "fulfilled" ? gainersResult.value : [];
-  const losers = losersResult.status === "fulfilled" ? losersResult.value : [];
-  const gold = goldResult.status === "fulfilled" ? goldResult.value : [];
+  const gainers = moversResult.status === "fulfilled" ? moversResult.value.gainers : [];
+  const losers = moversResult.status === "fulfilled" ? moversResult.value.losers : [];
+  // SJC bars first: the gold card headlines the first row.
+  const goldItems = goldResult.status === "fulfilled" ? goldResult.value.items : [];
+  const gold = [...goldItems.filter((g) => /SJC/i.test(g.name)), ...goldItems.filter((g) => !/SJC/i.test(g.name) && !/^BẠC\s/i.test(g.name))];
   const exchangeRates = exchangeResult.status === "fulfilled" ? exchangeResult.value : [];
 
   // Build index summary cards
@@ -66,8 +66,9 @@ export default async function FinancePage() {
     if (data.length === 0) return { name, value: 0, change: 0, changePct: 0 };
     const latest = data[data.length - 1];
     const prev = data.length > 1 ? data[data.length - 2] : latest;
-    const value = latest.close * 1000;
-    const prevValue = prev.close * 1000;
+    // Index levels are points.
+    const value = latest.close;
+    const prevValue = prev.close;
     return {
       name,
       value,
@@ -78,11 +79,11 @@ export default async function FinancePage() {
 
   // VNINDEX chart data (last 90 days)
   const chartData = vnindex.map((d) => ({
-    date: d.date,
-    open: d.open * 1000,
-    high: d.high * 1000,
-    low: d.low * 1000,
-    close: d.close * 1000,
+    date: d.time,
+    open: d.open,
+    high: d.high,
+    low: d.low,
+    close: d.close,
     volume: d.volume,
   }));
 
@@ -93,7 +94,7 @@ export default async function FinancePage() {
     { name: "UPCOM", data: upcom },
   ].map(({ name, data }) => ({
     name,
-    closes: data.slice(-30).map((d) => d.close * 1000),
+    closes: data.slice(-30).map((d) => d.close),
   }));
 
   // Fetch fuel price forecast from chogia.vn

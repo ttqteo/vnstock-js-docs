@@ -27,19 +27,20 @@ interface ChartDataPoint {
   volume: number;
 }
 
+/** vn.topMovers() row; prices in dong, null when the source has none. */
 interface TopStock {
   symbol: string;
   exchange: string;
-  price1DayAgo: number;
-  price5DaysAgo: number;
-  price20DaysAgo: number;
-  marketCap: number;
-  vn30: boolean;
-  hnx30: boolean;
+  price1DayAgo: number | null;
+  price5DaysAgo: number | null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type GoldPrice = any;
+/** vn.gold() row, dong per luong. */
+interface GoldPrice {
+  name: string;
+  buy: number | null;
+  sell: number | null;
+}
 
 interface FuelPrice {
   name: string;
@@ -47,12 +48,13 @@ interface FuelPrice {
   change: string;
 }
 
+/** vn.fx() row, dong per unit. */
 interface ExchangeRate {
   currencyCode: string;
   currencyName: string;
-  buyCash: string;
-  buyTransfer: string;
-  sell: string;
+  buyCash: number | null;
+  buyTransfer: number | null;
+  sell: number | null;
 }
 
 interface IndexSparkline {
@@ -134,10 +136,10 @@ function ExchangeRateCard({ rates }: { rates: ExchangeRate[] }) {
                 <span className="font-bold text-xs">{rate.currencyCode}</span>
               </div>
               <span className="w-20 text-right font-mono text-xs">
-                {parseFloat(rate.buyTransfer).toLocaleString()}
+                {rate.buyTransfer == null ? "—" : rate.buyTransfer.toLocaleString()}
               </span>
               <span className="w-20 text-right font-mono text-xs">
-                {parseFloat(rate.sell).toLocaleString()}
+                {rate.sell == null ? "—" : rate.sell.toLocaleString()}
               </span>
             </div>
           ))}
@@ -285,8 +287,8 @@ function MoversList({ stocks }: { stocks: TopStock[] }) {
   return (
     <div className="space-y-1">
       {stocks.map((s) => {
-        const price = s.price1DayAgo * 1000;
-        const prev = s.price5DaysAgo * 1000;
+        const price = s.price1DayAgo ?? 0;
+        const prev = s.price5DaysAgo ?? 0;
         const change = prev > 0 ? ((price - prev) / prev) * 100 : 0;
         const color = change > 0 ? "text-green-500" : change < 0 ? "text-red-500" : "text-muted-foreground";
         return (
@@ -309,15 +311,15 @@ function MoversList({ stocks }: { stocks: TopStock[] }) {
   );
 }
 
-function formatGoldPrice(val: number) {
-  if (val === 0) return "—";
+function formatGoldPrice(val: number | null) {
+  if (!val) return "—";
   if (val > 100000) return (val / 1000000).toFixed(1) + "tr";
   return val.toLocaleString();
 }
 
 function GoldMiniCard({ gold }: { gold: GoldPrice[] }) {
   if (!gold || gold.length === 0) return null;
-  const items = gold.filter((g: GoldPrice) => g.buy > 0 || g.sell > 0).slice(0, 3);
+  const items = gold.filter((g) => (g.buy ?? 0) > 0 || (g.sell ?? 0) > 0).slice(0, 3);
   if (items.length === 0) return null;
 
   // Show SJC as main price
@@ -333,9 +335,9 @@ function GoldMiniCard({ gold }: { gold: GoldPrice[] }) {
           {formatGoldPrice(sjc.sell)}
         </p>
         <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-          {items.map((g: GoldPrice, i: number) => (
+          {items.map((g, i) => (
             <div key={i} className="flex justify-between">
-              <span className="truncate max-w-[80px]">{g.type_code || `${i + 1}`}</span>
+              <span className="truncate max-w-[80px]">{g.name || `${i + 1}`}</span>
               <span className="font-mono">
                 <span className="text-green-500">{formatGoldPrice(g.buy)}</span>
                 {" / "}

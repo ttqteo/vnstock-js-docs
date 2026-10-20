@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { realtime } from "vnstock-js";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
-import { VnstockTypes } from "vnstock-js";
+import { createClient, type Quote, type Tick } from "vnstock-js";
+
+// Browser-side client: every card shares one watch() connection.
+const vnClient = createClient();
 
 type MarketStatus = "realtime" | "lunch" | "closed";
 
@@ -27,7 +29,7 @@ function getMarketStatus(): MarketStatus {
 
 interface StickerRealtimeCardProps {
   initialSymbols?: string[];
-  initialPriceboard?: Record<string, VnstockTypes.PriceBoardItem>;
+  initialPriceboard?: Record<string, Quote>;
 }
 
 export function StickerRealtimeCard({
@@ -36,14 +38,9 @@ export function StickerRealtimeCard({
 }: StickerRealtimeCardProps) {
   const [symbols, setSymbols] = useState<string[]>(initialSymbols);
   const [input, setInput] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [quotes, setQuotes] = useState<Record<string, any>>({});
-  const [priceboard, setPriceboard] =
-    useState<Record<string, VnstockTypes.PriceBoardItem | undefined>>(
-      initialPriceboard,
-    );
+  const [quotes, setQuotes] = useState<Record<string, Tick>>({});
+  const [priceboard, setPriceboard] = useState<Record<string, Quote | undefined>>(initialPriceboard);
   const [mode, setMode] = useState<MarketStatus>(getMarketStatus());
-  const clientRef = useRef<ReturnType<typeof realtime.create> | null>(null);
 
   // Restore favorites from localStorage on mount
   useEffect(() => {
@@ -90,7 +87,7 @@ export function StickerRealtimeCard({
         if (cancelled || !Array.isArray(arr)) return;
         setPriceboard((prev) => {
           const next = { ...prev };
-          arr.forEach((item: VnstockTypes.PriceBoardItem) => {
+          arr.forEach((item: Quote) => {
             next[item.symbol] = item;
           });
           return next;
@@ -102,65 +99,23 @@ export function StickerRealtimeCard({
 
   const [wsStatus, setWsStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
 
-  // Connect once when market is open; reuse the same socket across symbol changes
+  // One watch() for the current symbols; prices arrive in dong.
   useEffect(() => {
-    if (mode !== "realtime") {
+    if (mode !== "realtime" || symbols.length === 0) {
       setWsStatus("idle");
       return;
     }
-    setWsStatus("connecting");
-    const client = realtime.create({ symbols });
-    client.on("connected", () => {
-      console.log("[realtime] connected to SSI");
-      setWsStatus("connected");
+    setWsStatus("connected");
+    const stop = vnClient.watch(symbols, (t) => setQuotes((prev) => ({ ...prev, [t.symbol]: t })), {
+      onError: (err) => {
+        console.error("[realtime] error:", err);
+        setWsStatus("error");
+      },
     });
-    client.on("disconnected", (reason) => {
-      console.log("[realtime] disconnected:", reason);
-      setWsStatus("connecting");
-    });
-    client.on("reconnecting", (attempt) => {
-      console.log("[realtime] reconnecting attempt", attempt);
-    });
-    client.on("error", (err) => {
-      console.error("[realtime] error:", err);
-      setWsStatus("error");
-    });
-    client.on("quote", (parsed) => {
-      if (!parsed?.symbol) return;
-      setQuotes((prev) => ({ ...prev, [parsed.symbol]: parsed }));
-    });
-    client.connect();
-    clientRef.current = client;
     return () => {
-      client.disconnect();
-      clientRef.current = null;
+      stop();
       setWsStatus("idle");
     };
-    // symbols dùng cho seed ban đầu; thay đổi về sau xử lý qua subscribe/unsubscribe effect
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
-
-  // Apply symbol diffs via subscribe/unsubscribe instead of reconnecting
-  const prevSymbolsRef = useRef<string[]>(symbols);
-  useEffect(() => {
-    const client = clientRef.current;
-    if (!client || mode !== "realtime") {
-      prevSymbolsRef.current = symbols;
-      return;
-    }
-    const prev = prevSymbolsRef.current;
-    const added = symbols.filter((s) => !prev.includes(s));
-    const removed = prev.filter((s) => !symbols.includes(s));
-    if (added.length > 0) client.subscribe(added);
-    if (removed.length > 0) {
-      client.unsubscribe(removed);
-      setQuotes((q) => {
-        const next = { ...q };
-        removed.forEach((s) => delete next[s]);
-        return next;
-      });
-    }
-    prevSymbolsRef.current = symbols;
   }, [symbols, mode]);
 
   const handleAddSymbol = () => {
@@ -233,9 +188,9 @@ export function StickerRealtimeCard({
           const quote = realtimeQuote || pbQuote;
 
           // Validate realtime price against priceboard bounds (floor-ceiling)
-          const ceiling = pbQuote?.ceilingPrice ?? 0;
-          const floor = pbQuote?.floorPrice ?? 0;
-          const rtPrice = realtimeQuote?.matched?.price ?? 0;
+          const ceiling = pbQuote?.ceiling ?? 0;
+          const floor = pbQuote?.floor ?? 0;
+          const rtPrice = realtimeQuote?.price ?? 0;
           const isRtPriceValid =
             rtPrice > 0 &&
             ceiling > 0 &&
@@ -244,22 +199,18 @@ export function StickerRealtimeCard({
             rtPrice <= ceiling;
 
           const price = isRtPriceValid ? rtPrice : (pbQuote?.price ?? rtPrice);
-          const totalVolume =
-            realtimeQuote?.totalVolume ?? pbQuote?.totalVolume ?? 0;
+          const totalVolume = realtimeQuote?.volume ?? pbQuote?.volume ?? 0;
 
           // Calculate change from referencePrice when available (more reliable)
-          const refPrice = pbQuote?.referencePrice ?? 0;
-          let change = realtimeQuote?.matched?.change ?? 0;
+          const refPrice = pbQuote?.ref ?? 0;
+          let change = realtimeQuote?.change ?? 0;
           let changePercent: string | null = null;
 
           if (refPrice > 0 && price > 0) {
             change = price - refPrice;
             changePercent = ((change / refPrice) * 100).toFixed(2);
-          } else if (realtimeQuote?.matched?.changePercent != null) {
-            const pct = realtimeQuote.matched.changePercent * 100;
-            if (Math.abs(pct) <= 30) {
-              changePercent = pct.toFixed(2);
-            }
+          } else if (realtimeQuote) {
+            changePercent = realtimeQuote.changePct.toFixed(2);
           }
 
           // Fallback: priceboard mode with no change info yet, show 0
@@ -287,7 +238,7 @@ export function StickerRealtimeCard({
                   {changePercent != null ? (
                     <Badge variant="outline" className={colorClass}>
                       {change > 0 ? "+" : ""}
-                      {(change * 1000).toFixed(0)} / {change > 0 ? "+" : ""}
+                      {change.toFixed(0)} / {change > 0 ? "+" : ""}
                       {changePercent}%
                     </Badge>
                   ) : null}
@@ -299,7 +250,7 @@ export function StickerRealtimeCard({
                     <div className="flex justify-between">
                       <span>Giá hiện tại:</span>
                       <span className={`font-semibold ${colorClass}`}>
-                        {(price * 1000).toLocaleString()}
+                        {price.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -309,11 +260,11 @@ export function StickerRealtimeCard({
                     {ceiling > 0 && (
                       <div className="flex justify-between text-xs text-muted-foreground pt-1">
                         <span>
-                          <span className="text-blue-600">{(floor * 1000).toLocaleString()}</span>
+                          <span className="text-blue-600">{floor.toLocaleString()}</span>
                           {" / "}
-                          <span className="text-yellow-500">{(refPrice * 1000).toLocaleString()}</span>
+                          <span className="text-yellow-500">{refPrice.toLocaleString()}</span>
                           {" / "}
-                          <span className="text-purple-600">{(ceiling * 1000).toLocaleString()}</span>
+                          <span className="text-purple-600">{ceiling.toLocaleString()}</span>
                         </span>
                         <span>Sàn / TC / Trần</span>
                       </div>

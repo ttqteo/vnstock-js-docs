@@ -4,7 +4,8 @@ import { NewsWidget } from "@/components/stock-widget/news-widget";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Metadata } from "next";
-import { stock, sma, rsi } from "vnstock-js";
+import { sma, rsi } from "vnstock-js/indicators";
+import { vn } from "@/lib/vnstock";
 import { classifyEvent, isValidDate } from "@/components/calendar/market-calendar";
 
 type Params = Promise<{ symbol: string }>;
@@ -27,20 +28,16 @@ export default async function StockDetailPage({
   const ticker = symbol.toUpperCase();
 
   // Fetch all data in parallel
-  const [history, priceBoardArr, companyProfile, companyShareholders, financials, eventsData] =
+  // Every amount below is dong; ratios are fractions.
+  const handle = vn.stock(ticker);
+  const [history, priceBoardArr, companyProfile, companyShareholders, ratios, eventsData] =
     await Promise.all([
-      stock.quote({ ticker, start: "2024-06-01" }),
-      stock.priceBoard({ ticker }).catch(() => []),
-      stock
-        .company({ ticker })
-        .profile()
-        .catch(() => null),
-      stock
-        .company({ ticker })
-        .shareholders()
-        .catch(() => []),
-      stock.financials({ ticker, period: "quarter" }).catch(() => null),
-      stock.company({ ticker }).events().catch(() => []),
+      handle.history({ from: "2024-06-01" }),
+      vn.prices([ticker]).catch(() => []),
+      handle.company().catch(() => null),
+      handle.shareholders().catch(() => []),
+      handle.financials("ratios", { period: "quarter" }).catch(() => null),
+      handle.events().catch(() => []),
     ]);
 
   // Calculate indicators
@@ -53,11 +50,15 @@ export default async function StockDetailPage({
   // Latest RSI
   const latestRsi = rsi14.filter((r: { rsi: number | null }) => r.rsi !== null).pop();
 
-  // Financial data
-  const fd = financials?.data as Record<string, unknown> | null;
+  // Latest quarterly ratios; EPS follows from the price and P/E.
+  const lastRatios: Record<string, number | null> | null = ratios && ratios.rows.length ? ratios.rows[ratios.rows.length - 1].values : null;
+  const price = currentData ? currentData.price || currentData.ref : 0;
+  const fd = lastRatios
+    ? { pe: lastRatios.pe ?? null, pb: lastRatios.pb ?? null, roe: lastRatios.roe ?? null, eps: lastRatios.pe ? Math.round(price / lastRatios.pe) : null }
+    : null;
 
   // Chart events
-  const chartEvents = (eventsData as Record<string, unknown>[])
+  const chartEvents = (eventsData as unknown as Record<string, unknown>[])
     .filter((e) => isValidDate(e.exRightDate as string) || isValidDate(e.issuedAt as string))
     .map((e) => ({
       date: (e.exRightDate as string) || (e.issuedAt as string) || "",
@@ -95,7 +96,7 @@ export default async function StockDetailPage({
           {currentData && (
             <>
               <span className="text-2xl font-bold">
-                {(currentData.price * 1000).toLocaleString()} VND
+                {currentData.price.toLocaleString()} VND
               </span>
               <Badge variant="outline">{currentData.exchange}</Badge>
             </>
@@ -105,7 +106,7 @@ export default async function StockDetailPage({
         {/* Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Bieu do gia</CardTitle>
+            <CardTitle className="text-lg">Biểu đồ giá</CardTitle>
           </CardHeader>
           <CardContent>
             <StockChart data={history} smaData={sma20} events={chartEvents} />
@@ -125,25 +126,25 @@ export default async function StockDetailPage({
                     <div>
                       <p className="text-muted-foreground">Gia tran</p>
                       <p className="font-medium">
-                        {(currentData.ceilingPrice * 1000).toLocaleString()}
+                        {currentData.ceiling.toLocaleString()}
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Gia san</p>
                       <p className="font-medium">
-                        {(currentData.floorPrice * 1000).toLocaleString()}
+                        {currentData.floor.toLocaleString()}
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Gia tham chieu</p>
                       <p className="font-medium">
-                        {(currentData.referencePrice * 1000).toLocaleString()}
+                        {currentData.ref.toLocaleString()}
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Khoi luong</p>
                       <p className="font-medium">
-                        {currentData.totalVolume?.toLocaleString()}
+                        {currentData.volume.toLocaleString()}
                       </p>
                     </div>
                   </>

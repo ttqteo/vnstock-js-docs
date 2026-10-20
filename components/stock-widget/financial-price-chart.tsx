@@ -64,7 +64,7 @@ export function FinancialPriceChart({
     priceSeries.setData(
       priceData.map((d) => ({
         time: d.date,
-        value: d.close * 1000,
+        value: d.close,
       }))
     );
 
@@ -146,7 +146,7 @@ export function FinancialPriceChart({
           <div>
             <span className="text-muted-foreground">Giá: </span>
             <span className="font-semibold text-blue-500">
-              {(latestPrice.close * 1000).toLocaleString()} VND
+              {latestPrice.close.toLocaleString()} VND
             </span>
           </div>
         )}

@@ -8,7 +8,8 @@ import { TickerSearch } from "./ticker-search";
 import { StockChart } from "./stock-chart";
 import { FinancialPriceChart } from "./financial-price-chart";
 import { Loader2 } from "lucide-react";
-import { sma, rsi, Vnstock } from "vnstock-js";
+import { sma, rsi } from "vnstock-js/indicators";
+import type { Bar } from "vnstock-js";
 
 interface CompanyProfile {
   industry: string;
@@ -23,14 +24,8 @@ interface Shareholder {
   percentage: number;
 }
 
-interface ChartDataPoint {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
+// Bars from /api/stock/quote: time, prices in dong.
+type ChartDataPoint = Bar;
 
 interface IndicatorRow {
   date: string;
@@ -57,7 +52,7 @@ interface StockData {
     roe: number | null;
   } | null;
   chartData: ChartDataPoint[];
-  smaData: { date: string; sma: number | null }[];
+  smaData: { time: string; sma: number | null }[];
   indicators: IndicatorRow[];
   financialData: FinRow[];
 }
@@ -94,31 +89,17 @@ export function StockExplorer({
       const sma20 = chartArr.length > 0 ? sma(chartArr, { period: 20 }) : [];
       const rsi14 = chartArr.length > 0 ? rsi(chartArr) : [];
       const indicators = chartArr.map((h, i) => ({
-        date: h.date,
+        date: h.time,
         close: h.close,
         sma20: sma20[i]?.sma ?? null,
         rsi14: rsi14[i]?.rsi ?? null,
       }));
 
-      // Fetch financials
+      // Financials go through a server route: VCI blocks browser requests.
       let financialData: FinRow[] = [];
       try {
-        const vnstock = new Vnstock();
-        const result = await vnstock.stock.financials.incomeStatement({
-          symbol: ticker,
-          period: "quarter",
-        });
-        if (result?.data && Array.isArray(result.data)) {
-          financialData = result.data
-            .filter((f: Record<string, unknown>) => f.year != null && f.quarter != null)
-            .map((f: Record<string, unknown>) => ({
-              year: f.year as number,
-              quarter: f.quarter as number,
-              revenue: (f.revenue as number) ?? 0,
-              netProfit: (f.netProfit as number) ?? (f.netIncome as number) ?? 0,
-            }))
-            .sort((a, b) => a.year - b.year || a.quarter - b.quarter);
-        }
+        const rows = await fetch(`/api/stock/financials?ticker=${ticker}`).then((r) => r.json());
+        if (Array.isArray(rows)) financialData = rows;
       } catch {}
 
       setData({
@@ -137,7 +118,7 @@ export function StockExplorer({
   }, []);
 
   const lastIndicators = data.indicators.slice(-8);
-  const priceData = data.chartData.map((h) => ({ date: h.date, close: h.close }));
+  const priceData = data.chartData.map((h) => ({ date: h.time, close: h.close }));
 
   return (
     <div className="space-y-4">
@@ -191,10 +172,10 @@ export function StockExplorer({
                     <tr key={row.date} className="border-b border-border/50 hover:bg-muted/50">
                       <td className="py-2">{row.date}</td>
                       <td className="text-right py-2">
-                        {(row.close * 1000).toLocaleString()}
+                        {row.close.toLocaleString()}
                       </td>
                       <td className="text-right py-2">
-                        {row.sma20 != null ? (row.sma20 * 1000).toLocaleString() : "—"}
+                        {row.sma20 != null ? Math.round(row.sma20).toLocaleString() : "—"}
                       </td>
                       <td className={`text-right py-2 font-medium ${row.rsi14 != null ? getRsiColor(row.rsi14) : ""}`}>
                         {row.rsi14 != null ? row.rsi14.toFixed(1) : "—"}

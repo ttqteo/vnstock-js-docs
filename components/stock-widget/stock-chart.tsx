@@ -3,8 +3,9 @@
 import { useEffect, useRef } from "react";
 import { createChart, CandlestickSeries, HistogramSeries, LineSeries, createSeriesMarkers } from "lightweight-charts";
 
+/** A vnstock-js Bar: daily `time`, prices in dong. */
 interface ChartDataPoint {
-  date: string;
+  time: string;
   open: number;
   high: number;
   low: number;
@@ -13,7 +14,7 @@ interface ChartDataPoint {
 }
 
 interface SmaPoint {
-  date: string;
+  time: string;
   sma: number | null;
 }
 
@@ -68,17 +69,17 @@ export function StockChart({
 
     candleSeries.setData(
       data.map((d) => ({
-        time: d.date,
-        open: d.open * 1000,
-        high: d.high * 1000,
-        low: d.low * 1000,
-        close: d.close * 1000,
+        time: d.time,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
       }))
     );
 
     // Event markers
     if (events && events.length > 0) {
-      const dates = new Set(data.map((d) => d.date));
+      const dates = new Set(data.map((d) => d.time));
       const markers = events
         .filter((e) => dates.has(e.date))
         .map((e) => ({
@@ -116,7 +117,7 @@ export function StockChart({
 
     volumeSeries.setData(
       data.map((d) => ({
-        time: d.date,
+        time: d.time,
         value: d.volume,
         color: d.close >= d.open ? "#22c55e40" : "#ef444440",
       }))
@@ -134,8 +135,8 @@ export function StockChart({
         smaData
           .filter((s) => s.sma !== null)
           .map((s) => ({
-            time: s.date,
-            value: s.sma! * 1000,
+            time: s.time,
+            value: s.sma!,
           }))
       );
     }

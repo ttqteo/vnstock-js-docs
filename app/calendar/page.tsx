@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { stock } from "vnstock-js";
+import { vn } from "@/lib/vnstock";
 import { MarketCalendar, CorporateEvent } from "@/components/calendar/market-calendar";
 
 export const revalidate = 3600;
@@ -38,7 +38,7 @@ export default async function CalendarPage() {
   // Fetch events cho các mã phổ biến, parallel
   const results = await Promise.allSettled(
     POPULAR_TICKERS.map(async (ticker) => {
-      const events = await stock.company({ ticker }).events();
+      const events = await vn.stock(ticker).events();
       return events.map((e) => ({ ...e, ticker }));
     })
   );

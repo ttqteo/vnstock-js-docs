@@ -5,7 +5,8 @@ import { DrawdownChart } from "@/components/stock-widget/drawdown-chart";
 import { StockExplorer } from "@/components/stock-widget/stock-explorer";
 import { ExampleBlock } from "@/components/example-block";
 import { Metadata } from "next";
-import { commodity, stock, sma, rsi, Vnstock } from "vnstock-js";
+import { sma, rsi } from "vnstock-js/indicators";
+import { vn, quarterlyIncome } from "@/lib/vnstock";
 
 export const metadata: Metadata = {
   title: "Ví Dụ",
@@ -15,68 +16,60 @@ export const metadata: Metadata = {
  * Render theo từng request thay vì dựng sẵn lúc build.
  *
  * Trang này lấy dữ liệu thật từ VCI. Khi dựng sẵn, nguồn chậm hoặc trả 429 là
- * cả build vỡ, dù nội dung site không liên quan gì tới VCI. Riêng fetchWithRetry
- * đã có thể mất gần một phút cho một lời gọi khi bị chặn, vượt hạn 60 giây của
- * Next. Đổi sang render theo request thì build không còn phụ thuộc nguồn ngoài.
+ * cả build vỡ, dù nội dung site không liên quan gì tới VCI. Đổi sang render
+ * theo request thì build không còn phụ thuộc nguồn ngoài.
  */
 export const dynamic = "force-dynamic";
 
 const CODE_SNIPPETS = {
-  goldPrice: `import { commodity } from "vnstock-js";
+  goldPrice: `import { vn } from "vnstock-js";
 
-const goldPrice = await commodity.gold.priceGiaVangNet();`,
+// Giá vàng trong nước, đồng/lượng (BTMC, dự phòng GiaVang.net)
+const { source, items } = await vn.gold();`,
 
-  topGainersLosers: `import { stock } from "vnstock-js";
+  topGainersLosers: `import { vn } from "vnstock-js";
 
-const gainers = await stock.topGainers();
-const losers = await stock.topLosers();`,
+// Top tăng/giảm, giá tính bằng đồng
+const { gainers, losers } = await vn.topMovers({ limit: 20 });`,
 
-  screening: `import { stock } from "vnstock-js";
+  screening: `import { vn } from "vnstock-js";
 
-const screened = await stock.screening({
+// P/E dưới 15, ROE trên 10% (tỷ số là phân số)
+const rows = await vn.screen({
   exchange: "HOSE",
-  filters: [
-    { field: "pe", operator: "<", value: 15 },
-    { field: "roe", operator: ">", value: 0.10 },
-  ],
-  sortBy: "roe",
-  order: "desc",
+  where: { pe: { lt: 15 }, roe: { gt: 0.1 } },
+  sort: "-roe",
   limit: 15,
 });`,
 
-  drawdown: `import { stock } from "vnstock-js";
+  drawdown: `import { vn } from "vnstock-js";
 
-const indexData = await stock.index({
-  index: "VNINDEX",
-  start: "2023-01-01",
-});
+// Chỉ số tính bằng điểm
+const bars = await vn.index("VNINDEX").history({ from: "2023-01-01" });
 
-// Tính drawdown từ đỉnh
+// Drawdown từ đỉnh
 let peak = 0;
-const drawdownData = indexData.map((d) => {
-  if (d.close > peak) peak = d.close;
-  const drawdown = ((peak - d.close) / peak) * 100;
-  return { date: d.date, close: d.close, drawdown };
+const drawdown = bars.map((b) => {
+  peak = Math.max(peak, b.close);
+  return { time: b.time, close: b.close, drawdown: ((peak - b.close) / peak) * 100 };
 });`,
 
-  stockExplorer: `import { stock, sma, rsi, Vnstock } from "vnstock-js";
+  stockExplorer: `import { vn } from "vnstock-js";
+import { sma, rsi } from "vnstock-js/indicators";
 
-const ticker = "FPT";
+const fpt = vn.stock("FPT");
 
-// Biểu đồ giá + SMA
-const history = await stock.quote({ ticker, start: "2024-01-01" });
-const sma20 = sma(history, { period: 20 });
-const rsi14 = rsi(history);
+// Nến ngày (giá bằng đồng) + chỉ báo
+const bars = await fpt.history({ from: "2024-01-01" });
+const sma20 = sma(bars, { period: 20 });
+const rsi14 = rsi(bars);
 
 // Thông tin công ty
-const company = stock.company({ ticker });
-const profile = await company.profile();
-const shareholders = await company.shareholders();
+const profile = await fpt.company();
+const shareholders = await fpt.shareholders();
 
-// Báo cáo tài chính
-const vnstock = new Vnstock();
-const { data } = await vnstock.stock.financials
-  .incomeStatement({ symbol: ticker, period: "quarter" });`,
+// Kết quả kinh doanh theo quý: { unit: "VND", fields, rows }
+const income = await fpt.financials("income", { period: "quarter" });`,
 };
 
 /**
@@ -97,77 +90,36 @@ const explorerTicker = "FPT";
 export default async function ExamplesPage() {
   // Chạy song song. Gọi tuần tự thì tổng thời gian cộng dồn và vượt hạn 60 giây
   // sinh trang tĩnh của Next, làm hỏng build dù từng lời gọi đều bình thường.
-  const [goldPrice, gainers, losers, screened, indexData, explorerHistory] =
+  const explorer = vn.stock(explorerTicker);
+  const [gold, movers, screened, indexData, explorerHistory, explorerProfile, explorerShareholders, explorerFinancials] =
     await Promise.all([
-      safe(() => commodity.gold.priceGiaVangNet(), []),
-      safe(() => stock.topGainers(), []),
-      safe(() => stock.topLosers(), []),
-      safe(
-        () =>
-          stock.screening({
-            exchange: "HOSE",
-            filters: [
-              { field: "pe", operator: "<", value: 15 },
-              { field: "roe", operator: ">", value: 0.1 },
-            ],
-            sortBy: "roe",
-            order: "desc",
-            limit: 15,
-          }),
-        [] as Awaited<ReturnType<typeof stock.screening>>
-      ),
-      safe(() => stock.index({ index: "VNINDEX", start: "2023-01-01" }), []),
-      safe(() => stock.quote({ ticker: explorerTicker, start: "2024-01-01" }), []),
+      safe(() => vn.gold(), null),
+      safe(() => vn.topMovers({ limit: 20 }), null),
+      safe(() => vn.screen({ exchange: "HOSE", where: { pe: { lt: 15 }, roe: { gt: 0.1 } }, sort: "-roe", limit: 15 }), []),
+      safe(() => vn.index("VNINDEX").history({ from: "2023-01-01" }), []),
+      safe(() => explorer.history({ from: "2024-01-01" }), []),
+      safe(() => explorer.company(), null),
+      safe(() => explorer.shareholders(), []),
+      safe(() => quarterlyIncome(explorerTicker), []),
     ]);
+  const goldPrice = gold ? gold.items : [];
+  const gainers = movers ? movers.gainers : [];
+  const losers = movers ? movers.losers : [];
 
+  // Index levels are points.
   let peak = 0;
   const drawdownData = indexData.map((d) => {
-    const price = d.close * 1000;
-    if (price > peak) peak = price;
-    return { date: d.date, close: price, drawdown: ((peak - price) / peak) * 100 };
+    peak = Math.max(peak, d.close);
+    return { date: d.time, close: d.close, drawdown: ((peak - d.close) / peak) * 100 };
   });
   const explorerSma = sma(explorerHistory, { period: 20 });
   const explorerRsi = rsi(explorerHistory);
   const explorerIndicators = explorerHistory.map((h, i) => ({
-    date: h.date,
+    date: h.time,
     close: h.close,
     sma20: explorerSma[i]?.sma ?? null,
     rsi14: explorerRsi[i]?.rsi ?? null,
   }));
-
-  const explorerCompany = stock.company({ ticker: explorerTicker });
-  const [explorerProfile, explorerShareholders] = await Promise.all([
-    explorerCompany.profile().catch(() => null),
-    explorerCompany.shareholders().catch(() => []),
-  ]);
-
-  let explorerFinancials: {
-    year: number;
-    quarter: number;
-    revenue: number;
-    netProfit: number;
-  }[] = [];
-  try {
-    const vnstock = new Vnstock();
-    const result = await vnstock.stock.financials.incomeStatement({
-      symbol: explorerTicker,
-      period: "quarter",
-    });
-    if (result?.data && Array.isArray(result.data)) {
-      explorerFinancials = result.data
-        .filter(
-          (f: Record<string, unknown>) =>
-            f.year != null && f.quarter != null
-        )
-        .map((f: Record<string, unknown>) => ({
-          year: f.year as number,
-          quarter: f.quarter as number,
-          revenue: (f.revenue as number) ?? 0,
-          netProfit: (f.netProfit as number) ?? (f.netIncome as number) ?? 0,
-        }))
-        .sort((a, b) => a.year - b.year || a.quarter - b.quarter);
-    }
-  } catch {}
 
   return (
     <div className="w-full mx-auto flex flex-col gap-1 sm:min-h-[91vh] min-h-[88vh] pt-2">

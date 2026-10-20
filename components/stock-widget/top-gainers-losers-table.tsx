@@ -13,16 +13,16 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SymbolLink } from "./stock-chart-dialog";
+import { fmtMoney } from "@/lib/format";
 
+/** vn.topMovers() row: prices and market cap in dong, null when missing. */
 interface TopStock {
   symbol: string;
   exchange: string;
-  marketCap: number;
-  price1DayAgo: number;
-  price5DaysAgo: number;
-  price20DaysAgo: number;
-  vn30: boolean;
-  hnx30: boolean;
+  marketCap: number | null;
+  price1DayAgo: number | null;
+  price5DaysAgo: number | null;
+  price20DaysAgo: number | null;
 }
 
 const EXCHANGES = ["HOSE", "HNX", "UPCOM"] as const;
@@ -41,7 +41,6 @@ function StockTable({ data, exchange }: { data: TopStock[]; exchange: string }) 
             <TableHead className="text-right">Giá 5D</TableHead>
             <TableHead className="text-right">Giá 20D</TableHead>
             <TableHead className="text-right">Vốn hóa</TableHead>
-            <TableHead>Nhóm</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -52,26 +51,22 @@ function StockTable({ data, exchange }: { data: TopStock[]; exchange: string }) 
                 <Badge variant="outline">{item.exchange}</Badge>
               </TableCell>
               <TableCell className="text-right">
-                {(item.price1DayAgo * 1000).toLocaleString()}
+                {item.price1DayAgo?.toLocaleString() ?? "—"}
               </TableCell>
               <TableCell className="text-right">
-                {(item.price5DaysAgo * 1000).toLocaleString()}
+                {item.price5DaysAgo?.toLocaleString() ?? "—"}
               </TableCell>
               <TableCell className="text-right">
-                {(item.price20DaysAgo * 1000).toLocaleString()}
+                {item.price20DaysAgo?.toLocaleString() ?? "—"}
               </TableCell>
               <TableCell className="text-right">
-                {item.marketCap ? item.marketCap.toLocaleString() : "—"}
-              </TableCell>
-              <TableCell>
-                {item.vn30 && <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 mr-1">VN30</Badge>}
-                {item.hnx30 && <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">HNX30</Badge>}
+                {item.marketCap ? fmtMoney(item.marketCap) : "—"}
               </TableCell>
             </TableRow>
           ))}
           {filtered.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} className="text-center text-muted-foreground py-4">
+              <TableCell colSpan={6} className="text-center text-muted-foreground py-4">
                 Không có dữ liệu
               </TableCell>
             </TableRow>

@@ -7,31 +7,12 @@ import { Button } from "@/components/ui/button";
 import { TickerSearch } from "@/components/stock-widget/ticker-search";
 import { StockChart } from "@/components/stock-widget/stock-chart";
 import { Star, X, Loader2 } from "lucide-react";
-import { sma } from "vnstock-js";
+import { sma } from "vnstock-js/indicators";
+import type { Bar, Quote } from "vnstock-js";
 
-interface ChartDataPoint {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
-interface PriceInfo {
-  symbol: string;
-  companyName: string;
-  exchange: string;
-  price: number;
-  referencePrice: number;
-  ceilingPrice: number;
-  floorPrice: number;
-  highestPrice: number;
-  lowestPrice: number;
-  totalVolume: number;
-  foreignBuyVolume: number;
-  foreignSellVolume: number;
-}
+// Prices from the API routes are dong.
+type ChartDataPoint = Bar;
+type PriceInfo = Quote;
 
 function getPriceColor(price: number, ref: number, ceiling: number, floor: number) {
   if (ceiling > 0 && price >= ceiling) return "text-purple-600";
@@ -42,46 +23,46 @@ function getPriceColor(price: number, ref: number, ceiling: number, floor: numbe
 }
 
 function PriceInfoPanel({ info }: { info: PriceInfo }) {
-  const change = info.referencePrice > 0 ? info.price - info.referencePrice : 0;
-  const changePct = info.referencePrice > 0 ? ((change / info.referencePrice) * 100).toFixed(2) : "0.00";
-  const color = getPriceColor(info.price, info.referencePrice, info.ceilingPrice, info.floorPrice);
+  const change = info.change;
+  const changePct = info.changePct.toFixed(2);
+  const color = getPriceColor(info.price, info.ref, info.ceiling, info.floor);
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-baseline gap-3">
-        <span className="text-muted-foreground text-sm truncate max-w-[300px]">{info.companyName}</span>
+        <span className="text-muted-foreground text-sm truncate max-w-[300px]">{info.name}</span>
         <Badge variant="outline">{info.exchange}</Badge>
       </div>
       <div className="flex flex-wrap items-center gap-4">
-        <span className={`text-2xl font-bold ${color}`}>{(info.price * 1000).toLocaleString()}</span>
+        <span className={`text-2xl font-bold ${color}`}>{info.price.toLocaleString()}</span>
         <span className={`text-sm font-medium ${color}`}>
-          {change > 0 ? "+" : ""}{(change * 1000).toLocaleString()} ({change > 0 ? "+" : ""}{changePct}%)
+          {change > 0 ? "+" : ""}{change.toLocaleString()} ({change > 0 ? "+" : ""}{changePct}%)
         </span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-1 text-sm">
         <div className="flex justify-between gap-2">
           <span className="text-muted-foreground">Trần</span>
-          <span className="text-purple-600 font-medium">{(info.ceilingPrice * 1000).toLocaleString()}</span>
+          <span className="text-purple-600 font-medium">{info.ceiling.toLocaleString()}</span>
         </div>
         <div className="flex justify-between gap-2">
           <span className="text-muted-foreground">Sàn</span>
-          <span className="text-blue-600 font-medium">{(info.floorPrice * 1000).toLocaleString()}</span>
+          <span className="text-blue-600 font-medium">{info.floor.toLocaleString()}</span>
         </div>
         <div className="flex justify-between gap-2">
           <span className="text-muted-foreground">TC</span>
-          <span className="text-yellow-500 font-medium">{(info.referencePrice * 1000).toLocaleString()}</span>
+          <span className="text-yellow-500 font-medium">{info.ref.toLocaleString()}</span>
         </div>
         <div className="flex justify-between gap-2">
           <span className="text-muted-foreground">KL</span>
-          <span className="font-medium">{info.totalVolume?.toLocaleString()}</span>
+          <span className="font-medium">{info.volume.toLocaleString()}</span>
         </div>
         <div className="flex justify-between gap-2">
           <span className="text-muted-foreground">Cao</span>
-          <span className="font-medium">{(info.highestPrice * 1000).toLocaleString()}</span>
+          <span className="font-medium">{info.high.toLocaleString()}</span>
         </div>
         <div className="flex justify-between gap-2">
           <span className="text-muted-foreground">Thấp</span>
-          <span className="font-medium">{(info.lowestPrice * 1000).toLocaleString()}</span>
+          <span className="font-medium">{info.low.toLocaleString()}</span>
         </div>
         <div className="flex justify-between gap-2">
           <span className="text-muted-foreground">NN Mua</span>
@@ -124,7 +105,7 @@ function FavoriteChip({
         {price > 0 && (
           <>
             <span className={`font-mono text-xs ${color}`}>
-              {(price * 1000).toLocaleString()}
+              {price.toLocaleString()}
             </span>
             <span className={`font-mono text-xs ${color}`}>
               {change > 0 ? "+" : ""}{changePct}%
@@ -164,7 +145,7 @@ function saveFavorites(favs: string[]) {
 export function StockLookup() {
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [smaData, setSmaData] = useState<{ date: string; sma: number | null }[]>([]);
+  const [smaData, setSmaData] = useState<{ time: string; sma: number | null }[]>([]);
   const [priceInfo, setPriceInfo] = useState<PriceInfo | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -301,9 +282,9 @@ export function StockLookup() {
                   key={sym}
                   symbol={sym}
                   price={p?.price ?? 0}
-                  referencePrice={p?.referencePrice ?? 0}
-                  ceilingPrice={p?.ceilingPrice ?? 0}
-                  floorPrice={p?.floorPrice ?? 0}
+                  referencePrice={p?.ref ?? 0}
+                  ceilingPrice={p?.ceiling ?? 0}
+                  floorPrice={p?.floor ?? 0}
                   onClick={() => loadSymbol(sym)}
                   onRemove={() => removeFavorite(sym)}
                 />

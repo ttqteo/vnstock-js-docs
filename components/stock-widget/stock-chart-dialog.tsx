@@ -16,35 +16,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { StockChart } from "./stock-chart";
-import { sma } from "vnstock-js";
+import { sma } from "vnstock-js/indicators";
+import type { Bar, Quote } from "vnstock-js";
+import { fmtMoney } from "@/lib/format";
 
-interface ChartDataPoint {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
-interface PriceBoard {
-  symbol: string;
-  companyName: string;
-  exchange: string;
-  price: number;
-  referencePrice: number;
-  ceilingPrice: number;
-  floorPrice: number;
-  highestPrice: number;
-  lowestPrice: number;
-  totalVolume: number;
-  totalValue: number;
-  foreignBuyVolume: number;
-  foreignSellVolume: number;
-  matchVolume: number;
-  averagePrice: number;
-  marketCap: number;
-}
+// Prices from the API routes are dong.
+type ChartDataPoint = Bar;
+type PriceBoard = Quote;
 
 interface StockInfo {
   priceboard: PriceBoard | null;
@@ -84,13 +62,6 @@ function getBgPriceColor(price: number, ref: number, ceiling: number, floor: num
   return "";
 }
 
-function formatValue(val: number): string {
-  if (val >= 1e12) return (val / 1e12).toFixed(2) + " tỷ";
-  if (val >= 1e9) return (val / 1e9).toFixed(2) + " tỷ";
-  if (val >= 1e6) return (val / 1e6).toFixed(2) + " tr";
-  return val.toLocaleString();
-}
-
 function StatRow({
   label,
   value,
@@ -114,13 +85,13 @@ function StatsPanel({ info, chartData }: { info: StockInfo; chartData: ChartData
   const pb = info.priceboard;
   if (!pb) return null;
 
-  const ref = pb.referencePrice;
-  const totalValue = pb.totalValue > 0 ? pb.totalValue : pb.price * pb.totalVolume * 1000;
+  const ref = pb.ref;
+  const totalValue = pb.value;
   const r = info.ratios;
 
   // Market cap from ratios issueShare
   const issueShare = r?.issueShare ?? info.profile?.issuedShares ?? 0;
-  const marketCap = issueShare > 0 ? pb.price * issueShare * 1000 : 0;
+  const marketCap = issueShare > 0 ? (pb.price || pb.ref) * issueShare : 0;
 
   // Avg volume: prefer API value, fallback to chart calc
   let avgVol = r?.avgVolume2Week ?? 0;
@@ -133,14 +104,14 @@ function StatsPanel({ info, chartData }: { info: StockInfo; chartData: ChartData
     <div className="space-y-0">
       <StatRow
         label="Tham chiếu"
-        value={(ref * 1000).toLocaleString()}
+        value={ref.toLocaleString()}
         valueClass="text-yellow-500"
       />
       <StatRow
         label="Mở cửa"
         value={
           chartData.length > 0
-            ? (chartData[chartData.length - 1].open * 1000).toLocaleString()
+            ? chartData[chartData.length - 1].open.toLocaleString()
             : "—"
         }
       />
@@ -149,30 +120,30 @@ function StatsPanel({ info, chartData }: { info: StockInfo; chartData: ChartData
         value={
           <>
             <span className="text-blue-600">
-              {(pb.lowestPrice * 1000).toLocaleString()}
+              {pb.low.toLocaleString()}
             </span>
             {" - "}
             <span className="text-purple-600">
-              {(pb.highestPrice * 1000).toLocaleString()}
+              {pb.high.toLocaleString()}
             </span>
           </>
         }
       />
       <StatRow
         label="Khối lượng"
-        value={pb.totalVolume?.toLocaleString()}
+        value={pb.volume.toLocaleString()}
         valueClass="text-yellow-500"
       />
       <StatRow
         label="Giá trị"
-        value={totalValue > 0 ? formatValue(totalValue) : "—"}
+        value={totalValue > 0 ? fmtMoney(totalValue) : "—"}
         valueClass="text-green-500"
       />
       {avgVol > 0 && (
         <StatRow label="KLTB" value={avgVol.toLocaleString()} />
       )}
       {marketCap > 0 && (
-        <StatRow label="Thị giá vốn" value={formatValue(marketCap)} />
+        <StatRow label="Thị giá vốn" value={fmtMoney(marketCap)} />
       )}
       {issueShare > 0 && (
         <StatRow
@@ -226,7 +197,7 @@ export function SymbolLink({
 }) {
   const [open, setOpen] = useState(false);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [smaData, setSmaData] = useState<{ date: string; sma: number | null }[]>([]);
+  const [smaData, setSmaData] = useState<{ time: string; sma: number | null }[]>([]);
   const [stockInfo, setStockInfo] = useState<StockInfo | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -254,14 +225,14 @@ export function SymbolLink({
 
   const pb = stockInfo?.priceboard;
   const price = pb?.price ?? 0;
-  const ref = pb?.referencePrice ?? 0;
+  const ref = pb?.ref ?? 0;
   const change = ref > 0 ? price - ref : 0;
   const changePct = ref > 0 ? ((change / ref) * 100).toFixed(2) : "0.00";
   const priceColor = pb
-    ? getPriceColor(price, ref, pb.ceilingPrice, pb.floorPrice)
+    ? getPriceColor(price, ref, pb.ceiling, pb.floor)
     : "";
   const priceBg = pb
-    ? getBgPriceColor(price, ref, pb.ceilingPrice, pb.floorPrice)
+    ? getBgPriceColor(price, ref, pb.ceiling, pb.floor)
     : "";
 
   return (
@@ -299,21 +270,21 @@ export function SymbolLink({
               {pb && (
                 <div className="flex items-center gap-3">
                   <span className={`text-2xl font-bold ${priceColor}`}>
-                    {(price * 1000).toLocaleString()}
+                    {price.toLocaleString()}
                   </span>
                   <span
                     className={`text-sm font-semibold px-2 py-0.5 rounded ${priceColor} ${priceBg}`}
                   >
                     {change > 0 ? "+" : ""}
-                    {(change * 1000).toFixed(0)} / {change > 0 ? "+" : ""}
+                    {change.toFixed(0)} / {change > 0 ? "+" : ""}
                     {changePct}%
                   </span>
                 </div>
               )}
             </div>
-            {pb?.companyName && (
+            {pb?.name && (
               <p className="text-sm text-muted-foreground mt-1">
-                {pb.companyName}
+                {pb.name}
                 {stockInfo?.profile?.industry && (
                   <span className="ml-2 text-xs">
                     · {stockInfo.profile.industry}
