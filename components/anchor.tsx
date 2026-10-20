@@ -9,6 +9,8 @@ type AnchorProps = ComponentProps<typeof Link> & {
   absolute?: boolean;
   activeClassName?: string;
   disabled?: boolean;
+  /** Paths that never mark this link active, for a link whose prefix another link owns. */
+  exclude?: string[];
 };
 
 export default function Anchor({
@@ -16,6 +18,7 @@ export default function Anchor({
   className = "",
   activeClassName = "",
   disabled,
+  exclude,
   children,
   ...props
 }: AnchorProps) {
@@ -25,6 +28,7 @@ export default function Anchor({
     : path === props.href;
 
   if (props.href.toString().includes("http")) isMatch = false;
+  if (exclude?.some((p) => path.startsWith(p))) isMatch = false;
 
   if (disabled)
     return (

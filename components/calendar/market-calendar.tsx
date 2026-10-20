@@ -16,7 +16,7 @@ import {
   PlusCircle,
 } from "lucide-react";
 import { EventCard } from "./event-card";
-import { ACADEMY_TOOLTIPS } from "@/components/finance/academy-panel";
+import { ACADEMY_TOOLTIPS } from "@/components/calendar/academy-panel";
 import { classifyEvent, isValidDate, type EventType } from "@/lib/events";
 
 // Phân loại sự kiện

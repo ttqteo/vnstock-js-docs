@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // The live market dashboard moved to the demo site.
+  async redirects() {
+    return [{ source: "/finance", destination: "https://vnstock-js.vercel.app", permanent: false }];
+  },
   // if used turbopack
   transpilePackages: ["next-mdx-remote", "vnstock-js", "lightweight-charts"],
   webpack: (config, { isServer }) => {

@@ -2,16 +2,25 @@ import { ModeToggle } from "@/components/theme-toggle";
 import { MobileMenu } from "@/components/mobile-menu";
 import { SheetClose } from "@/components/ui/sheet";
 import { page_routes } from "@/lib/routes-config";
-import { Github } from "lucide-react";
+import { ArrowUpRight, Github } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import Anchor from "./anchor";
 import Search from "./search";
 
-export const NAVLINKS = [
+const AI_PAGE = "/docs/getting-started/ai";
+
+// exact: active only on its own page; exclude: pages another link owns.
+export const NAVLINKS: { title: string; href: string; external?: true; exact?: true; exclude?: string[] }[] = [
   {
     title: "Tài Liệu",
     href: `/docs${page_routes[0].href}`,
+    exclude: [AI_PAGE],
+  },
+  {
+    title: "Dùng Với AI",
+    href: AI_PAGE,
+    exact: true,
   },
   {
     title: "Ví Dụ",
@@ -22,8 +31,9 @@ export const NAVLINKS = [
     href: "/blog",
   },
   {
-    title: "Tài Chính",
-    href: "/finance",
+    title: "Demo",
+    href: "https://vnstock-js.vercel.app",
+    external: true,
   },
   // {
   //   title: "Lịch Sự Kiện",
@@ -87,11 +97,23 @@ export function NavMenu({ isSheet = false }) {
   return (
     <>
       {NAVLINKS.map((item) => {
-        const Comp = (
+        const Comp = item.external ? (
+          <a
+            key={item.href}
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-0.5 dark:text-stone-300/85 text-stone-800 hover:text-primary"
+          >
+            {item.title}
+            <ArrowUpRight className="w-3.5 h-3.5 opacity-60" />
+          </a>
+        ) : (
           <Anchor
             key={item.title + item.href}
             activeClassName="!text-primary dark:font-medium font-semibold"
-            absolute
+            absolute={!item.exact}
+            exclude={item.exclude}
             className="flex items-center gap-1 dark:text-stone-300/85 text-stone-800"
             href={item.href}
           >
