@@ -9,17 +9,18 @@ import Copy from "./copy";
 const KEY = "code-wrap";
 const EVENT = "code-wrap-change";
 
+// Wrapped unless the reader turned it off.
 function readWrap(): boolean {
   try {
-    return localStorage.getItem(KEY) === "1";
+    return localStorage.getItem(KEY) !== "0";
   } catch {
-    return false;
+    return true;
   }
 }
 
 // One choice for every code block on the page, remembered per reader.
 export default function CodeFrame({ raw, children }: { raw: string; children: ReactNode }) {
-  const [wrap, setWrap] = useState(false);
+  const [wrap, setWrap] = useState(true);
 
   useEffect(() => {
     setWrap(readWrap());
