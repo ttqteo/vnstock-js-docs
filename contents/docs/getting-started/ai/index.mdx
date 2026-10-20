@@ -1,0 +1,87 @@
+---
+title: Dùng Với AI
+description: Prompt mẫu, file quy tắc cho agent, llms.txt và MCP để AI viết code vnstock-js 2.x đúng ngay lần đầu.
+---
+
+Các mô hình AI phần lớn đã học vnstock-js 1.x: gọi `init()`, tính giá theo nghìn đồng, dùng `stock.quote()`. Nếu không nói trước, chúng sẽ viết code kiểu cũ và code đó chạy sai với 2.x. Trang này gom những thứ cần đưa cho AI để tránh chuyện đó.
+
+## Prompt mẫu
+
+Dán đoạn này vào đầu cuộc trò chuyện với ChatGPT, Claude, Gemini hay chat của Cursor, rồi viết yêu cầu của bạn ở dòng cuối.
+
+```text
+Mình dùng thư viện vnstock-js bản 2.x (npm install vnstock-js). Bản 2.x khác hẳn 1.x, đừng dùng kiến thức cũ.
+
+Quy tắc:
+- import { vn } from "vnstock-js". Không có init(), không có default export, không có stock.quote().
+- Tiền luôn tính bằng đồng: giá 127000 là 127.000 đồng. Không nhân hay chia 1000.
+- Chỉ số là điểm. changePct là phần trăm (0.95 là 0,95%). Tỷ số tài chính là phân số (roe 0.15 là 15%).
+- Nến có trường time theo giờ Việt Nam, không có date. Range: 1d 5d 1mo 3mo 6mo ytd 1y 2y 5y max (không có 6m).
+- Tham số luôn là symbol, không phải ticker.
+- Chỉ báo import từ "vnstock-js/indicators", nhận Bar[].
+- Chạy trên trình duyệt phải qua proxy: nextHandler() từ "vnstock-js/proxy" và createClient({ proxy: "/api/vnstock" }).
+- Lỗi có code và hint, hiển thị hint cho người dùng.
+
+Tài liệu đầy đủ: https://vnstock-js-docs.vercel.app/llms-full.txt
+Nếu đọc được file trong project, đọc node_modules/vnstock-js/AGENTS.md trước khi viết code.
+
+Việc cần làm: ...
+```
+
+Nếu công cụ AI của bạn đọc được link, chỉ cần đưa link `llms-full.txt` là đủ, vì file đó đã có sẵn các quy tắc trên.
+
+## File quy tắc cho agent trong project
+
+Với agent làm việc trực tiếp trong repo (Claude Code, Cursor, Codex, Copilot), thêm một đoạn vào file quy tắc của project để lần nào agent cũng đọc:
+
+| Công cụ | File |
+|---|---|
+| Claude Code | `CLAUDE.md` |
+| Codex, nhiều agent khác | `AGENTS.md` |
+| Cursor | `.cursor/rules/vnstock.mdc` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+
+```md
+## vnstock-js
+
+Project dùng vnstock-js 2.x. Trước khi viết code gọi vnstock-js, đọc node_modules/vnstock-js/AGENTS.md
+(quy tắc đơn vị và công thức mẫu). Tiền là đồng, changePct là phần trăm, tỷ số là phân số, không có init().
+Kiểu dữ liệu và ví dụ của từng hàm nằm trong JSDoc ở node_modules/vnstock-js/dist/index.d.ts.
+```
+
+`AGENTS.md` đi kèm package nên luôn khớp với phiên bản bạn đã cài, kể cả khi trang tài liệu đã lên bản mới hơn.
+
+## Đưa tài liệu cho AI
+
+- [`/llms.txt`](/llms.txt): mục lục tài liệu kèm quy tắc, theo chuẩn [llms.txt](https://llmstxt.org).
+- [`/llms-full.txt`](/llms-full.txt): toàn bộ tài liệu trong một file Markdown, hợp để dán vào chat hoặc đưa vào context.
+- Mỗi trang tài liệu có nút **Copy Markdown** dưới tiêu đề và bản `.md` riêng, ví dụ [`/md/getting-started/conventions.md`](/md/getting-started/conventions.md). Đưa đúng trang đang cần thì đỡ tốn context hơn đưa cả bộ.
+
+## Để AI tự lấy dữ liệu qua MCP
+
+Nếu bạn muốn hỏi dữ liệu thay vì viết code, cho AI dùng thẳng vnstock-js qua MCP. Claude Desktop, Cursor, VS Code đều nhận cấu hình này:
+
+```json
+{
+  "mcpServers": {
+    "vnstock": { "command": "npx", "args": ["-y", "vnstock-js", "mcp"] }
+  }
+}
+```
+
+Sau đó hỏi bình thường, ví dụ "VN30 có mã nào P/E dưới 15 và ROE trên 15%?". AI sẽ gọi `screen_stocks` và trả lời bằng dữ liệu thật. Danh sách 27 công cụ xem ở trang [MCP](/docs/key-features/advanced/mcp).
+
+## Nhận ra code AI viết theo 1.x
+
+Thấy một trong các dấu hiệu sau thì code đang theo bản cũ, nhắc AI đọc lại prompt mẫu:
+
+| Dấu hiệu | Cách đúng ở 2.x |
+|---|---|
+| `await init()`, `new Vnstock()`, `import vnstock from` | `import { vn } from "vnstock-js"` |
+| `stock.quote(...)`, `vnstock.stock.quote.history(...)` | `vn.stock("FPT").history("6mo")` |
+| `price * 1000`, `value / 1e6`, ghi chú "đơn vị nghìn đồng" | Bỏ phép đổi, số đã là đồng |
+| `bar.date` | `bar.time` |
+| `ticker: "FPT"`, range `"6m"` | `symbol`, `"6mo"` |
+| `filters`, `sortBy` khi sàng lọc | `where: { pe: { lt: 15 } }`, `sort: "-roe"` |
+
+Bảng đối chiếu đầy đủ ở trang [Nâng cấp từ v1](/docs/getting-started/migration).

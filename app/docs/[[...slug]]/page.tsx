@@ -5,6 +5,8 @@ import { page_routes } from "@/lib/routes-config";
 import { notFound } from "next/navigation";
 import { getDocsForSlug } from "@/lib/markdown";
 import { Typography } from "@/components/typography";
+import CopyMarkdown from "@/components/copy-markdown";
+import { docMarkdown } from "@/lib/llms";
 
 type PageProps = {
   params: Promise<{ slug: string[] }>;
@@ -16,7 +18,7 @@ export default async function DocsPage(props: PageProps) {
   const { slug = [] } = params;
 
   const pathName = slug.join("/");
-  const res = await getDocsForSlug(pathName);
+  const [res, markdown] = await Promise.all([getDocsForSlug(pathName), docMarkdown(pathName)]);
 
   if (!res) notFound();
   return (
@@ -28,6 +30,7 @@ export default async function DocsPage(props: PageProps) {
           <p className="-mt-4 text-muted-foreground text-[16.5px]">
             {res.frontmatter.description}
           </p>
+          {markdown && <CopyMarkdown markdown={markdown} href={`/md/${pathName}.md`} />}
           <div>{res.content}</div>
           <Pagination pathname={pathName} />
         </Typography>

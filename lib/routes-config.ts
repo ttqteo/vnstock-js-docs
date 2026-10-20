@@ -22,6 +22,7 @@ export const ROUTES: EachRoute[] = [
       { title: "Cài Đặt", href: "/installation" },
       { title: "Hướng Dẫn Sử Dụng Nhanh", href: "/quick-start-guide" },
       { title: "Quy Ước & Đơn Vị", href: "/conventions", since: "2.0" },
+      { title: "Dùng Với AI", href: "/ai", since: "2.0" },
       { title: "Kiến Trúc", href: "/architecture" },
       { title: "Danh Sách Hàm", href: "/api-references" },
       { title: "Nâng Cấp Từ v1", href: "/migration", since: "2.0" },
