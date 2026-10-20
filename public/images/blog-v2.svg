@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- candles -->
+  <g opacity="0.9">
+    <line x1="760" y1="250" x2="760" y2="380" stroke="#ef4444" stroke-width="3"/>
+    <rect x="745" y="270" width="30" height="80" fill="#ef4444" rx="3"/>
+    <line x1="820" y1="230" x2="820" y2="350" stroke="#22c55e" stroke-width="3"/>
+    <rect x="805" y="250" width="30" height="80" fill="#22c55e" rx="3"/>
+    <line x1="880" y1="190" x2="880" y2="320" stroke="#22c55e" stroke-width="3"/>
+    <rect x="865" y="205" width="30" height="95" fill="#22c55e" rx="3"/>
+    <line x1="940" y1="210" x2="940" y2="300" stroke="#ef4444" stroke-width="3"/>
+    <rect x="925" y="225" width="30" height="55" fill="#ef4444" rx="3"/>
+    <line x1="1000" y1="150" x2="1000" y2="280" stroke="#22c55e" stroke-width="3"/>
+    <rect x="985" y="165" width="30" height="100" fill="#22c55e" rx="3"/>
+    <line x1="1060" y1="110" x2="1060" y2="240" stroke="#22c55e" stroke-width="3"/>
+    <rect x="1045" y="125" width="30" height="95" fill="#22c55e" rx="3"/>
+    <polyline points="745,330 805,300 865,265 925,260 985,220 1045,180 1090,160" fill="none" stroke="#60a5fa" stroke-width="3"/>
+  </g>
+
+  <text x="80" y="200" fill="#ffffff" font-size="76" font-weight="800">vnstock-js 2.0</text>
+  <text x="80" y="262" fill="#bfdbfe" font-size="32" font-weight="600">Làm lại API, tiền tính bằng đồng</text>
+
+  <g font-size="24" fill="#e2e8f0">
+    <text x="80" y="350">Một API gọn: vn.stock('FPT').history('6mo')</text>
+    <text x="80" y="395">Chạy trên Node, serverless và trình duyệt</text>
+    <text x="80" y="440">Danh mục, cảnh báo, backtest, MCP 27 công cụ</text>
+  </g>
+
+  <rect x="80" y="500" width="380" height="58" rx="10" fill="#1e293b" stroke="#334155"/>
+  <text x="104" y="538" fill="#93c5fd" font-size="24" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">npm install vnstock-js</text>
+</svg>

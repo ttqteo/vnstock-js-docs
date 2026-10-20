@@ -1,31 +1,40 @@
 ---
-title: TopStock
-description: Cấu trúc dữ liệu top tăng/giảm
+title: TopMover
+description: Mã tăng, giảm mạnh trong phiên.
 ---
 
-## Các hàm sử dụng
+```ts
+interface TopMover {
+  symbol: string;
+  exchange: string;
+  price1DayAgo: number | null;    // đồng
+  price5DaysAgo: number | null;   // đồng
+  price20DaysAgo: number | null;  // đồng
+  marketCap: number | null;
+  liquidity: number | null;
+}
+```
 
-Cơ bản:
-1. `stock.topGainers()`
-2. `stock.topLosers()`
+Trả về bởi `vn.topMovers({ limit })` dưới dạng `{ gainers: TopMover[]; losers: TopMover[] }`, mặc định 10 mã mỗi bên.
 
-Nâng cao:
-1. `vnstock.stock.trading.topGainers()`
-2. `vnstock.stock.trading.topLosers()`
+## Ví dụ
 
-## Cấu trúc dữ liệu
+```json
+{
+  "gainers": [{ "symbol": "BHH", "exchange": "UPCOM", "price1DayAgo": 17400, "price5DaysAgo": 18800, "price20DaysAgo": 15300 }],
+  "losers": [{ "symbol": "LAF", "exchange": "HOSE", "price1DayAgo": 18000, "price5DaysAgo": 17800, "price20DaysAgo": 19850 }]
+}
+```
 
-Output là `TopStock[]`:
+<Note>
+`marketCap` và `liquidity` đang giữ nguyên số VietCap trả về, chưa quy ra đồng như các trường khác. Đừng cộng trừ chúng với số liệu bằng đồng.
+</Note>
 
-| Trường | Kiểu | Mô tả |
-|--------|------|--------|
-| `symbol` | string | Mã cổ phiếu |
-| `exchange` | string | Sàn (HOSE/HNX/UPCOM) |
-| `marketCap` | number | Vốn hóa thị trường |
-| `price1DayAgo` | number | Giá 1 ngày trước (nghìn VND) |
-| `price5DaysAgo` | number | Giá 5 ngày trước |
-| `price20DaysAgo` | number | Giá 20 ngày trước |
-| `type` | string | Loại (GAINER_1_D, LOSER_1_D...) |
-| `liquidity` | number | Thanh khoản |
-| `vn30` | boolean | Thuộc VN30 |
-| `hnx30` | boolean | Thuộc HNX30 |
+Muốn tự xếp hạng theo phần trăm thay đổi trong phiên, lấy bảng giá cả sàn rồi sắp xếp:
+
+```ts
+import { vn } from "vnstock-js";
+
+const board = await vn.prices({ exchange: "HOSE" });
+const top = board.filter((q) => q.volume > 0).sort((a, b) => b.changePct - a.changePct).slice(0, 10);
+```

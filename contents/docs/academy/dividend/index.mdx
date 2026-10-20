@@ -66,14 +66,12 @@ Tỷ lệ > 80% có thể không bền vững. Tỷ lệ 30-50% thường là l�
 
 ## Tra cứu cổ tức bằng vnstock-js
 
-```typescript
-import { company } from "vnstock-js";
+```ts
+import { vn } from "vnstock-js";
 
-const events = await company.events({ ticker: "VNM" });
-// Lọc sự kiện cổ tức
-const dividends = events.filter(e =>
-  e.eventName?.includes("cổ tức") || e.eventName?.includes("dividend")
-);
+// Chỉ các sự kiện cổ tức; value là số tiền mỗi cổ phiếu (đồng), ratio là tỷ lệ (phân số)
+const dividends = await vn.stock("VNM").dividends();
+for (const d of dividends) console.log(d.exRightDate, d.title, d.value, d.ratio);
 ```
 
 ## Chiến lược đầu tư cổ tức

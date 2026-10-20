@@ -42,13 +42,11 @@ Công ty gộp cổ phiếu thường để:
 
 Sau chia tách, dữ liệu giá lịch sử cần được **điều chỉnh (adjusted)** để biểu đồ liên tục:
 
-```typescript
-import { stock } from "vnstock-js";
-// Dữ liệu đã được điều chỉnh tự động
-const data = await stock.quote({
-  ticker: "VNM",
-  start: "2024-01-01",
-});
+```ts
+import { vn } from "vnstock-js";
+
+// Nến đã được nguồn điều chỉnh theo chia tách, giá bằng đồng
+const bars = await vn.stock("VNM").history({ from: "2024-01-01" });
 ```
 
 ## Các chia tách đáng chú ý tại Việt Nam

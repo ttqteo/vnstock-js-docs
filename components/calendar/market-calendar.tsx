@@ -17,49 +17,16 @@ import {
 } from "lucide-react";
 import { EventCard } from "./event-card";
 import { ACADEMY_TOOLTIPS } from "@/components/finance/academy-panel";
+import { classifyEvent, isValidDate, type EventType } from "@/lib/events";
 
 // Phân loại sự kiện
-const EVENT_TYPES = {
+const EVENT_TYPES: Record<EventType, { label: string; icon: typeof Calendar; color: string }> = {
   dividend: { label: "Cổ tức", icon: CircleDollarSign, color: "text-green-500" },
   split: { label: "Chia tách", icon: Scissors, color: "text-blue-500" },
   meeting: { label: "ĐHCĐ", icon: Users, color: "text-purple-500" },
   rights: { label: "Phát hành", icon: PlusCircle, color: "text-orange-500" },
   other: { label: "Khác", icon: Calendar, color: "text-muted-foreground" },
-} as const;
-
-type EventType = keyof typeof EVENT_TYPES;
-
-// Heuristic phân loại dựa trên eventName
-export function classifyEvent(eventName: string): EventType {
-  const lower = eventName.toLowerCase();
-  if (lower.includes("co tuc") || lower.includes("dividend")) return "dividend";
-  if (
-    lower.includes("chia") ||
-    lower.includes("tach") ||
-    lower.includes("split")
-  )
-    return "split";
-  if (
-    lower.includes("dhcd") ||
-    lower.includes("dai hoi") ||
-    lower.includes("meeting")
-  )
-    return "meeting";
-  if (
-    lower.includes("phat hanh") ||
-    lower.includes("quyen mua") ||
-    lower.includes("esop")
-  )
-    return "rights";
-  return "other";
-}
-
-// Filter out garbage dates from API (e.g. year 54381, 215030)
-export function isValidDate(dateStr?: string): boolean {
-  if (!dateStr) return false;
-  const year = parseInt(dateStr.slice(0, 4));
-  return year >= 2000 && year <= 2100;
-}
+};
 
 export interface CorporateEvent {
   ticker: string;

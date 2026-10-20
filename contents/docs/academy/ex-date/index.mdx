@@ -41,12 +41,12 @@ Vào ngày Ex-date, giá tham chiếu sẽ được **điều chỉnh giảm** t
 
 Sử dụng vnstock-js để lấy danh sách sự kiện quyền của công ty:
 
-```typescript
-import { company } from "vnstock-js";
+```ts
+import { vn } from "vnstock-js";
 
-const events = await company.events({ ticker: "FPT" });
-// Lọc sự kiện có exDate
-const exDateEvents = events.filter(e => e.exDate);
+const events = await vn.stock("FPT").events();
+// Sự kiện có ngày giao dịch không hưởng quyền
+const exDateEvents = events.filter((e) => e.exRightDate);
 ```
 
 ## Những điều cần lưu ý

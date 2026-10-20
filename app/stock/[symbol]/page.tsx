@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Metadata } from "next";
 import { sma, rsi } from "vnstock-js/indicators";
 import { vn } from "@/lib/vnstock";
-import { classifyEvent, isValidDate } from "@/components/calendar/market-calendar";
+import { classifyEvent, isValidDate } from "@/lib/events";
 
 type Params = Promise<{ symbol: string }>;
 

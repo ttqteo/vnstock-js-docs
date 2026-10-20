@@ -49,14 +49,12 @@ Cổ đông cần nắm cổ phiếu **trước ngày đăng ký cuối cùng** 
 
 ## Theo dõi lịch ĐHCĐ
 
-```typescript
-import { company } from "vnstock-js";
+```ts
+import { vn } from "vnstock-js";
 
-const events = await company.events({ ticker: "VNM" });
+const events = await vn.stock("VNM").events();
 // Lọc sự kiện ĐHCĐ
-const meetings = events.filter(e =>
-  e.eventName?.includes("ĐHCĐ") || e.eventName?.includes("đại hội")
-);
+const meetings = events.filter((e) => /ĐHCĐ|đại hội/i.test(e.eventTypeName + " " + e.title));
 ```
 
 ## Lưu ý

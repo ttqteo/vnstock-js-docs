@@ -1,0 +1,104 @@
+---
+title: "vnstock-js 2.0: làm lại API, tiền tính bằng đồng"
+description: "Một API gọn thay cho hai bộ API song song, mọi số tiền tính bằng đồng, chạy được trên serverless và trình duyệt, kèm danh mục, cảnh báo, backtest và MCP 27 công cụ."
+date: 20-10-2026
+authors:
+  - avatar: "https://avatars.githubusercontent.com/ttqteo"
+    handle: ttqteo
+    username: Tran Tu Quang
+    handleUrl: "https://github.com/ttqteo"
+cover: "/images/blog-v2.svg"
+---
+
+Sau 1.5, mình ngồi đọc lại vnstock-js như một người mới và thấy nó khó xài. Ví dụ đầu tiên trong README crash nếu quên gọi `init()`. Có hai bộ API song song (`stock.quote()` và `vnstock.stock.quote.history()`) làm cùng một việc. Giá tính bằng nghìn đồng, giá trị nến bằng triệu đồng, thanh khoản thị trường bằng tỷ đồng, nên cộng hai con số với nhau là gần như chắc chắn sai.
+
+Thêm một điều: ngày càng nhiều người để AI agent viết code. Một API mà con người còn phải đọc kỹ mới dùng đúng thì agent sẽ dùng sai ngay lần đầu.
+
+Nên 2.0 không thêm tính năng lên nền cũ mà làm lại từ đầu.
+
+## Một API
+
+```ts
+import { vn } from "vnstock-js";
+
+const fpt = vn.stock("FPT");
+await fpt.price();          // { price: 57500, changePct: 0.701, ... }
+await fpt.history("6mo");   // nến ngày
+await vn.market();          // VN-Index, thanh khoản, độ rộng, khối ngoại
+await vn.screen({ group: "VN30", where: { pe: { lt: 15 }, roe: { gt: 0.15 } }, sort: "-roe" });
+```
+
+Không còn `init()`: danh mục mã và lịch nghỉ tự tải ở lần dùng đầu. `vn.stock("FPT")` tạo đồng bộ, chưa gọi mạng. Gõ nhầm `FTP` thì lời gọi đầu tiên báo lỗi kèm `Did you mean "FPT"?`.
+
+## Tiền tính bằng đồng, ở mọi nơi
+
+`127000` là 127.000 đồng. Giá trị giao dịch, vốn hoá, khối ngoại, thanh khoản, báo cáo tài chính, giá vàng đều là đồng. Chỉ số vẫn là điểm, phần trăm thay đổi giá vẫn là phần trăm, tỷ số tài chính là phân số. Mình viết hẳn một trang [Quy ước & đơn vị](/docs/getting-started/conventions), vì đây là thứ dễ sai nhất.
+
+Đổi đơn vị là thay đổi không tương thích lớn nhất của bản này. Nếu bạn đang có code 1.x, đọc [Nâng cấp từ v1](/docs/getting-started/migration) trước: có bảng đối chiếu từng lời gọi và từng đơn vị.
+
+## Chạy mọi nơi
+
+Core dùng `fetch` có sẵn, không đụng ổ đĩa, nên chạy trên Vercel, Cloudflare Workers, Deno, Bun mà không cần cấu hình. axios và date-fns đã được gỡ.
+
+Trình duyệt thì VietCap chặn CORS, nên thư viện kèm sẵn một proxy nhỏ:
+
+```ts
+// app/api/vnstock/[...path]/route.ts
+import { nextHandler } from "vnstock-js/proxy";
+export const { GET, POST } = nextHandler();
+```
+
+```ts
+// client component
+const vn = createClient({ proxy: "/api/vnstock" });
+```
+
+Proxy chỉ chuyển tiếp tới hai host VietCap theo danh sách đường dẫn cố định, không phải open proxy.
+
+<img src="/images/v2-architecture.svg" alt="Kiến trúc vnstock-js 2.0" width={900} height={560} />
+
+## Những thứ mới
+
+**Lịch sử khối ngoại.** VietCap chỉ cho xem khối ngoại của phiên hiện tại, nên repo tự ghi mỗi ngày sau 15:30 và thư viện đọc lại theo tháng: `vn.stock("FPT").foreign("3mo")`.
+
+**Danh mục.** `vn.portfolio({ positions, cash })` định giá theo giá hiện tại, có nhóm theo môi giới, theo ngành, tổng NAV. Lưu lại bằng `vn.portfolio.save()`.
+
+**Theo dõi và cảnh báo.** `vn.watch(["FPT", "VCB"], cb)` dùng chung một WebSocket cho mọi watcher; `mode: "poll"` cho serverless. `alert({ when: "breakout" })` báo một lần mỗi phiên khi giá vượt đỉnh 20 phiên.
+
+**Backtest.** Event study trên nến ngày: vào lệnh ở giá mở cửa phiên sau tín hiệu, thoát theo chốt lời, cắt lỗ hoặc số phiên giữ.
+
+```ts
+const r = await vn.stock("FPT").backtest("breakout", { tp: 7, sl: 4, hold: 10 });
+console.log(r.stats.all.winRate, r.stats.all.avgRet);
+```
+
+Tín hiệu là hàm nhận các nến tới phiên đang xét nên không thể nhìn trước. Phiên chạm cả chốt lời lẫn cắt lỗ thì mình tính cắt lỗ trước, để thống kê không đẹp giả.
+
+**Chỉ báo và pattern.** Ngoài SMA, EMA, RSI, MACD, Bollinger, ATR, SuperTrend, Ichimoku, có thêm vùng hỗ trợ/kháng cự, mẫu nến đảo chiều, tín hiệu Turtle, breakout có khối lượng và sức khoẻ thị trường theo phương pháp của William O'Neil. Tất cả là hàm thuần ở `vnstock-js/indicators`.
+
+**Thanh khoản trong phiên.** `vn.market.intraday()` vẽ được đường thanh khoản luỹ kế theo phút so với phiên trước cùng giờ.
+
+## Cho AI agent
+
+- Mọi API công khai có JSDoc kèm ví dụ, agent đọc được ngay từ `.d.ts` trong `node_modules`.
+- `AGENTS.md` nằm trong package: các quy tắc giữ cho code đúng (đơn vị, range, lỗi) và công thức mẫu. Mọi khối code trong README và AGENTS.md được type-check trong CI.
+- MCP server lên 27 công cụ, thêm `find_patterns`, `get_foreign_history`, `portfolio_summary`, `backtest_signal`, `find_similar_setups`. Tên 22 công cụ cũ giữ nguyên.
+
+## CLI
+
+```bash
+npx vnstock-js FPT
+npx vnstock-js screen --group VN30 --where "pe<15,roe>0.15" --sort -roe
+npx vnstock-js backtest FPT VCB --preset breakout --tp 7 --sl 4 --hold 10
+npx vnstock-js portfolio add FPT 100 120000
+```
+
+## Cài đặt
+
+```bash
+npm install vnstock-js
+```
+
+Cần Node 18 trở lên. Bắt đầu từ [Hướng dẫn sử dụng nhanh](/docs/getting-started/quick-start-guide), hoặc xem trang demo [vnstock-js-site](https://vnstock-js.vercel.app) chạy trên chính bản này.
+
+Có lỗi hay góp ý, mở issue trên [GitHub](https://github.com/ttqteo/vnstock-js/issues).

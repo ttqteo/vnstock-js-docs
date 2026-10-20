@@ -1,47 +1,79 @@
 ---
 title: CompanyProfile
-description: Cấu trúc dữ liệu thông tin công ty
+description: Hồ sơ công ty, cổ đông, ban lãnh đạo, sự kiện.
 ---
 
-## Các hàm sử dụng
+## CompanyProfile
 
-Cơ bản:
-1. `stock.company({ ticker }).profile()`
+Trả về bởi `vn.stock(symbol).company()`.
 
-Nâng cao:
-1. `vnstock.stock.company(ticker).profile()`
+```ts
+interface CompanyProfile {
+  symbol: string;
+  id: string;
+  issuedShares: number;   // số cổ phiếu lưu hành
+  history: string;        // lịch sử hình thành
+  historyEn: string;
+  profile: string;        // giới thiệu
+  profileEn: string;
+  industry: string;
+  industryEn: string;
+  sector: string;
+  sectorEn: string;
+  subIndustry: string;
+  subIndustryEn: string;
+}
+```
 
-## Cấu trúc dữ liệu
+Trường nguồn không có thì là chuỗi rỗng.
 
-Output là `CompanyProfile`:
+## Shareholder
 
-| Trường | Kiểu | Mô tả |
-|--------|------|--------|
-| `id` | string | Mã định danh |
-| `issuedShares` | number | Số cổ phiếu phát hành |
-| `history` | string | Lịch sử công ty |
-| `historyEn` | string | Lịch sử (tiếng Anh) |
-| `profile` | string | Giới thiệu công ty |
-| `profileEn` | string | Giới thiệu (tiếng Anh) |
-| `industry` | string | Ngành (ICB level 3) |
-| `industryEn` | string | Ngành (tiếng Anh) |
-| `sector` | string | Lĩnh vực (ICB level 2) |
-| `sectorEn` | string | Lĩnh vực (tiếng Anh) |
-| `subIndustry` | string | Phân ngành (ICB level 4) |
-| `subIndustryEn` | string | Phân ngành (tiếng Anh) |
+`shareholders()`: cổ đông lớn.
 
-## Dữ liệu liên quan
+```ts
+interface Shareholder {
+  id: string;
+  symbol: string;
+  name: string;
+  nameEn: string;
+  quantity: number;     // số cổ phiếu nắm giữ
+  percentage: number;   // tỷ lệ sở hữu, phân số: 0.068 là 6,8%
+  updatedAt: string;    // ngày nguồn cập nhật
+}
+```
 
-Company instance cũng cung cấp:
+`percentage` theo số liệu nguồn công bố tại `updatedAt`, nên có thể lệch nhẹ so với `quantity / issuedShares` khi công ty vừa phát hành thêm.
 
-| Hàm | Output type | Mô tả |
-|-----|-------------|--------|
-| `shareholders()` | `Shareholder[]` | Cổ đông lớn |
-| `officers()` | `Officer[]` | Ban lãnh đạo |
-| `events()` | `CorporateEvent[]` | Sự kiện doanh nghiệp |
-| `news()` | `StockNews[]` | Tin tức |
-| `dividends()` | `CorporateEvent[]` | Lịch sử cổ tức |
-| `insiderDeals()` | `CorporateEvent[]` | Giao dịch nội bộ |
-| `subsidiaries()` | `Subsidiary[]` | Công ty con |
-| `affiliates()` | `Affiliate[]` | Công ty liên kết |
-| `analysisReports()` | `AnalysisReport[]` | Báo cáo phân tích |
+## Officer
+
+`officers()`: ban lãnh đạo, gồm `name`, `position`, `positionEn`, `positionShort`, `quantity` (số cổ phiếu nắm giữ), `ownership` (phân số), `updatedAt`.
+
+## CorporateEvent
+
+`events()` (mọi sự kiện) và `dividends()` (chỉ cổ tức).
+
+```ts
+interface CorporateEvent {
+  id: string;
+  symbol: string;
+  title: string;            // "Phát hành cổ phiếu - Cổ phiếu thưởng tỉ lệ 10.0%"
+  titleEn: string;
+  eventType: string;        // mã loại sự kiện
+  eventTypeName: string;    // "Phát hành cổ phiếu"
+  eventTypeNameEn: string;
+  ratio: number | null;     // tỷ lệ, phân số: 0.1 là 10%
+  value: number | null;     // giá trị tiền mặt nếu có, đồng
+  publishedAt: string;      // ngày công bố
+  issuedAt: string;         // ngày thực hiện
+  recordDate: string;       // ngày đăng ký cuối cùng
+  exRightDate: string;      // ngày giao dịch không hưởng quyền
+  sourceUrl: string;
+}
+```
+
+Ngày dạng `YYYY-MM-DD` theo giờ Việt Nam. Xem thêm mục Academy về [ngày giao dịch không hưởng quyền](/docs/academy/ex-date).
+
+## StockNews
+
+`news()`: tin của riêng công ty, gồm `title`, `summary`, `sourceUrl`, `imageUrl`, `publishedAt`.

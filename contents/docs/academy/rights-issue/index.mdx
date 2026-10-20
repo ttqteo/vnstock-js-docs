@@ -67,14 +67,12 @@ phương án    (Record Date)               đăng ký mua   giao dịch CP mớ
 
 ## Tra cứu sự kiện phát hành
 
-```typescript
-import { company } from "vnstock-js";
+```ts
+import { vn } from "vnstock-js";
 
-const events = await company.events({ ticker: "HPG" });
+const events = await vn.stock("HPG").events();
 // Lọc sự kiện phát hành
-const issues = events.filter(e =>
-  e.eventName?.includes("phát hành") || e.eventName?.includes("quyền mua")
-);
+const issues = events.filter((e) => /phát hành|quyền mua/i.test(e.eventTypeName + " " + e.title));
 ```
 
 ## Lưu ý quan trọng

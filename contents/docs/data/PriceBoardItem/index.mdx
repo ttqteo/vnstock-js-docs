@@ -1,37 +1,52 @@
 ---
-title: PriceBoardItem
-description: Cấu trúc dữ liệu bảng giá
+title: Quote
+description: Một dòng bảng giá.
 ---
 
-## Các hàm sử dụng
+```ts
+interface Quote {
+  symbol: string;
+  name: string;
+  nameEn: string;
+  exchange: string;          // "HOSE" | "HNX" | "UPCOM"
+  price: number;             // giá khớp gần nhất
+  change: number;            // so với tham chiếu
+  changePct: number;         // phần trăm
+  ref: number;               // tham chiếu
+  ceiling: number;           // trần
+  floor: number;             // sàn
+  high: number;
+  low: number;
+  avg: number;               // giá khớp trung bình
+  volume: number;            // khối lượng luỹ kế của phiên
+  value: number;             // giá trị luỹ kế của phiên, đồng
+  matchVolume: number;       // khối lượng của lệnh khớp gần nhất
+  foreignBuyVolume: number;
+  foreignSellVolume: number;
+  bids: { price: number; volume: number }[]; // 3 bước giá mua, tốt nhất trước
+  asks: { price: number; volume: number }[]; // 3 bước giá bán
+}
+```
 
-Cơ bản:
-1. `stock.priceBoard()`
+Trả về bởi `vn.stock(symbol).price()`, `vn.prices()`. Mọi giá bằng **đồng**.
 
-Nâng cao:
-1. `vnstock.stock.trading.priceBoard()`
+- Trước lệnh khớp đầu tiên của phiên, `price`, `change`, `changePct`, `matchVolume` là 0.
+- `changePct` là phần trăm: `0.701` là 0,701%.
+- Với `vn.index(symbol).price()`, giá là **điểm** và các trường không áp dụng (trần, sàn, bước giá) là 0.
 
-## Cấu trúc dữ liệu
+## Ví dụ
 
-Output là `PriceBoardItem[]`:
+```json
+{
+  "symbol": "FPT", "name": "Công ty Cổ phần FPT", "nameEn": "FPT Corporation", "exchange": "HOSE",
+  "price": 57500, "change": 400, "changePct": 0.701,
+  "ref": 57100, "ceiling": 61000, "floor": 53200, "high": 57800, "low": 56800, "avg": 57229.3,
+  "volume": 3259200, "value": 186521720000, "matchVolume": 133100,
+  "foreignBuyVolume": 512856, "foreignSellVolume": 807002,
+  "bids": [{ "price": 57500, "volume": 1000 }], "asks": [{ "price": 57600, "volume": 40600 }]
+}
+```
 
-| Trường | Kiểu | Mô tả |
-|--------|------|--------|
-| `symbol` | string | Mã cổ phiếu |
-| `companyName` | string | Tên công ty |
-| `companyNameEn` | string | Tên tiếng Anh |
-| `exchange` | string | Sàn (HOSE/HNX/UPCOM) |
-| `ceilingPrice` | number | Giá trần (nghìn VND) |
-| `floorPrice` | number | Giá sàn |
-| `referencePrice` | number | Giá tham chiếu |
-| `price` | number | Giá khớp lệnh |
-| `matchVolume` | number | Khối lượng khớp |
-| `totalVolume` | number | Tổng khối lượng |
-| `totalValue` | number | Tổng giá trị giao dịch |
-| `averagePrice` | number | Giá trung bình |
-| `highestPrice` | number | Giá cao nhất phiên |
-| `lowestPrice` | number | Giá thấp nhất phiên |
-| `foreignBuyVolume` | number | KL mua nước ngoài |
-| `foreignSellVolume` | number | KL bán nước ngoài |
-| `bidPrices` | array | 3 mức giá mua `[{price, volume}]` |
-| `askPrices` | array | 3 mức giá bán `[{price, volume}]` |
+## Từ bản 1.x
+
+`PriceBoardItem` đổi thành `Quote`: `referencePrice` thành `ref`, `ceilingPrice`/`floorPrice` thành `ceiling`/`floor`, `highestPrice`/`lowestPrice` thành `high`/`low`, `averagePrice` thành `avg`, `totalVolume`/`totalValue` thành `volume`/`value`, `bidPrices`/`askPrices` thành `bids`/`asks`, `companyName` thành `name`. Giá từ nghìn đồng thành đồng, `totalValue` từ triệu đồng thành đồng.

@@ -1,23 +1,30 @@
 ---
 title: Dữ Liệu
-description: Cấu trúc dữ liệu trong vnstock-js
+description: Các kiểu dữ liệu vnstock-js 2.x trả về.
 ---
 
-Tất cả dữ liệu trả về đều là **Array of Objects** đã chuẩn hóa:
+Mọi kết quả là object thuần (không class), `JSON.stringify` được và truyền qua React Server Component được. Kiểu TypeScript được xuất từ `vnstock-js`:
 
-- Tên field: camelCase tiếng Anh
-- Giá: chia 1000 (đơn vị nghìn VND)
-- Ngày: ISO string "yyyy-MM-dd"
-- Phần trăm: decimal (0.15 thay vì 15%)
+```ts
+import type { Bar, Quote, Tick, MarketOverview, ScreenRow, SymbolInfo, FinancialNews } from "vnstock-js";
+```
 
-## Danh sách kiểu dữ liệu
+Quy ước chung (xem [Quy ước & đơn vị](/docs/getting-started/conventions)):
 
-| Kiểu | Mô tả | Hàm liên quan |
-|------|--------|---------------|
-| [QuoteHistory](/docs/data/ChartData) | Giá lịch sử OHLCV | `stock.quote()`, `stock.index()` |
-| [PriceBoardItem](/docs/data/PriceBoardItem) | Bảng giá | `stock.priceBoard()` |
-| [TopStock](/docs/data/TopStock) | Top tăng/giảm | `stock.topGainers()`, `stock.topLosers()` |
-| [CompanyProfile](/docs/data/CompanyProfile) | Thông tin công ty | `company.profile()` |
-| [ScreenResult](/docs/data/ScreenResult) | Sàng lọc cổ phiếu | `stock.screening()` |
-| [RealtimeQuote](/docs/data/RealtimeQuote) | Dữ liệu realtime | `realtime.create()` / `realtime.parseData()` |
-| [ExchangeRate](/docs/data/ExchangeRate) | Tỷ giá ngoại tệ | `commodity.exchange()` |
+- Tên trường camelCase tiếng Anh.
+- Tiền bằng đồng, chỉ số bằng điểm.
+- Phần trăm thay đổi giá là số phần trăm (`0.95` là 0,95%); tỷ số tài chính là phân số (`0.15` là 15%).
+- Thời gian theo giờ Việt Nam: `"2026-10-20"` hoặc `"2026-10-20T09:15:00+07:00"`.
+- Trường thiếu dữ liệu là `null`, không phải `0` hay chuỗi rỗng, trừ khi ghi khác.
+
+## Danh sách kiểu
+
+| Kiểu | Mô tả | Hàm trả về |
+|---|---|---|
+| [Bar](/docs/data/ChartData) | Một cây nến | `history()` |
+| [Quote](/docs/data/PriceBoardItem) | Một dòng bảng giá | `price()`, `vn.prices()` |
+| [Tick](/docs/data/RealtimeQuote) | Một lần khớp trực tiếp | `watch()` |
+| [TopMover](/docs/data/TopStock) | Mã tăng, giảm mạnh | `vn.topMovers()` |
+| [CompanyProfile](/docs/data/CompanyProfile) | Hồ sơ, cổ đông, ban lãnh đạo, sự kiện | `company()`, `shareholders()`... |
+| [ScreenRow](/docs/data/ScreenResult) | Một dòng kết quả sàng lọc | `vn.screen()` |
+| [GoldQuote & FxRate](/docs/data/ExchangeRate) | Giá vàng, tỷ giá | `vn.gold()`, `vn.fx()` |

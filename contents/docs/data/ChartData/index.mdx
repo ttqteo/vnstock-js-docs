@@ -1,37 +1,36 @@
 ---
-title: QuoteHistory
-description: Cấu trúc dữ liệu giá lịch sử
+title: Bar
+description: Một cây nến OHLCV.
 ---
 
-## Các hàm sử dụng
-
-Cơ bản:
-1. `stock.quote()`
-2. `stock.index()`
-
-Nâng cao:
-1. `vnstock.stock.quote.history()`
-
-## Cấu trúc dữ liệu
-
-Output là `QuoteHistory[]`: mảng các object:
-
-```typescript
-[
-  { date: "2024-01-15", open: 25.5, high: 26.0, low: 25.0, close: 25.8, volume: 1000000 },
-  { date: "2024-01-16", open: 25.8, high: 26.2, low: 25.3, close: 26.1, volume: 1200000 },
-]
+```ts
+interface Bar {
+  time: string;          // "2026-10-20" hoặc "2026-10-20T09:15:00+07:00"
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;        // số cổ phiếu
+  value: number | null;  // giá trị giao dịch, đồng
+}
 ```
 
-| Trường | Kiểu | Mô tả |
-|--------|------|--------|
-| `date` | string | Ngày giao dịch (yyyy-MM-dd) |
-| `open` | number | Giá mở cửa (nghìn VND) |
-| `high` | number | Giá cao nhất |
-| `low` | number | Giá thấp nhất |
-| `close` | number | Giá đóng cửa |
-| `volume` | number | Khối lượng giao dịch |
+Trả về bởi `vn.stock(symbol).history()` và `vn.index(symbol).history()`, mảng cũ trước mới sau.
 
-<Note type="note">
-Giá đã được chia 1000 so với dữ liệu thô từ API. Ví dụ: giá gốc 25500 → output 25.5 (nghìn VND).
-</Note>
+| Trường | Ý nghĩa |
+|---|---|
+| `time` | Giờ Việt Nam. Nến ngày, tuần, tháng: `YYYY-MM-DD` (tuần, tháng đóng dấu bằng phiên đầu). Nến trong phiên: ISO có `+07:00` |
+| `open`, `high`, `low`, `close` | Giá bằng **đồng** với cổ phiếu, **điểm** với chỉ số |
+| `volume` | Khối lượng của riêng nến |
+| `value` | Nến ngày trở lên: giá trị giao dịch của riêng nến. Nến trong phiên: giá trị **luỹ kế** từ đầu phiên. `null` khi nguồn không có |
+
+## Ví dụ
+
+```json
+{ "time": "2026-10-20", "open": 57000, "high": 57800, "low": 56800, "close": 57600, "volume": 3259200, "value": 186521720000 }
+```
+
+## Hàm liên quan
+
+- [Lịch sử giá](/docs/key-features/advanced/quote)
+- [Chỉ báo & pattern](/docs/key-features/advanced/indicators): mọi chỉ báo nhận `Bar[]`.
