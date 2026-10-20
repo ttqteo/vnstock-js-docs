@@ -28,8 +28,8 @@ function GithubIcon({ className }: { className?: string }) {
 }
 import Image from "next/image";
 import Link from "next/link";
-import { vn } from "@/lib/vnstock";
 import { MarketTicker } from "@/components/market-ticker";
+import { tickerItems } from "@/lib/ticker";
 import Copy from "@/components/markdown/copy";
 import Architecture from "@/components/markdown/architecture";
 import AgentChat from "@/components/agent-chat";
@@ -111,51 +111,17 @@ function formatStars(n: number): string {
 }
 
 export default async function Home() {
-  const [stars, npmVersion, agentTurns] = await Promise.all([
+  const [stars, npmVersion, agentTurns, ticker] = await Promise.all([
     fetchGithubStars(),
     fetchNpmVersion(),
     buildAgentDemo(),
+    tickerItems(),
   ]);
-
-  let indexData: {
-    symbol: string;
-    value: number;
-    change: number;
-    changePct: number;
-  }[] = [];
-  try {
-    const indices = ["VNINDEX", "HNXIndex", "HNXUpcomIndex"] as const;
-    const displayNames: Record<string, string> = {
-      VNINDEX: "HSX",
-      HNXIndex: "HNX",
-      HNXUpcomIndex: "UPCOM",
-    };
-    const results = await Promise.all(
-      indices.map((idx) =>
-        vn.index(idx).history("1mo"),
-      ),
-    );
-    indexData = results.map((data, i) => {
-      const latest = data[data.length - 1];
-      const prev = data.length > 1 ? data[data.length - 2] : latest;
-      // Index levels are points.
-      const value = latest.close;
-      const prevValue = prev.close;
-      return {
-        symbol: displayNames[indices[i]] || indices[i],
-        value,
-        change: value - prevValue,
-        changePct: ((value - prevValue) / prevValue) * 100,
-      };
-    });
-  } catch {
-    // Silently fail
-  }
 
   return (
     <div className="flex flex-col">
       {/* Market Ticker */}
-      {indexData.length > 0 && <MarketTicker data={indexData} />}
+      {ticker.length > 0 && <MarketTicker items={ticker} />}
 
       {/* Hero */}
       <section className="flex flex-col items-center justify-center text-center px-4 pt-12 pb-16 sm:pt-32 sm:pb-24">

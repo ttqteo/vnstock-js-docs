@@ -2,10 +2,10 @@ export default function HomeLoading() {
   return (
     <div className="flex flex-col">
       {/* Ticker skeleton */}
-      <div className="w-full border-b bg-muted/30 py-2.5 px-4">
+      <div className="relative left-1/2 w-screen -translate-x-1/2 border-b bg-muted/30 py-2.5 px-4 overflow-hidden">
         <div className="flex items-center justify-center gap-10">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-4 w-40 bg-muted animate-pulse rounded" />
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-4 w-32 shrink-0 bg-muted animate-pulse rounded" />
           ))}
         </div>
       </div>

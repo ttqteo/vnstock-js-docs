@@ -1,46 +1,37 @@
-"use client";
-
-interface TickerItem {
-  symbol: string;
-  value: number;
-  change: number;
-  changePct: number;
+export interface TickerItem {
+  label: string;
+  /** Already formatted for display. */
+  value: string;
+  /** Formatted signed change, shown on wide screens only. */
+  change?: string;
+  /** Percent number; null or absent prints no percent and keeps the value neutral. */
+  changePct?: number | null;
+  unit?: string;
 }
 
-export function MarketTicker({ data }: { data: TickerItem[] }) {
+// Full-bleed strip under the navbar: breaks out of the page container to the viewport edges.
+export function MarketTicker({ items }: { items: TickerItem[] }) {
   return (
-    <div className="border-b bg-muted/30 overflow-x-auto scrollbar-none -mx-[5vw] sm:mx-0">
-      <div className="flex items-center justify-start sm:justify-center gap-3 sm:gap-10 py-2.5 px-3 sm:px-4 text-sm min-w-max w-max mx-auto">
-        {data.map((item) => {
-          const isUp = item.change > 0;
-          const isDown = item.change < 0;
-          const color = isUp
-            ? "text-green-600"
-            : isDown
-              ? "text-red-600"
-              : "text-yellow-500";
+    <div className="relative left-1/2 w-screen -translate-x-1/2 border-b bg-muted/30 overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-5 sm:gap-10 py-2.5 px-4 text-sm min-w-max w-max mx-auto">
+        {items.map((item) => {
+          const pct = item.changePct ?? null;
+          const color =
+            pct === null ? "text-foreground/80" : pct > 0 ? "text-green-600" : pct < 0 ? "text-red-600" : "text-yellow-500";
+          const sign = pct !== null && pct > 0 ? "+" : "";
 
           return (
-            <div
-              key={item.symbol}
-              className="flex items-center gap-1.5 sm:gap-2 shrink-0"
-            >
-              <span className="font-semibold text-xs sm:text-sm">
-                {item.symbol}
-              </span>
-              <span className={`font-mono text-xs sm:text-sm ${color}`}>
-                {item.value.toFixed(2)}
-              </span>
-              {/* Compact on mobile: % only (color conveys direction). Desktop: full */}
-              <span className={`font-mono text-xs ${color} sm:hidden`}>
-                {isUp ? "+" : ""}
-                {item.changePct.toFixed(2)}%
-              </span>
-              <span className={`font-mono text-xs ${color} hidden sm:inline`}>
-                {isUp ? "+" : ""}
-                {item.change.toFixed(2)} ({isUp ? "+" : ""}
-                {item.changePct.toFixed(2)}%)
-              </span>
+            <div key={item.label} className="flex items-baseline gap-1.5 sm:gap-2 shrink-0">
+              <span className="font-semibold text-xs sm:text-sm">{item.label}</span>
+              <span className={`font-mono text-xs sm:text-sm ${color}`}>{item.value}</span>
+              {item.unit && <span className="text-[11px] text-muted-foreground">{item.unit}</span>}
+              {pct !== null && (
+                <span className={`font-mono text-xs ${color}`}>
+                  {item.change && <span className="hidden sm:inline">{item.change} </span>}
+                  ({sign}
+                  {pct.toFixed(2)}%)
+                </span>
+              )}
             </div>
           );
         })}
