@@ -37,7 +37,7 @@ async function screenTurn(): Promise<ChatTurn> {
           ]),
         }
       : undefined,
-    note: "P/E, ROE và vốn hoá theo số liệu quý gần nhất của nguồn. Thư viện trả ROE dạng phân số (0.25), ở đây đổi ra phần trăm để đọc.",
+    note: "P/E, ROE và vốn hoá lấy từ bảng thống kê của nguồn, không tính lại theo giá khớp. Thư viện trả ROE dạng phân số (0.25), ở đây đổi ra phần trăm để đọc.",
   };
 }
 
